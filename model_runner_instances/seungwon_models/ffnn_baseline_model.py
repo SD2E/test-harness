@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from utils_nn import *
+from model_runner_instances.seungwon_models.utils_nn import *
 
 #################################################
 ############ Simple Feedforward Net #############
