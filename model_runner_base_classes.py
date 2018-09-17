@@ -15,6 +15,11 @@ import rfpimp
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)
 
+PWD = os.getcwd()
+HERE = os.path.realpath(__file__)
+PARENT = os.path.dirname(HERE)
+DEFAULT_DATA_PATH = os.path.join(PWD, 'versioned_data/asap/')
+
 
 # TODO: add checks for instance parameter types to see if they're of the correct type
 class ModelRunner(metaclass=ABCMeta):
@@ -41,15 +46,12 @@ class ModelRunner(metaclass=ABCMeta):
 
         if (self.training_data is None and self.testing_data is None and self.data_set_description is None and
                 self.train_test_split_description is None):
-            default_data_folder_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                                    'model_runner_data/default_model_runner_data/')
-            train_path = os.path.join(default_data_folder_path, 'consistent_normalized_training_data_v1.csv')
-            test_path = os.path.join(default_data_folder_path, 'consistent_normalized_testing_data_v1.csv')
+            train_path = os.path.join(DEFAULT_DATA_PATH, 'consistent_training_data_v1.asap.csv')
+            test_path = os.path.join(DEFAULT_DATA_PATH, 'consistent_testing_data_v1.asap.csv')
             if (not os.path.isfile(train_path) and not os.path.isfile(test_path)):
-                raise IOError(
-                    "Training or Testing default data does not exist in the default data path. Perhaps you forgot to download the data?")
-            self.training_data = pd.read_csv(train_path)
-            self.testing_data = pd.read_csv(test_path)
+                raise IOError("Training or Testing default data does not exist in the default data path. Perhaps you forgot to download the data?")
+            self.training_data = pd.read_csv(train_path, comment='#', sep=',')
+            self.testing_data = pd.read_csv(test_path, comment='#', sep=',')
             self.data_set_description = 'Default: All V1 Data'
             self.train_test_split_description = """Default: Random split of 80% train and 20% test. Stratified on "stable?" and "library". random_state=5."""
             self.default_data_set_used = True
@@ -62,13 +64,10 @@ class ModelRunner(metaclass=ABCMeta):
                                 "train_test_split_description" must all be None or all be Pandas Dataframes.""")
 
         if self.predict_untested is None:
-            default_data_folder_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                                    'model_runner_data/default_model_runner_data/')
-            untested_path = os.path.join(default_data_folder_path, 'normalized_and_cleaned_untested_designs_v1.csv')
+            untested_path = os.path.join(DEFAULT_DATA_PATH, 'normalized_and_cleaned_untested_designs_v1_with_lib.asap.csv')
             if not os.path.isfile(untested_path):
-                raise IOError(
-                    "Untested default data does not exist in the default data path. Perhaps you forgot to download the data?")
-            self.predict_untested = pd.read_csv(untested_path)
+                raise IOError("Untested default data does not exist in the default data path. Perhaps you forgot to download the data?")
+            self.predict_untested = pd.read_csv(untested_path, comment='#', sep=',')
         elif (not self.predict_untested is False and not isinstance(self.predict_untested, pd.DataFrame)):
             raise ValueError("'predict_untested must be None, False, or a Pandas Dataframe.")
 

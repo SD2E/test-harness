@@ -1,11 +1,14 @@
 import os
 import json
+import time
 import pandas as pd
 from unique_id import get_id
 
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)
 pd.set_option('display.max_colwidth', -1)
+# CSS classes applied to the Pandas Dataframes when written as HTML
+css_classes = ["table-bordered", "table-striped", "table-compact"]
 
 
 class TestHarness:
@@ -38,7 +41,10 @@ class TestHarness:
             cc_leaderboard = pd.read_html(html_path)[0]
         except (IOError, ValueError):
             cc_leaderboard = pd.DataFrame(columns=self.class_leaderboard_cols)
-            cc_leaderboard.to_html(html_path, index=False)
+            cc_leaderboard.to_html(
+                html_path,
+                index=False,
+                classes='comparable_classification')
         self.comparable_classification_leaderboard = cc_leaderboard.copy()
 
         gc_leaderboard_name = 'general_classification_leaderboard'
@@ -47,7 +53,10 @@ class TestHarness:
             gc_leaderboard = pd.read_html(html_path)[0]
         except (IOError, ValueError):
             gc_leaderboard = pd.DataFrame(columns=self.class_leaderboard_cols)
-            gc_leaderboard.to_html(html_path, index=False)
+            gc_leaderboard.to_html(
+                html_path,
+                index=False,
+                classes='general_classification')
         self.general_classification_leaderboard = gc_leaderboard.copy()
 
         cr_leaderboard_name = 'comparable_regression_leaderboard'
@@ -56,7 +65,10 @@ class TestHarness:
             cr_leaderboard = pd.read_html(html_path)[0]
         except (IOError, ValueError):
             cr_leaderboard = pd.DataFrame(columns=self.reg_leaderboard_cols)
-            cr_leaderboard.to_html(html_path, index=False)
+            cr_leaderboard.to_html(
+                html_path,
+                index=False,
+                classes='comparable_regression')
         self.comparable_regression_leaderboard = cr_leaderboard.copy()
 
         gr_leaderboard_name = 'general_regression_leaderboard'
@@ -65,13 +77,23 @@ class TestHarness:
             gr_leaderboard = pd.read_html(html_path)[0]
         except (IOError, ValueError):
             gr_leaderboard = pd.DataFrame(columns=self.reg_leaderboard_cols)
-            gr_leaderboard.to_html(html_path, index=False)
+            gr_leaderboard.to_html(
+                html_path,
+                index=False,
+                classes='general_regression')
         self.general_regression_leaderboard = gr_leaderboard.copy()
 
     def run_models(self):
         for model_runner in self.model_runners:
-            # self.remove_model_runner(model_runner)
+            print()
+            print('Starting model with description: {}'.format(model_runner.model_description))
+            start = time.time()
+            print('model started at {}'.format(start))
             results = model_runner.run_model()
+            end = time.time()
+            print('model finished at {}'.format(end))
+            print('total time elapsed for this model = {}'.format(end-start))
+            print()
             self._finished_models.append((model_runner, results))
 
     def run_models_on_different_splits(self, cols=['topology', 'library'], performance_output_path=None,
@@ -113,7 +135,10 @@ class TestHarness:
                     self.comparable_classification_leaderboard.sort_values('AUC Score', inplace=True, ascending=False)
                     self.comparable_classification_leaderboard.reset_index(inplace=True, drop=True)
                     html_path = os.path.join(self.output_path, "comparable_classification_leaderboard.html")
-                    self.comparable_classification_leaderboard.to_html(html_path, index=False)
+                    self.comparable_classification_leaderboard.to_html(
+                        html_path,
+                        index=False,
+                        classes='comparable_classification')
                 elif model_runner_instance.default_data_set_used is False:
                     run_id = get_id()
                     model_runner_results['Run ID'] = run_id
@@ -122,7 +147,10 @@ class TestHarness:
                     self.general_classification_leaderboard.sort_values('AUC Score', inplace=True, ascending=False)
                     self.general_classification_leaderboard.reset_index(inplace=True, drop=True)
                     html_path = os.path.join(self.output_path, "general_classification_leaderboard.html")
-                    self.general_classification_leaderboard.to_html(html_path, index=False)
+                    self.general_classification_leaderboard.to_html(
+                        html_path,
+                        index=False,
+                        classes='general_classification')
             elif model_runner_instance.type == 'regression':
                 if model_runner_instance.default_data_set_used is True:
                     run_id = get_id()
@@ -133,7 +161,10 @@ class TestHarness:
                                                                        ascending=True)
                     self.comparable_regression_leaderboard.reset_index(inplace=True, drop=True)
                     html_path = os.path.join(self.output_path, "comparable_regression_leaderboard.html")
-                    self.comparable_regression_leaderboard.to_html(html_path, index=False)
+                    self.comparable_regression_leaderboard.to_html(
+                        html_path,
+                        index=False,
+                        classes='comparable_regression')
                 elif model_runner_instance.default_data_set_used is False:
                     run_id = get_id()
                     model_runner_results['Run ID'] = run_id
@@ -142,7 +173,11 @@ class TestHarness:
                     self.general_regression_leaderboard.sort_values('RMSE', inplace=True, ascending=True)
                     self.general_regression_leaderboard.reset_index(inplace=True, drop=True)
                     html_path = os.path.join(self.output_path, "general_regression_leaderboard.html")
-                    self.general_regression_leaderboard.to_html(html_path, index=False)
+                    self.general_regression_leaderboard.to_html(
+                        html_path,
+                        index=False,
+                        classes='general_regression')
+
 
             else:
                 raise ValueError()
