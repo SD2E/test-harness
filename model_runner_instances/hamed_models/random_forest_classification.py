@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from test_harness.model_runner_subclasses.mr_sklearn_classification_features import SklearnClassification
+from test_harness.model_runner_subclasses.mr_sklearn_classification import SklearnClassification
 
 
 def random_forest_classification():

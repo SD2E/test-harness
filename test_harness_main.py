@@ -1,9 +1,11 @@
 import argparse
+import datetime as dt
 import os
-import sys
+import importlib
+import types
 import pandas as pd
 from tabulate import tabulate
-from test_harness.test_harness import TestHarness
+from test_harness_class import TestHarness
 
 
 #from model_runner_instances.hamed_models.rocklin_models import logistic_classifier_topology_general_all_features
@@ -13,6 +15,11 @@ PWD = os.getcwd()
 HERE = os.path.realpath(__file__)
 PARENT = os.path.dirname(HERE)
 
+print("PWD:", PWD)
+print("HERE:", HERE)
+print("PARENT:", PARENT)
+
+
 parser = argparse.ArgumentParser()
 # Default behavior is to write out relative
 # to test_harness. Passing output will cause
@@ -21,9 +28,33 @@ parser.add_argument('--output', required=False,
                     help='Output directory')
 
 
-pd.options.display.float_format = '{:.3f}'.format
+def model_runner_by_name(model_runner_path,
+                         module_base_path='model_runner_instances'):
+    """
+    Instantiate an instance of model_runner by path
+
+    Returns: ModelRunner
+    Raises: Exception
+    """
+    try:
+        path_parts = model_runner_path.split('.')
+        func_name = path_parts[-1]
+        func_module_parent_path = module_base_path + '.' + \
+            '.'.join(path_parts[:-1])
+        func_module = importlib.import_module(func_module_parent_path)
+        named_meth = getattr(func_module, func_name)
+        if callable(named_meth) and isinstance(named_meth,
+                                               types.FunctionType):
+            model_runner_instance = named_meth()
+            return model_runner_instance
+    # TODO: More granular Exception handling
+    except Exception:
+        raise
+
 
 def main(args):
+
+    model_list = []
 
     if 'output' in args and args.output is not None:
         output_dir = os.path.join(PWD, args.output)
@@ -45,23 +76,18 @@ def main(args):
     # training_data = pd.read_csv('/Users/he/PycharmProjects/SD2/protein-design/data_so_far_7-20-18/v1-82k/normalized_data_v1_train.csv')
     # testing_data = pd.read_csv('/Users/he/PycharmProjects/SD2/protein-design/data_so_far_7-20-18/v1-82k/normalized_data_v1_test.csv')
 
-    # training_data = pd.read_csv('/Users/he/PycharmProjects/SD2/protein-design/data_so_far_7-20-18/v2-108k/normalized_data_v2_train.csv')
-    # testing_data = pd.read_csv('/Users/he/PycharmProjects/SD2/protein-design/data_so_far_7-20-18/v2-108k/normalized_data_v2_test.csv')
+    training_data = pd.read_csv('/Users/he/PycharmProjects/SD2/protein-design/data_so_far_7-20-18/v2-108k/normalized_data_v2_train.csv')
+    testing_data = pd.read_csv('/Users/he/PycharmProjects/SD2/protein-design/data_so_far_7-20-18/v2-108k/normalized_data_v2_test.csv')
 
 
     # training_data = os.path.join(PWD, 'versioned_data/asap/consistent_training_data_v1.asap.csv')
     # testing_data = os.path.join(PWD, 'versioned_data/asap/consistent_testing_data_v1.asap.csv')
-    # training_data = training_data.sample(n=2000)
-    # testing_data = testing_data.sample(n=1000)
 
+    # training_data = pd.read_csv('/work/projects/SD2E-Community/prod/data/protein-design/versioned_data/asap/consistent_training_data_v1.asap.csv')
+    # testing_data = pd.read_csv('/work/projects/SD2E-Community/prod/data/protein-design/versioned_data/asap/consistent_testing_data_v1.asap.csv')
 
-
-
-
-    #sys.exit()
-
-    training_data = pd.read_csv('/work/projects/SD2E-Community/prod/data/protein-design/versioned_data/asap/consistent_training_data_v1.asap.csv')
-    testing_data = pd.read_csv('/work/projects/SD2E-Community/prod/data/protein-design/versioned_data/asap/consistent_testing_data_v1.asap.csv')
+    training_data = training_data.sample(n=2000)
+    testing_data = testing_data.sample(n=1000)
 
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -70,38 +96,48 @@ def main(args):
 
     th.add_model_runner(rfr_features(training_data, testing_data))
 
+    # Running Jed's Model, which requires GPU:
+    # default_data_folder_path = os.path.join(PARENT, 'model_runner_data/default_model_runner_data/')
+    # train_path = os.path.join(default_data_folder_path, 'consistent_normalized_training_data_v1.csv')
+    # test_path = os.path.join(default_data_folder_path, 'consistent_normalized_testing_data_v1.csv')
+    # untested_path = os.path.join(default_data_folder_path, 'normalized_and_cleaned_untested_designs_v1.csv')
+    # th.add_model_runner(sequence_only_cnn(train_path, test_path, untested_path))
 
     # ------------------------------------------------------------------------------------------------------------------
 
-    # th.run_models()
-    # th.run_test_harness()
-    th.run_models_on_different_splits(performance_output_path='splits/feature_importances/asdf1.csv',
-                                      features_output_path='splits/feature_importances/asdf2.csv')
+    th.run_models()
+    th.run_test_harness()
 
-
-    '''
-    hughs_groupings = pd.read_csv('/Users/he/PycharmProjects/SD2/protein-design/test_harness/'
-                                  'splits/leave_one_out_split_groupings.csv')
-
-    print(hughs_groupings)
-
-    print(set(training_data['library']))
-    
-    th.run_models_on_custom_splits(hughs_groupings, performance_output_path='splits/feature_importances/permut_rfr_k_performance.csv',
-                                   features_output_path='splits/feature_importances/permut_rfr_k_features.csv')
-
-    '''
-
-
-
-    # ccl_path = os.path.join(output_dir, 'comparable_classification_leaderboard.html')
-    # crl_path = os.path.join(output_dir, 'comparable_regression_leaderboard.html')
-    # gcl_path = os.path.join(output_dir, 'general_classification_leaderboard.html')
-    # grl_path = os.path.join(output_dir, 'general_regression_leaderboard.html')
+    ccl_path = os.path.join(output_dir, 'comparable_classification_leaderboard.html')
+    crl_path = os.path.join(output_dir, 'comparable_regression_leaderboard.html')
+    gcl_path = os.path.join(output_dir, 'general_classification_leaderboard.html')
+    grl_path = os.path.join(output_dir, 'general_regression_leaderboard.html')
     # print(tabulate(pd.read_html(ccl_path)[0], headers='keys', tablefmt='grid'))
     # print(tabulate(pd.read_html(crl_path)[0], headers='keys', tablefmt='grid'))
     # print(tabulate(pd.read_html(gcl_path)[0], headers='keys', tablefmt='grid'))
     # print(tabulate(pd.read_html(grl_path)[0], headers='keys', tablefmt='grid'))
+
+    # Build meta-leaderboard with DataTables styling
+    TEMPLATES = os.path.join(PARENT, 'templates')
+    index_path = os.path.join(output_dir, 'index.html')
+
+    with open(index_path, 'w') as idx:
+        with open(os.path.join(TEMPLATES, 'header.html.j2'), 'r') as hdr:
+            for line in hdr:
+                idx.write(line)
+
+        for lb in (ccl_path, crl_path, gcl_path, grl_path):
+            fname = os.path.basename(lb)
+            classname = fname.replace('_leaderboard.html', '')
+            heading = classname.replace('_', ' ').title()
+            idx.write('\n<h2>{}</h2>\n'.format(heading))
+            with open(lb, 'r') as tbl:
+                for line in tbl:
+                    idx.write(line)
+
+        with open(os.path.join(TEMPLATES, 'footer.html.j2'), 'r') as ftr:
+            for line in ftr:
+                idx.write(line)
 
 
 if __name__ == '__main__':
