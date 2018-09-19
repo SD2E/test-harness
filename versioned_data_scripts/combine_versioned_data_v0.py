@@ -2,16 +2,19 @@ import pandas as pd
 import os
 import glob
 from builtins import any
+from pathlib import Path
 
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)
 pd.set_option('display.max_rows', 200)
 
 
-def combine_data(versioned_data_folder_path=os.path.join(os.getcwd(), 'versioned_data')):
-    stab_scores_path = os.path.join(versioned_data_folder_path, 'experimental_stability_scores')
-    metadata_path = os.path.join(versioned_data_folder_path, 'metadata')
-    struct_metrics_path = os.path.join(versioned_data_folder_path, 'structural_metrics')
+def combine_data(versioned_datasets_repo_path=os.path.join(Path(__file__).parents[3], 'versioned-datasets')):
+    data_folder_path = os.path.join(versioned_datasets_repo_path, 'data')
+
+    stab_scores_path = os.path.join(data_folder_path, 'experimental_stability_scores')
+    metadata_path = os.path.join(data_folder_path, 'metadata')
+    struct_metrics_path = os.path.join(data_folder_path, 'structural_metrics')
 
     stab_scores_files = glob.glob(os.path.join(stab_scores_path, '*.csv'))
     metadata_files = glob.glob(os.path.join(metadata_path, '*.csv'))
