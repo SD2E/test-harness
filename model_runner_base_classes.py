@@ -9,6 +9,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import roc_auc_score, r2_score
 import itertools
 import rfpimp
+
 # from test_harness.model_factory import ModelFactory, ModelVisitor
 # import BlackBoxAuditing as BBA
 
@@ -72,34 +73,35 @@ class ModelRunner(metaclass=ABCMeta):
             raise ValueError("'predict_untested must be None, False, or a Pandas Dataframe.")
 
         if self.feature_cols_to_use is None:
-            self.feature_cols_to_use = ['alacount', 't1_absq', 't1_netq', 'tend_absq', 'tend_netq', 'tminus1_absq',
-                                        'tminus1_netq', 'abego_res_profile', 'abego_res_profile_penalty',
+            self.feature_cols_to_use = ['AlaCount', 'T1_absq', 'T1_netq', 'Tend_absq', 'Tend_netq', 'Tminus1_absq',
+                                        'Tminus1_netq', 'abego_res_profile', 'abego_res_profile_penalty',
                                         'avg_all_frags', 'avg_best_frag', 'bb', 'buns_bb_heavy', 'buns_nonheavy',
-                                        'buns_sc_heavy', 'buried_minus_exposed', 'buried_np', 'buried_np_afilmvwy',
-                                        'buried_np_afilmvwy_per_res', 'buried_np_per_res', 'buried_over_exposed',
-                                        'chymo_cut_sites', 'chymo_with_lm_cut_sites', 'contact_all',
-                                        'contact_core_sasa', 'contact_core_scn', 'contig_not_hp_avg',
+                                        'buns_sc_heavy', 'buried_minus_exposed', 'buried_np', 'buried_np_AFILMVWY',
+                                        'buried_np_AFILMVWY_per_res', 'buried_np_per_res', 'buried_over_exposed',
+                                        'chymo_cut_sites', 'chymo_with_LM_cut_sites', 'contact_all',
+                                        'contact_core_SASA', 'contact_core_SCN', 'contig_not_hp_avg',
                                         'contig_not_hp_avg_norm', 'contig_not_hp_internal_max', 'contig_not_hp_max',
-                                        'degree', 'dslf_fa13', 'entropy', 'exposed_hydrophobics', 'exposed_np_afilmvwy',
-                                        'exposed_polars', 'exposed_total', 'fa_atr', 'fa_atr_per_res', 'fa_dun_dev',
-                                        'fa_dun_rot', 'fa_dun_semi', 'fa_elec', 'fa_intra_atr_xover4', 'fa_intra_elec',
-                                        'fa_intra_rep_xover4', 'fa_intra_sol_xover4', 'fa_rep', 'fa_rep_per_res',
-                                        'fa_sol', 'frac_helix', 'frac_loop', 'frac_sheet', 'fxn_exposed_is_np',
-                                        'hbond_bb_sc', 'hbond_lr_bb', 'hbond_lr_bb_per_sheet', 'hbond_sc',
-                                        'hbond_sr_bb', 'hbond_sr_bb_per_helix', 'helix_sc', 'holes',
-                                        'hphob_sc_contacts', 'hphob_sc_degree', 'hxl_tors', 'hydrophobicity',
-                                        'largest_hphob_cluster', 'lk_ball', 'lk_ball_bridge', 'lk_ball_bridge_uncpl',
-                                        'lk_ball_iso', 'n_charged',
-                                        'n_hphob_clusters', 'n_hydrophobic', 'n_hydrophobic_noa', 'n_polar_core',
-                                        'n_res', 'nearest_chymo_cut_to_cterm', 'nearest_chymo_cut_to_nterm',
-                                        'nearest_chymo_cut_to_term', 'nearest_tryp_cut_to_cterm',
-                                        'nearest_tryp_cut_to_nterm', 'nearest_tryp_cut_to_term',
-                                        'net_atr_net_sol_per_res', 'net_atr_per_res', 'net_sol_per_res', 'netcharge',
-                                        'nres', 'nres_helix', 'nres_loop', 'nres_sheet', 'omega', 'one_core_each',
-                                        'p_aa_pp', 'pack', 'percent_core_sasa', 'percent_core_scn', 'pro_close',
-                                        'rama_prepro', 'ref', 'res_count_core_sasa', 'res_count_core_scn',
-                                        'score_per_res', 'ss_contributes_core', 'sum_best_frags',
-                                        'total_score', 'tryp_cut_sites', 'two_core_each', 'worst6frags', 'worstfrag']
+                                        'degree', 'description', 'dslf_fa13', 'dssp', 'entropy', 'exposed_hydrophobics',
+                                        'exposed_np_AFILMVWY', 'exposed_polars', 'exposed_total', 'fa_atr',
+                                        'fa_atr_per_res', 'fa_dun_dev', 'fa_dun_rot', 'fa_dun_semi', 'fa_elec',
+                                        'fa_intra_atr_xover4', 'fa_intra_elec', 'fa_intra_rep_xover4',
+                                        'fa_intra_sol_xover4', 'fa_rep', 'fa_rep_per_res', 'fa_sol', 'frac_helix',
+                                        'frac_loop', 'frac_sheet', 'fxn_exposed_is_np', 'hbond_bb_sc', 'hbond_lr_bb',
+                                        'hbond_lr_bb_per_sheet', 'hbond_sc', 'hbond_sr_bb', 'hbond_sr_bb_per_helix',
+                                        'helix_sc', 'holes', 'hphob_sc_contacts', 'hphob_sc_degree', 'hxl_tors',
+                                        'hydrophobicity', 'largest_hphob_cluster', 'lk_ball', 'lk_ball_bridge',
+                                        'lk_ball_bridge_uncpl', 'lk_ball_iso', 'loop_sc', 'mismatch_probability',
+                                        'n_charged', 'n_hphob_clusters', 'n_hydrophobic', 'n_hydrophobic_noA',
+                                        'n_polar_core', 'n_res', 'nearest_chymo_cut_to_Cterm',
+                                        'nearest_chymo_cut_to_Nterm', 'nearest_chymo_cut_to_term',
+                                        'nearest_tryp_cut_to_Cterm', 'nearest_tryp_cut_to_Nterm',
+                                        'nearest_tryp_cut_to_term', 'net_atr_net_sol_per_res', 'net_atr_per_res',
+                                        'net_sol_per_res', 'netcharge', 'nres', 'nres_helix', 'nres_loop', 'nres_sheet',
+                                        'omega', 'one_core_each', 'p_aa_pp', 'pack', 'percent_core_SASA',
+                                        'percent_core_SCN', 'pro_close', 'rama_prepro', 'ref', 'res_count_core_SASA',
+                                        'res_count_core_SCN', 'score_per_res', 'sequence', 'ss_contributes_core',
+                                        'ss_sc', 'sum_best_frags', 'total_score', 'tryp_cut_sites', 'two_core_each',
+                                        'worst6frags', 'worstfrag']
 
         elif not isinstance(self.feature_cols_to_use, list) and \
                 not isinstance(self.feature_cols_to_use, dict):
@@ -172,7 +174,6 @@ class ModelRunner(metaclass=ABCMeta):
                     splits_features = pd.merge(splits_features, this_run_perms, on='Feature')
             print()
 
-
         return splits_results, splits_features
 
     def custom_splits(self, grouping_df):
@@ -193,7 +194,7 @@ class ModelRunner(metaclass=ABCMeta):
             group_df = relevant_groupings.loc[relevant_groupings['group_index'] == group]
             print(group_df)
             train_split = train_split.loc[~((train_split['library'].isin(group_df['library'])) &
-                                           (train_split['topology'].isin(group_df['topology'])))]
+                                            (train_split['topology'].isin(group_df['topology'])))]
             test_split = test_split.loc[(test_split['library'].isin(group_df['library'])) &
                                         (test_split['topology'].isin(group_df['topology']))]
             print(train_split.shape)
@@ -206,14 +207,15 @@ class ModelRunner(metaclass=ABCMeta):
             splits_results = pd.concat([splits_results, this_run_results])
 
             this_run_perms = self.permutation_importances
-            this_run_perms.rename(columns={'Importance': str(list(set(group_df['library'])) + list(set(group_df['topology'])))}, inplace=True)
+            this_run_perms.rename(
+                columns={'Importance': str(list(set(group_df['library'])) + list(set(group_df['topology'])))},
+                inplace=True)
             if isinstance(this_run_perms, pd.DataFrame):
                 if splits_features is None:
                     splits_features = this_run_perms
                 else:
                     splits_features = pd.merge(splits_features, this_run_perms, on='Feature')
             print()
-
 
         return splits_results, splits_features
 
@@ -235,7 +237,6 @@ class ClassificationModelRunner(ModelRunner, metaclass=ABCMeta):
     @abstractmethod
     def _predict_proba(self, X):
         pass
-
 
     # TODO: fix predict dataframe interactions
     def _topology_general_predictions(self, train, test, predict):
@@ -301,9 +302,10 @@ class ClassificationModelRunner(ModelRunner, metaclass=ABCMeta):
         types_list = [float for x in self.feature_cols_to_use]
         to_pred_index = self.training_data.columns.get_loc(self.col_to_predict)
         types_list[to_pred_index] = str
-        datatuple = ([self.col_to_predict] + self.feature_cols_to_use, self.training_data[self.feature_cols_to_use].values.tolist(),
-                     self.testing_data[self.feature_cols_to_use].values.tolist(), self.col_to_predict,
-                     [], types_list)
+        datatuple = (
+        [self.col_to_predict] + self.feature_cols_to_use, self.training_data[self.feature_cols_to_use].values.tolist(),
+        self.testing_data[self.feature_cols_to_use].values.tolist(), self.col_to_predict,
+        [], types_list)
         auditor(data=datatuple,
                 output_dir='/Users/he/PycharmProjects/SD2/protein-design/test_harness/model_factory_output',
                 features_to_audit=self.feature_cols_to_use)

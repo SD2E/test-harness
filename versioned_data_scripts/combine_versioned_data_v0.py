@@ -71,10 +71,10 @@ def combine_data(versioned_datasets_repo_path=os.path.join(Path(__file__).parent
             print("Rows DID NOT match up correctly during merging of 3 DataFrames for the {} library".format(lib))
         df.drop(['origin_1', 'origin_2'], inplace=True, axis=1)
         print("Merge of 3 DataFrames for the {} library resulted in a DataFrame of shape: {}".format(lib, df.shape))
-        print()
 
         colnames[lib] = set(df.columns.values)
         frames.append(df)
+    print()
 
     # check_if_cols_match_in_colnames_dict(colnames)
 
