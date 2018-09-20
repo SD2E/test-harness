@@ -79,6 +79,9 @@ def combine_data(versioned_datasets_repo_path=os.path.join(Path(__file__).parent
     # check_if_cols_match_in_colnames_dict(colnames)
 
     final_df = pd.concat(frames, sort=False)
+
+    final_df = remove_rows_with_RuntimeError(final_df)
+
     return final_df
 
 
@@ -96,6 +99,12 @@ def check_if_cols_match_in_colnames_dict(colnames_dict):
         print("Columns that exist in other libraries but not in library {}: {}".format(
             libkey, others_combined.difference(libcols)))
         print()
+
+
+def remove_rows_with_RuntimeError(df):
+    # badbad = df[df.apply(lambda r: r.str.contains('RuntimeError', case=False).any(), axis=1)]
+    cleaned_df = df[~df.apply(lambda r: r.str.contains('RuntimeError', case=False).any(), axis=1)]
+    return cleaned_df
 
 
 def combine_data_with_two_body_descriptors():
