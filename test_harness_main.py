@@ -5,11 +5,19 @@ import importlib
 import types
 import pandas as pd
 from tabulate import tabulate
+from pathlib import Path
+from versioned_data_scripts.combine_versioned_data_v0 import combine_data
+from sklearn.model_selection import train_test_split
 from test_harness_class import TestHarness
 
-
-#from model_runner_instances.hamed_models.rocklin_models import logistic_classifier_topology_general_all_features
 from model_runner_instances.hamed_models.random_forest_regression import random_forest_regression, rfr_features
+
+# SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
+# Note that if you clone the `versioned-datasets` repo at the same level as where you cloned the `protein-design` repo,
+# then you can just use VERSIONED_DATASETS = os.path.join(Path(__file__).parents[2], 'versioned-datasets/data')
+VERSIONED_DATA = os.path.join(Path(__file__).parents[2], 'versioned-datasets/data')
+print("Path to data folder in the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATA))
+print()
 
 PWD = os.getcwd()
 HERE = os.path.realpath(__file__)
@@ -18,7 +26,7 @@ PARENT = os.path.dirname(HERE)
 print("PWD:", PWD)
 print("HERE:", HERE)
 print("PARENT:", PARENT)
-
+print()
 
 parser = argparse.ArgumentParser()
 # Default behavior is to write out relative
@@ -39,12 +47,10 @@ def model_runner_by_name(model_runner_path,
     try:
         path_parts = model_runner_path.split('.')
         func_name = path_parts[-1]
-        func_module_parent_path = module_base_path + '.' + \
-            '.'.join(path_parts[:-1])
+        func_module_parent_path = module_base_path + '.' + '.'.join(path_parts[:-1])
         func_module = importlib.import_module(func_module_parent_path)
         named_meth = getattr(func_module, func_name)
-        if callable(named_meth) and isinstance(named_meth,
-                                               types.FunctionType):
+        if callable(named_meth) and isinstance(named_meth, types.FunctionType):
             model_runner_instance = named_meth()
             return model_runner_instance
     # TODO: More granular Exception handling
@@ -53,7 +59,6 @@ def model_runner_by_name(model_runner_path,
 
 
 def main(args):
-
     model_list = []
 
     if 'output' in args and args.output is not None:
@@ -62,33 +67,25 @@ def main(args):
             try:
                 os.makedirs(output_dir)
             except Exception:
-                    raise
+                raise
     else:
         output_dir = PARENT
 
     th = TestHarness(output_path=output_dir)
 
+    combined_data = pd.read_csv(os.path.join(VERSIONED_DATA, 'aggregated_data/all_libs_cleaned.v0.aggregated_data.csv'),
+                                comment='#', low_memory=False)
 
+    # from sklearn import preprocessing
+    # scaler = preprocessing.StandardScaler().fit(combined_data[feature_cols])
+    # normalized_df = combined_data.copy()
+    # normalized_df[feature_cols] = scaler.transform(normalized_df[feature_cols])
 
-    # training_data = pd.read_csv('/Users/he/PycharmProjects/SD2/protein-design/data_so_far_7-20-18/v0-15k/normalized_data_v0_train.csv')
-    # testing_data = pd.read_csv('/Users/he/PycharmProjects/SD2/protein-design/data_so_far_7-20-18/v0-15k/normalized_data_v0_test.csv')
-
-    # training_data = pd.read_csv('/Users/he/PycharmProjects/SD2/protein-design/data_so_far_7-20-18/v1-82k/normalized_data_v1_train.csv')
-    # testing_data = pd.read_csv('/Users/he/PycharmProjects/SD2/protein-design/data_so_far_7-20-18/v1-82k/normalized_data_v1_test.csv')
-
-    training_data = pd.read_csv('/Users/he/PycharmProjects/SD2/protein-design/data_so_far_7-20-18/v2-108k/normalized_data_v2_train.csv')
-    testing_data = pd.read_csv('/Users/he/PycharmProjects/SD2/protein-design/data_so_far_7-20-18/v2-108k/normalized_data_v2_test.csv')
-
-
-    # training_data = os.path.join(PWD, 'versioned_data/asap/consistent_training_data_v1.asap.csv')
-    # testing_data = os.path.join(PWD, 'versioned_data/asap/consistent_testing_data_v1.asap.csv')
-
-    # training_data = pd.read_csv('/work/projects/SD2E-Community/prod/data/protein-design/versioned_data/asap/consistent_training_data_v1.asap.csv')
-    # testing_data = pd.read_csv('/work/projects/SD2E-Community/prod/data/protein-design/versioned_data/asap/consistent_testing_data_v1.asap.csv')
+    training_data, testing_data = train_test_split(combined_data, test_size=0.2, random_state=5,
+                                                   stratify=combined_data[['topology', 'library']])
 
     training_data = training_data.sample(n=2000)
     testing_data = testing_data.sample(n=1000)
-
 
     # ------------------------------------------------------------------------------------------------------------------
     # Add the model runner instances that you want to run to the Test Harness here. Comment out any model runner
@@ -112,10 +109,6 @@ def main(args):
     crl_path = os.path.join(output_dir, 'comparable_regression_leaderboard.html')
     gcl_path = os.path.join(output_dir, 'general_classification_leaderboard.html')
     grl_path = os.path.join(output_dir, 'general_regression_leaderboard.html')
-    # print(tabulate(pd.read_html(ccl_path)[0], headers='keys', tablefmt='grid'))
-    # print(tabulate(pd.read_html(crl_path)[0], headers='keys', tablefmt='grid'))
-    # print(tabulate(pd.read_html(gcl_path)[0], headers='keys', tablefmt='grid'))
-    # print(tabulate(pd.read_html(grl_path)[0], headers='keys', tablefmt='grid'))
 
     # Build meta-leaderboard with DataTables styling
     TEMPLATES = os.path.join(PARENT, 'templates')

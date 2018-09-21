@@ -12,12 +12,12 @@ def rfr_features(train, test):
                                 max_features=0.2, max_depth=86, n_jobs=-1)
     # Creating an instance of the SklearnRegression Model Runner subclass
     mr_rfr = RFRegression(model=rfr,
-                               model_description="Random Forest Regressor: bootstrap=False, min_samples_leaf=1, n_estimators=689, min_samples_split=2, max_features=0.2, max_depth=86, n_jobs=-1",
-                               col_to_predict='stabilityscore', topology_specific_or_general='general', predict_untested=False,
-                               training_data=train, testing_data=test, train_test_split_description='', data_set_description='')
+                          model_description="Random Forest Regressor: bootstrap=False, min_samples_leaf=1, n_estimators=689, min_samples_split=2, max_features=0.2, max_depth=86, n_jobs=-1",
+                          col_to_predict='stabilityscore', topology_specific_or_general='general',
+                          predict_untested=False,
+                          training_data=train, testing_data=test, train_test_split_description='',
+                          data_set_description='')
     return mr_rfr
-
-
 
 
 def random_forest_regression(train, test):
@@ -27,8 +27,10 @@ def random_forest_regression(train, test):
     # Creating an instance of the SklearnRegression Model Runner subclass
     mr_rfr = SklearnRegression(model=rfr,
                                model_description="Random Forest Regressor: bootstrap=False, min_samples_leaf=1, n_estimators=689, min_samples_split=2, max_features=0.2, max_depth=86, n_jobs=-1",
-                               col_to_predict='stabilityscore', topology_specific_or_general='general', predict_untested=False,
-                               training_data=train, testing_data=test, train_test_split_description='', data_set_description='')
+                               col_to_predict='stabilityscore', topology_specific_or_general='general',
+                               predict_untested=False,
+                               training_data=train, testing_data=test, train_test_split_description='',
+                               data_set_description='')
     return mr_rfr
 
 

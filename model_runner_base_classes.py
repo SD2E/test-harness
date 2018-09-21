@@ -9,9 +9,8 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import roc_auc_score, r2_score
 import itertools
 import rfpimp
-
-# from test_harness.model_factory import ModelFactory, ModelVisitor
-# import BlackBoxAuditing as BBA
+from test_harness.model_factory import ModelFactory, ModelVisitor
+import BlackBoxAuditing as BBA
 
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)
@@ -81,7 +80,7 @@ class ModelRunner(metaclass=ABCMeta):
                                         'chymo_cut_sites', 'chymo_with_LM_cut_sites', 'contact_all',
                                         'contact_core_SASA', 'contact_core_SCN', 'contig_not_hp_avg',
                                         'contig_not_hp_avg_norm', 'contig_not_hp_internal_max', 'contig_not_hp_max',
-                                        'degree', 'description', 'dslf_fa13', 'dssp', 'entropy', 'exposed_hydrophobics',
+                                        'degree', 'dslf_fa13', 'entropy', 'exposed_hydrophobics',
                                         'exposed_np_AFILMVWY', 'exposed_polars', 'exposed_total', 'fa_atr',
                                         'fa_atr_per_res', 'fa_dun_dev', 'fa_dun_rot', 'fa_dun_semi', 'fa_elec',
                                         'fa_intra_atr_xover4', 'fa_intra_elec', 'fa_intra_rep_xover4',
@@ -99,7 +98,7 @@ class ModelRunner(metaclass=ABCMeta):
                                         'net_sol_per_res', 'netcharge', 'nres', 'nres_helix', 'nres_loop', 'nres_sheet',
                                         'omega', 'one_core_each', 'p_aa_pp', 'pack', 'percent_core_SASA',
                                         'percent_core_SCN', 'pro_close', 'rama_prepro', 'ref', 'res_count_core_SASA',
-                                        'res_count_core_SCN', 'score_per_res', 'sequence', 'ss_contributes_core',
+                                        'res_count_core_SCN', 'score_per_res', 'ss_contributes_core',
                                         'ss_sc', 'sum_best_frags', 'total_score', 'tryp_cut_sites', 'two_core_each',
                                         'worst6frags', 'worstfrag']
 
