@@ -14,8 +14,8 @@ from model_runner_instances.hamed_models.random_forest_regression import random_
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
 # Note that if you clone the `versioned-datasets` repo at the same level as where you cloned the `protein-design` repo,
-# then you can just use VERSIONED_DATASETS = os.path.join(Path(__file__).parents[2], 'versioned-datasets/data')
-VERSIONED_DATA = os.path.join(Path(__file__).parents[2], 'versioned-datasets/data')
+# then you can use VERSIONED_DATASETS = os.path.join(Path(__file__).resolve().parents[2], 'versioned-datasets/data')
+VERSIONED_DATA = os.path.join(Path(__file__).resolve().parents[2], 'versioned-datasets/data')
 print("Path to data folder in the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATA))
 print()
 

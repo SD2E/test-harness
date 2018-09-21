@@ -9,8 +9,8 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import roc_auc_score, r2_score
 import itertools
 import rfpimp
-from test_harness.model_factory import ModelFactory, ModelVisitor
-import BlackBoxAuditing as BBA
+# from test_harness.model_factory import ModelFactory, ModelVisitor
+# import BlackBoxAuditing as BBA
 
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)

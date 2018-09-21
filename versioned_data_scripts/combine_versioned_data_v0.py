@@ -9,7 +9,7 @@ pd.set_option('display.width', 10000)
 pd.set_option('display.max_rows', 200)
 
 
-def combine_data(versioned_datasets_repo_path=os.path.join(Path(__file__).parents[3], 'versioned-datasets')):
+def combine_data(versioned_datasets_repo_path=os.path.join(Path(__file__).resolve().parents[3], 'versioned-datasets')):
     data_folder_path = os.path.join(versioned_datasets_repo_path, 'data')
 
     stab_scores_path = os.path.join(data_folder_path, 'experimental_stability_scores')
