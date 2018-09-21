@@ -79,8 +79,13 @@ def combine_data(versioned_datasets_repo_path=os.path.join(Path(__file__).parent
     # check_if_cols_match_in_colnames_dict(colnames)
 
     final_df = pd.concat(frames, sort=False)
+    print(final_df.shape)
 
     final_df = remove_rows_with_RuntimeError(final_df)
+    print(final_df.shape)
+
+    final_df = remove_rows_with_missing_stabilityscores(final_df)
+    print(final_df.shape)
 
     return final_df
 
@@ -104,6 +109,11 @@ def check_if_cols_match_in_colnames_dict(colnames_dict):
 def remove_rows_with_RuntimeError(df):
     # badbad = df[df.apply(lambda r: r.str.contains('RuntimeError', case=False).any(), axis=1)]
     cleaned_df = df[~df.apply(lambda r: r.str.contains('RuntimeError', case=False).any(), axis=1)]
+    return cleaned_df
+
+def remove_rows_with_missing_stabilityscores(df):
+    # badbad = df.loc[df['stabilityscore'].isnull()]
+    cleaned_df = df.loc[~df['stabilityscore'].isnull()]
     return cleaned_df
 
 
