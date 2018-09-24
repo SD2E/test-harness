@@ -28,7 +28,7 @@ class KerasRegressionTwoDimensional(KerasRegression):
     def __init__(self, model, model_description, training_data=None, testing_data=None,
                  data_set_description=None, train_test_split_description=None, col_to_predict='stabilityscore',
                  feature_cols_to_use=None, id_col='name', topology_col='topology',
-                 topology_specific_or_general='general', predict_untested=None, epochs=25, batch_size=1000,
+                 topology_specific_or_general='general', predict_untested=False, epochs=25, batch_size=1000,
                  verbose=0):
         super(KerasRegressionTwoDimensional, self).__init__(model, model_description, training_data, testing_data,
                                                             data_set_description, train_test_split_description,
@@ -52,16 +52,18 @@ class KerasRegressionTwoDimensional(KerasRegression):
         return self.model.predict(np.expand_dims(np.stack([x[0] for x in X.values]), 3))
 
 
-def sequence_only_cnn(training_data_file, testing_data_file, untested_data_file):
+def sequence_only_cnn(training_data_file, testing_data_file, untested_data_file=None):
     amino_dict = dict(zip(
         ['A', 'R', 'N', 'D', 'C', 'E', 'Q', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V',
          'X', 'J', 'O'], range(23)))  # 'X' means nothing, 'J' means beginning, 'O' means end
 
-    training_data = pd.read_csv(training_data_file, sep=',', comment='#')
-    testing_data = pd.read_csv(testing_data_file, sep=',', comment='#')
-    untested_data = pd.read_csv(untested_data_file, sep=',', comment='#')
+    # training_data = pd.read_csv(training_data_file, sep=',', comment='#')
+    # testing_data = pd.read_csv(testing_data_file, sep=',', comment='#')
+    # untested_data = pd.read_csv(untested_data_file, sep=',', comment='#')
+    training_data = training_data_file.copy()
+    testing_data = testing_data_file.copy()
 
-    MAX_RESIDUES = max(training_data.sequence.map(len).max(), testing_data.sequence.map(len).max(), untested_data.sequence.map(len).max())
+    MAX_RESIDUES = max(training_data.sequence.map(len).max(), testing_data.sequence.map(len).max())
     PADDING = 14  # derived from model architecture
 
     def make_code(sequence):
@@ -74,7 +76,7 @@ def sequence_only_cnn(training_data_file, testing_data_file, untested_data_file)
     training_data['encoded_sequence'] = training_data.sequence.apply(make_code)
     training_data = training_data.sample(frac=1) # shuffle data, because validation data are selected from end before shuffling
     testing_data['encoded_sequence'] = testing_data.sequence.apply(make_code)
-    untested_data['encoded_sequence'] = untested_data.sequence.apply(make_code)
+    # untested_data['encoded_sequence'] = untested_data.sequence.apply(make_code)
 
     inputs = Input(shape=(23, MAX_RESIDUES + 2 + 2 * PADDING, 1))  # 22 amino acids plus null/beginning/end
     amino_inputs = Lambda(lambda x: x[:, :23, :, :])(inputs)
@@ -102,7 +104,7 @@ def sequence_only_cnn(training_data_file, testing_data_file, untested_data_file)
                                        feature_cols_to_use=['encoded_sequence'],
                                        training_data=training_data,
                                        testing_data=testing_data,
-                                       predict_untested=untested_data,
+                                       # predict_untested=untested_data,
                                        batch_size=128,
                                        epochs=25,
                                        data_set_description='asap data from Manifest',

@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 from test_harness_class import TestHarness
 
 from model_runner_instances.hamed_models.random_forest_regression import random_forest_regression, rfr_features
+from model_runner_instances.jed_models.sequence_cnn import sequence_only_cnn
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
 # Note that if you clone the `versioned-datasets` repo at the same level as where you cloned the `protein-design` repo,
@@ -93,8 +94,8 @@ def main(args):
     # Add the model runner instances that you want to run to the Test Harness here. Comment out any model runner
     # instances that you don't want to run.
 
-    model = "RFR"
-    col_to_predict = "stabilityscore_cnn_calibrated"
+    model = "CNN"
+    col_to_predict = "stabilityscore"
     data_set_description = "114k"
     perf_path = "{}_{}_{}_performances.csv".format(data_set_description, col_to_predict, model)
     feat_path = "{}_{}_{}_features.csv".format(data_set_description, col_to_predict, model)
@@ -103,16 +104,16 @@ def main(args):
     print()
 
 
-    th.add_model_runner(rfr_features(training_data, testing_data, col_to_predict=col_to_predict,
-                                     data_set_description=data_set_description,
-                                     train_test_split_description="leave-one-group-out"))
+    # th.add_model_runner(rfr_features(training_data, testing_data, col_to_predict=col_to_predict,
+    #                                  data_set_description=data_set_description,
+    #                                  train_test_split_description="leave-one-group-out"))
 
     # Running Jed's Model, which requires GPU:
     # default_data_folder_path = os.path.join(PARENT, 'model_runner_data/default_model_runner_data/')
     # train_path = os.path.join(default_data_folder_path, 'consistent_normalized_training_data_v1.csv')
     # test_path = os.path.join(default_data_folder_path, 'consistent_normalized_testing_data_v1.csv')
     # untested_path = os.path.join(default_data_folder_path, 'normalized_and_cleaned_untested_designs_v1.csv')
-    # th.add_model_runner(sequence_only_cnn(train_path, test_path, untested_path))
+    th.add_model_runner(sequence_only_cnn(training_data, testing_data))
 
     # ------------------------------------------------------------------------------------------------------------------
 
@@ -123,7 +124,7 @@ def main(args):
     print(grouping_df)
 
     th.run_models_on_custom_splits(grouping_df=grouping_df, performance_output_path=perf_path,
-                                   features_output_path=feat_path)
+                                   features_output_path=feat_path, normalize=False)
 
     # th.run_test_harness()
     #
