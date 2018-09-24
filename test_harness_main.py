@@ -75,17 +75,19 @@ def main(args):
 
     combined_data = pd.read_csv(os.path.join(VERSIONED_DATA, 'aggregated_data/all_libs_cleaned.v0.aggregated_data.csv'),
                                 comment='#', low_memory=False)
-
-    # from sklearn import preprocessing
-    # scaler = preprocessing.StandardScaler().fit(combined_data[feature_cols])
-    # normalized_df = combined_data.copy()
-    # normalized_df[feature_cols] = scaler.transform(normalized_df[feature_cols])
+    combined_data['library_original'] = combined_data['library']
+    combined_data['library'] = combined_data['library'].replace({"topology_mining_and_Longxing_chip_1": "t_l_untested",
+                                                                 "topology_mining_and_Longxing_chip_2": "t_l_untested",
+                                                                 "topology_mining_and_Longxing_chip_3": "t_l_untested"})
+    col_order = list(combined_data.columns.values)
+    col_order.insert(2, col_order.pop(col_order.index('library_original')))
+    combined_data = combined_data[col_order]
 
     training_data, testing_data = train_test_split(combined_data, test_size=0.2, random_state=5,
                                                    stratify=combined_data[['topology', 'library']])
 
-    training_data = training_data.sample(n=2000)
-    testing_data = testing_data.sample(n=1000)
+    # training_data = training_data.sample(n=2000)
+    # testing_data = testing_data.sample(n=1000)
 
     # ------------------------------------------------------------------------------------------------------------------
     # Add the model runner instances that you want to run to the Test Harness here. Comment out any model runner
@@ -102,35 +104,47 @@ def main(args):
 
     # ------------------------------------------------------------------------------------------------------------------
 
-    th.run_models()
-    th.run_test_harness()
+    grouping_df = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein_groupings/v4_data.hugh.v1.protein_groupings.csv'),
+                              comment='#', low_memory=False)
+    grouping_df['library'] = grouping_df['library'].replace({"longxing_untested": "t_l_untested",
+                                                             "topmining_untested": "t_l_untested"})
 
-    ccl_path = os.path.join(output_dir, 'comparable_classification_leaderboard.html')
-    crl_path = os.path.join(output_dir, 'comparable_regression_leaderboard.html')
-    gcl_path = os.path.join(output_dir, 'general_classification_leaderboard.html')
-    grl_path = os.path.join(output_dir, 'general_regression_leaderboard.html')
+    print(grouping_df)
+    th.run_models_on_custom_splits(grouping_df, 'leave_one_out_results/performance_example.csv',
+                                   'leave_one_out_results/features_example.csv')
 
-    # Build meta-leaderboard with DataTables styling
-    TEMPLATES = os.path.join(PARENT, 'templates')
-    index_path = os.path.join(output_dir, 'index.html')
 
-    with open(index_path, 'w') as idx:
-        with open(os.path.join(TEMPLATES, 'header.html.j2'), 'r') as hdr:
-            for line in hdr:
-                idx.write(line)
 
-        for lb in (ccl_path, crl_path, gcl_path, grl_path):
-            fname = os.path.basename(lb)
-            classname = fname.replace('_leaderboard.html', '')
-            heading = classname.replace('_', ' ').title()
-            idx.write('\n<h2>{}</h2>\n'.format(heading))
-            with open(lb, 'r') as tbl:
-                for line in tbl:
-                    idx.write(line)
 
-        with open(os.path.join(TEMPLATES, 'footer.html.j2'), 'r') as ftr:
-            for line in ftr:
-                idx.write(line)
+
+    # th.run_test_harness()
+    #
+    # ccl_path = os.path.join(output_dir, 'comparable_classification_leaderboard.html')
+    # crl_path = os.path.join(output_dir, 'comparable_regression_leaderboard.html')
+    # gcl_path = os.path.join(output_dir, 'general_classification_leaderboard.html')
+    # grl_path = os.path.join(output_dir, 'general_regression_leaderboard.html')
+    #
+    # # Build meta-leaderboard with DataTables styling
+    # TEMPLATES = os.path.join(PARENT, 'templates')
+    # index_path = os.path.join(output_dir, 'index.html')
+    #
+    # with open(index_path, 'w') as idx:
+    #     with open(os.path.join(TEMPLATES, 'header.html.j2'), 'r') as hdr:
+    #         for line in hdr:
+    #             idx.write(line)
+    #
+    #     for lb in (ccl_path, crl_path, gcl_path, grl_path):
+    #         fname = os.path.basename(lb)
+    #         classname = fname.replace('_leaderboard.html', '')
+    #         heading = classname.replace('_', ' ').title()
+    #         idx.write('\n<h2>{}</h2>\n'.format(heading))
+    #         with open(lb, 'r') as tbl:
+    #             for line in tbl:
+    #                 idx.write(line)
+    #
+    #     with open(os.path.join(TEMPLATES, 'footer.html.j2'), 'r') as ftr:
+    #         for line in ftr:
+    #             idx.write(line)
 
 
 if __name__ == '__main__':

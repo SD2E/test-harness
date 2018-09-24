@@ -96,7 +96,7 @@ class TestHarness:
             print()
             self._finished_models.append((model_runner, results))
 
-    def run_models_on_different_splits(self, cols=['topology', 'library'], performance_output_path=None,
+    def run_models_on_splits_by_columns(self, cols=['topology', 'library'], performance_output_path=None,
                                        features_output_path=None):
         for model_runner in self.model_runners:
             split_results, split_features = model_runner.splits_by_columns(cols=cols)

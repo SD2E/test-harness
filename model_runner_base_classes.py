@@ -4,6 +4,7 @@ import inspect
 import pandas as pd
 from math import sqrt
 from abc import ABCMeta, abstractmethod
+from sklearn import preprocessing
 from sklearn.metrics import mean_squared_error
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import roc_auc_score, r2_score
@@ -130,6 +131,15 @@ class ModelRunner(metaclass=ABCMeta):
     def run_model(self, train, test, predict):
         pass
 
+    def normalize_standard_scaler(self, train, test):
+        scaler = preprocessing.StandardScaler().fit(train[self.feature_cols_to_use])
+        normalized_train = train.copy()
+        normalized_train[self.feature_cols_to_use] = scaler.transform(normalized_train[self.feature_cols_to_use])
+        normalized_test = test.copy()
+        normalized_test[self.feature_cols_to_use] = scaler.transform(normalized_test[self.feature_cols_to_use])
+        return normalized_train, normalized_test
+
+
     def splits_by_columns(self, cols=['topology', 'library']):
         all_data = pd.concat([self.training_data.copy(), self.testing_data.copy()])
         unique_combos = (all_data[cols].drop_duplicates())
@@ -175,7 +185,11 @@ class ModelRunner(metaclass=ABCMeta):
 
         return splits_results, splits_features
 
-    def custom_splits(self, grouping_df):
+    def custom_splits(self, grouping_df, normalize=True):
+        # Have to rename the "name" column to "topology" because it's actually topology information. The column was
+        # named "name" only because the data had to conform to restrictions of the Data Versioning Repo
+        grouping_df = grouping_df.rename(columns={'name': 'topology'})
+
         all_data = pd.concat([self.training_data.copy(), self.testing_data.copy()])
 
         relevant_groupings = grouping_df.copy()
@@ -196,8 +210,10 @@ class ModelRunner(metaclass=ABCMeta):
                                             (train_split['topology'].isin(group_df['topology'])))]
             test_split = test_split.loc[(test_split['library'].isin(group_df['library'])) &
                                         (test_split['topology'].isin(group_df['topology']))]
-            print(train_split.shape)
-            print(test_split.shape)
+
+            if normalize is True:
+                print("Normalizing training and testing splits...")
+                train_split, test_split = self.normalize_standard_scaler(train_split, test_split)
 
             print("Number of samples in train split:", train_split.shape)
             print("Number of samples in test split:", test_split.shape)
