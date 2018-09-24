@@ -94,7 +94,7 @@ def main(args):
     # instances that you don't want to run.
 
     model = "RFR"
-    col_to_predict = "stabilityscore"
+    col_to_predict = "stabilityscore_calibrated"
     data_set_description = "114k"
     perf_path = "{}_{}_{}_performances.csv".format(data_set_description, col_to_predict, model)
     feat_path = "{}_{}_{}_features.csv".format(data_set_description, col_to_predict, model)
