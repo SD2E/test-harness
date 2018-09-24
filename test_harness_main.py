@@ -93,7 +93,18 @@ def main(args):
     # Add the model runner instances that you want to run to the Test Harness here. Comment out any model runner
     # instances that you don't want to run.
 
-    th.add_model_runner(rfr_features(training_data, testing_data))
+    model = "RFR"
+    col_to_predict = "stabilityscore"
+    data_set_description = "114k"
+    perf_path = "{}_{}_{}_performances.csv".format(data_set_description, col_to_predict, model)
+    feat_path = "{}_{}_{}_features.csv".format(data_set_description, col_to_predict, model)
+    print("file name for performance results = {}".format(perf_path))
+    print("file name for features results = {}".format(feat_path))
+    print()
+
+    th.add_model_runner(rfr_features(training_data, testing_data, col_to_predict=col_to_predict,
+                                     data_set_description=data_set_description,
+                                     train_test_split_description="leave-one-group-out"))
 
     # Running Jed's Model, which requires GPU:
     # default_data_folder_path = os.path.join(PARENT, 'model_runner_data/default_model_runner_data/')
@@ -108,14 +119,10 @@ def main(args):
                               comment='#', low_memory=False)
     grouping_df['library'] = grouping_df['library'].replace({"longxing_untested": "t_l_untested",
                                                              "topmining_untested": "t_l_untested"})
-
     print(grouping_df)
-    th.run_models_on_custom_splits(grouping_df, 'leave_one_out_results/performance_example.csv',
-                                   'leave_one_out_results/features_example.csv')
 
-
-
-
+    th.run_models_on_custom_splits(grouping_df=grouping_df, performance_output_path=perf_path,
+                                   features_output_path=feat_path)
 
     # th.run_test_harness()
     #
