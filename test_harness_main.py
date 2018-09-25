@@ -124,7 +124,7 @@ def main(args):
     print(grouping_df)
 
     th.run_models_on_custom_splits(grouping_df=grouping_df, performance_output_path=perf_path,
-                                   features_output_path=feat_path, normalize=False)
+                                   features_output_path=feat_path, normalize=False, get_pimportances=False)
 
     # th.run_test_harness()
     #

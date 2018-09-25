@@ -109,15 +109,16 @@ class TestHarness:
                 split_features.to_csv(features_output_path, index=False)
 
     def run_models_on_custom_splits(self, grouping_df, performance_output_path=None, features_output_path=None,
-                                    normalize=True):
+                                    normalize=True, get_pimportances=True):
         for model_runner in self.model_runners:
-            split_results, split_features = model_runner.custom_splits(grouping_df, normalize=normalize)
+            split_results, split_features = model_runner.custom_splits(grouping_df, normalize=normalize,
+                                                                       get_pimportances=get_pimportances)
             split_results = split_results.sort_values('R Squared', ascending=False)
             print(split_results)
             print(split_features)
             if performance_output_path is not None:
                 split_results.to_csv(performance_output_path, index=False)
-            if features_output_path is not None:
+            if split_features is not None and features_output_path is not None:
                 split_features.to_csv(features_output_path, index=False)
 
     def run_test_harness(self):

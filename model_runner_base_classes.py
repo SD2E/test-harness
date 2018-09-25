@@ -185,7 +185,7 @@ class ModelRunner(metaclass=ABCMeta):
 
         return splits_results, splits_features
 
-    def custom_splits(self, grouping_df, normalize=True):
+    def custom_splits(self, grouping_df, normalize=True, get_pimportances=True):
         # Have to rename the "name" column to "topology" because it's actually topology information. The column was
         # named "name" only because the data had to conform to restrictions of the Data Versioning Repo
         grouping_df = grouping_df.rename(columns={'name': 'topology'})
@@ -221,16 +221,17 @@ class ModelRunner(metaclass=ABCMeta):
             this_run_results['test_split'] = str(list(set(group_df['library'])) + list(set(group_df['topology'])))
             splits_results = pd.concat([splits_results, this_run_results])
 
-            this_run_perms = self.permutation_importances
-            this_run_perms.rename(
-                columns={'Importance': str(list(set(group_df['library'])) + list(set(group_df['topology'])))},
-                inplace=True)
-            if isinstance(this_run_perms, pd.DataFrame):
-                if splits_features is None:
-                    splits_features = this_run_perms
-                else:
-                    splits_features = pd.merge(splits_features, this_run_perms, on='Feature')
-            print()
+            if get_pimportances is True:
+                this_run_perms = self.permutation_importances
+                this_run_perms.rename(
+                    columns={'Importance': str(list(set(group_df['library'])) + list(set(group_df['topology'])))},
+                    inplace=True)
+                if isinstance(this_run_perms, pd.DataFrame):
+                    if splits_features is None:
+                        splits_features = this_run_perms
+                    else:
+                        splits_features = pd.merge(splits_features, this_run_perms, on='Feature')
+                print()
 
         return splits_results, splits_features
 
