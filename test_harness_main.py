@@ -84,11 +84,8 @@ def main(args):
     col_order.insert(2, col_order.pop(col_order.index('library_original')))
     combined_data = combined_data[col_order]
 
-    training_data, testing_data = train_test_split(combined_data, test_size=0.2, random_state=5,
-                                                   stratify=combined_data[['topology', 'library']])
-
-    # training_data = training_data.sample(n=2000)
-    # testing_data = testing_data.sample(n=1000)
+    # training_data, testing_data = train_test_split(combined_data, test_size=0.2, random_state=5,
+    #                                                stratify=combined_data[['topology', 'library']])
 
     # ------------------------------------------------------------------------------------------------------------------
     # Add the model runner instances that you want to run to the Test Harness here. Comment out any model runner
@@ -97,14 +94,13 @@ def main(args):
     model = "CNN"
     col_to_predict = "stabilityscore"
     data_set_description = "114k"
-    perf_path = "{}_{}_{}_performances.csv".format(data_set_description, col_to_predict, model)
-    feat_path = "{}_{}_{}_features.csv".format(data_set_description, col_to_predict, model)
+    perf_path = "leave_one_out_results/{}_{}_{}_performances.csv".format(data_set_description, col_to_predict, model)
+    feat_path = "leave_one_out_results/{}_{}_{}_features.csv".format(data_set_description, col_to_predict, model)
     print("file name for performance results = {}".format(perf_path))
     print("file name for features results = {}".format(feat_path))
     print()
 
-
-    # th.add_model_runner(rfr_features(training_data, testing_data, col_to_predict=col_to_predict,
+    # th.add_model_runner(rfr_features(combined_data, pd.DataFrame(), col_to_predict=col_to_predict,
     #                                  data_set_description=data_set_description,
     #                                  train_test_split_description="leave-one-group-out"))
 
@@ -113,7 +109,9 @@ def main(args):
     # train_path = os.path.join(default_data_folder_path, 'consistent_normalized_training_data_v1.csv')
     # test_path = os.path.join(default_data_folder_path, 'consistent_normalized_testing_data_v1.csv')
     # untested_path = os.path.join(default_data_folder_path, 'normalized_and_cleaned_untested_designs_v1.csv')
-    th.add_model_runner(sequence_only_cnn(training_data, testing_data))
+    th.add_model_runner(sequence_only_cnn(combined_data, pd.DataFrame(), col_to_predict=col_to_predict,
+                                          data_set_description=data_set_description,
+                                          train_test_split_description="leave-one-group-out"))
 
     # ------------------------------------------------------------------------------------------------------------------
 

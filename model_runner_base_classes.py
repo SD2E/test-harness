@@ -203,9 +203,9 @@ class ModelRunner(metaclass=ABCMeta):
         for group in list(set(relevant_groupings['group_index'])):
             train_split = all_data.copy()
             test_split = all_data.copy()
-            print("Test split based on group {}:".format(group))
+            print("Creating test split based on group {}:".format(group))
             group_df = relevant_groupings.loc[relevant_groupings['group_index'] == group]
-            print(group_df)
+            print(group_df.to_string(index=False))
             train_split = train_split.loc[~((train_split['library'].isin(group_df['library'])) &
                                             (train_split['topology'].isin(group_df['topology'])))]
             test_split = test_split.loc[(test_split['library'].isin(group_df['library'])) &
@@ -219,6 +219,12 @@ class ModelRunner(metaclass=ABCMeta):
             print("Number of samples in test split:", test_split.shape)
             this_run_results = self.run_model(train_split, test_split, None)
             this_run_results['test_split'] = str(list(set(group_df['library'])) + list(set(group_df['topology'])))
+            this_run_results['num_proteins_in_test_set'] = len(test_split)
+            cols = list(this_run_results)
+            cols.insert(1, cols.pop(cols.index('num_proteins_in_test_set')))
+            cols.insert(1, cols.pop(cols.index('test_split')))
+            this_run_results = this_run_results[cols]
+            print(this_run_results)
             splits_results = pd.concat([splits_results, this_run_results])
 
             if get_pimportances is True:

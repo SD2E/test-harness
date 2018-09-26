@@ -23,7 +23,6 @@ import os
 # set_session(tf.Session(config=config))
 
 
-
 class KerasRegressionTwoDimensional(KerasRegression):
     def __init__(self, model, model_description, training_data=None, testing_data=None,
                  data_set_description=None, train_test_split_description=None, col_to_predict='stabilityscore',
@@ -40,11 +39,12 @@ class KerasRegressionTwoDimensional(KerasRegression):
         self.verbose = verbose
 
     def _fit(self, X, y):
-        checkpoint_filepath='sequence_only_cnn_{}.best.hdf5'.format(str(randint(1000000000, 9999999999)))
+        checkpoint_filepath = 'sequence_only_cnn_{}.best.hdf5'.format(str(randint(1000000000, 9999999999)))
         checkpoint_callback = ModelCheckpoint(checkpoint_filepath, monitor='val_loss', save_best_only=True)
         stopping_callback = EarlyStopping(monitor='val_loss', min_delta=0, patience=3)
         callbacks_list = [checkpoint_callback, stopping_callback]
-        self.model.fit(np.expand_dims(np.stack([x[0] for x in X.values]), 3), y, validation_split=0.1, epochs=self.epochs, batch_size=self.batch_size, verbose=self.verbose, callbacks=callbacks_list)
+        self.model.fit(np.expand_dims(np.stack([x[0] for x in X.values]), 3), y, validation_split=0.1,
+                       epochs=self.epochs, batch_size=self.batch_size, verbose=self.verbose, callbacks=callbacks_list)
         self.model.load_weights(checkpoint_filepath)
         os.remove(checkpoint_filepath)
 
@@ -52,7 +52,8 @@ class KerasRegressionTwoDimensional(KerasRegression):
         return self.model.predict(np.expand_dims(np.stack([x[0] for x in X.values]), 3))
 
 
-def sequence_only_cnn(training_data_file, testing_data_file, untested_data_file=None):
+def sequence_only_cnn(training_data_file, testing_data_file, col_to_predict, data_set_description="",
+                      train_test_split_description=""):
     amino_dict = dict(zip(
         ['A', 'R', 'N', 'D', 'C', 'E', 'Q', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V',
          'X', 'J', 'O'], range(23)))  # 'X' means nothing, 'J' means beginning, 'O' means end
@@ -74,8 +75,9 @@ def sequence_only_cnn(training_data_file, testing_data_file, untested_data_file=
         return code
 
     training_data['encoded_sequence'] = training_data.sequence.apply(make_code)
-    training_data = training_data.sample(frac=1) # shuffle data, because validation data are selected from end before shuffling
-    testing_data['encoded_sequence'] = testing_data.sequence.apply(make_code)
+    training_data = training_data.sample(
+        frac=1)  # shuffle data, because validation data are selected from end before shuffling
+    # testing_data['encoded_sequence'] = testing_data.sequence.apply(make_code)
     # untested_data['encoded_sequence'] = untested_data.sequence.apply(make_code)
 
     inputs = Input(shape=(23, MAX_RESIDUES + 2 + 2 * PADDING, 1))  # 22 amino acids plus null/beginning/end
@@ -99,7 +101,7 @@ def sequence_only_cnn(training_data_file, testing_data_file, untested_data_file=
 
     mr = KerasRegressionTwoDimensional(model=model,
                                        model_description='Sequence CNN 100x1->200x7->400x19->80->40->1',
-                                       col_to_predict='stabilityscore',
+                                       col_to_predict=col_to_predict,
                                        topology_specific_or_general='general',
                                        feature_cols_to_use=['encoded_sequence'],
                                        training_data=training_data,
@@ -107,6 +109,6 @@ def sequence_only_cnn(training_data_file, testing_data_file, untested_data_file=
                                        # predict_untested=untested_data,
                                        batch_size=128,
                                        epochs=25,
-                                       data_set_description='asap data from Manifest',
-                                       train_test_split_description='Random split of 80% train and 20% test. Stratified on "stable?" and "library". random_state=5.')
+                                       data_set_description=data_set_description,
+                                       train_test_split_description=train_test_split_description)
     return mr
