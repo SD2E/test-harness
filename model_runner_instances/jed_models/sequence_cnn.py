@@ -64,7 +64,8 @@ def sequence_only_cnn(training_data_file, testing_data_file, col_to_predict, dat
     training_data = training_data_file.copy()
     testing_data = testing_data_file.copy()
 
-    MAX_RESIDUES = max(training_data.sequence.map(len).max(), testing_data.sequence.map(len).max())
+    # MAX_RESIDUES = max(training_data.sequence.map(len).max(), testing_data.sequence.map(len).max())
+    MAX_RESIDUES = training_data.sequence.map(len).max()
     PADDING = 14  # derived from model architecture
 
     def make_code(sequence):
