@@ -175,7 +175,7 @@ def main(args):
                                    data_set_description=data_set_description,
                                    train_test_split_description="leave-one-group-out"))
         should_i_normalize = True
-        get_pimportances = True
+        get_pimportances = False
     else:
         raise ValueError("for this temporary analysis script, model must equal RFR, CNN, or Linreg")
 
