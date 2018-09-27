@@ -44,6 +44,7 @@ class KerasRegressionTwoDimensional(KerasRegression):
         checkpoint_callback = ModelCheckpoint(checkpoint_filepath, monitor='val_loss', save_best_only=True)
         stopping_callback = EarlyStopping(monitor='val_loss', min_delta=0, patience=3)
         callbacks_list = [checkpoint_callback, stopping_callback]
+        # Jed added this next bit before model.fit to make it fit from scratch if model is being reused
         session = K.get_session()
         for layer in self.model.layers: 
             if hasattr(layer, 'kernel_initializer'):
