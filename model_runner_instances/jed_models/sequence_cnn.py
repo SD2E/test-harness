@@ -14,6 +14,7 @@ from keras.regularizers import l2
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from random import randint
 import os
+from keras import backend as K
 
 
 # import tensorflow as tf
@@ -43,6 +44,10 @@ class KerasRegressionTwoDimensional(KerasRegression):
         checkpoint_callback = ModelCheckpoint(checkpoint_filepath, monitor='val_loss', save_best_only=True)
         stopping_callback = EarlyStopping(monitor='val_loss', min_delta=0, patience=3)
         callbacks_list = [checkpoint_callback, stopping_callback]
+        session = K.get_session()
+        for layer in self.model.layers: 
+            if hasattr(layer, 'kernel_initializer'):
+                layer.kernel.initializer.run(session=session)
         self.model.fit(np.expand_dims(np.stack([x[0] for x in X.values]), 3), y, validation_split=0.1,
                        epochs=self.epochs, batch_size=self.batch_size, verbose=self.verbose, callbacks=callbacks_list)
         self.model.load_weights(checkpoint_filepath)
