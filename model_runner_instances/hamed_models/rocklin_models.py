@@ -90,17 +90,16 @@ def rocklins_gradboost_regression_topology_specific():
     return mr
 
 
-def linear_regression_topology_general_all_features(train, test):
+def linear_regression_topology_general_all_features(train, test, col_to_predict, data_set_description,
+                                                    train_test_split_description):
     rocklins_linear_model = LinearRegression()
-
     mr = SklearnRegression(model=rocklins_linear_model,
-                           model_description='Rocklin LinReg: Default sklearn linear regression',
+                           model_description='Baseline Linear Regression',
                            topology_specific_or_general='general',
-                           training_data=train, testing_data=test, data_set_description='15k',
-                           train_test_split_description='12k-3k',
-                           predict_untested=False
+                           training_data=train, testing_data=test, data_set_description=data_set_description,
+                           train_test_split_description=train_test_split_description,
+                           predict_untested=False, col_to_predict=col_to_predict,
                            )
-
     return mr
 
 
@@ -110,7 +109,8 @@ def logistic_classifier_topology_general_all_features(train=None, test=None):
     mr = SklearnClassification(model=rocklins_logistic_model,
                                model_description="Rocklin Logistic: sklearn LogisticRegression with penalty='l1' and C=0.1",
                                topology_specific_or_general='general',
-                               training_data=train, testing_data=test, data_set_description='15k', train_test_split_description='12k-3k',
+                               training_data=train, testing_data=test, data_set_description='15k',
+                               train_test_split_description='12k-3k',
                                predict_untested=False)
 
     return mr
