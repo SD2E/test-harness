@@ -90,13 +90,14 @@ def rocklins_gradboost_regression_topology_specific():
     return mr
 
 
-def linear_regression_topology_general_all_features(train, test, col_to_predict, data_set_description,
+def linear_regression_topology_general_all_features(training_data, testing_data, col_to_predict, data_set_description,
                                                     train_test_split_description):
     rocklins_linear_model = LinearRegression()
     mr = SklearnRegression(model=rocklins_linear_model,
                            model_description='Baseline Linear Regression',
                            topology_specific_or_general='general',
-                           training_data=train, testing_data=test, data_set_description=data_set_description,
+                           training_data=training_data.copy(), testing_data=testing_data.copy(),
+                           data_set_description=data_set_description,
                            train_test_split_description=train_test_split_description,
                            predict_untested=False, col_to_predict=col_to_predict,
                            )

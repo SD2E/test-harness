@@ -130,15 +130,45 @@ def main(args):
                                                              "topmining_untested": "t_l_untested"})
     print(grouping_df)
 
+    feature_cols_to_normalize = ['AlaCount', 'T1_absq', 'T1_netq', 'Tend_absq', 'Tend_netq', 'Tminus1_absq',
+                                 'Tminus1_netq', 'abego_res_profile', 'abego_res_profile_penalty',
+                                 'avg_all_frags', 'avg_best_frag', 'bb', 'buns_bb_heavy', 'buns_nonheavy',
+                                 'buns_sc_heavy', 'buried_minus_exposed', 'buried_np', 'buried_np_AFILMVWY',
+                                 'buried_np_AFILMVWY_per_res', 'buried_np_per_res', 'buried_over_exposed',
+                                 'chymo_cut_sites', 'chymo_with_LM_cut_sites', 'contact_all',
+                                 'contact_core_SASA', 'contact_core_SCN', 'contig_not_hp_avg',
+                                 'contig_not_hp_avg_norm', 'contig_not_hp_internal_max', 'contig_not_hp_max',
+                                 'degree', 'dslf_fa13', 'entropy', 'exposed_hydrophobics',
+                                 'exposed_np_AFILMVWY', 'exposed_polars', 'exposed_total', 'fa_atr',
+                                 'fa_atr_per_res', 'fa_dun_dev', 'fa_dun_rot', 'fa_dun_semi', 'fa_elec',
+                                 'fa_intra_atr_xover4', 'fa_intra_elec', 'fa_intra_rep_xover4',
+                                 'fa_intra_sol_xover4', 'fa_rep', 'fa_rep_per_res', 'fa_sol', 'frac_helix',
+                                 'frac_loop', 'frac_sheet', 'fxn_exposed_is_np', 'hbond_bb_sc', 'hbond_lr_bb',
+                                 'hbond_lr_bb_per_sheet', 'hbond_sc', 'hbond_sr_bb', 'hbond_sr_bb_per_helix',
+                                 'helix_sc', 'holes', 'hphob_sc_contacts', 'hphob_sc_degree', 'hxl_tors',
+                                 'hydrophobicity', 'largest_hphob_cluster', 'lk_ball', 'lk_ball_bridge',
+                                 'lk_ball_bridge_uncpl', 'lk_ball_iso', 'loop_sc', 'mismatch_probability',
+                                 'n_charged', 'n_hphob_clusters', 'n_hydrophobic', 'n_hydrophobic_noA',
+                                 'n_polar_core', 'n_res', 'nearest_chymo_cut_to_Cterm',
+                                 'nearest_chymo_cut_to_Nterm', 'nearest_chymo_cut_to_term',
+                                 'nearest_tryp_cut_to_Cterm', 'nearest_tryp_cut_to_Nterm',
+                                 'nearest_tryp_cut_to_term', 'net_atr_net_sol_per_res', 'net_atr_per_res',
+                                 'net_sol_per_res', 'netcharge', 'nres', 'nres_helix', 'nres_loop', 'nres_sheet',
+                                 'omega', 'one_core_each', 'p_aa_pp', 'pack', 'percent_core_SASA',
+                                 'percent_core_SCN', 'pro_close', 'rama_prepro', 'ref', 'res_count_core_SASA',
+                                 'res_count_core_SCN', 'score_per_res', 'ss_contributes_core',
+                                 'ss_sc', 'sum_best_frags', 'total_score', 'tryp_cut_sites', 'two_core_each',
+                                 'worst6frags', 'worstfrag']
+
     # Change these values for different models/col_to_predict/data
     # model options: "RFR", "CNN", "lingreg"
     # col_to_predict options: "stabilityscore", "stabilityscore_calibrated", "stabilityscore_cnn",
     #                         "stabilityscore_cnn_calibrated", "stabilityscore_calibrated_v2"
     # data_set_description options: "16k", "81k", "105k", "114k"
     # --------------
-    model = "CNN"
+    model = "RFR"
     col_to_predict = "stabilityscore"
-    data_set_description = "114k"
+    data_set_description = "16k"
     # --------------
 
     if data_set_description == "16k":
@@ -159,29 +189,28 @@ def main(args):
     print()
 
     if model == "RFR":
-        th.add_model_runner(rfr_features(use_this_data, pd.DataFrame(), col_to_predict=col_to_predict,
-                                         data_set_description=data_set_description,
-                                         train_test_split_description="leave-one-group-out"))
-        should_i_normalize = True
-        get_pimportances = True
+        th.run_model_on_grouping_splits(function_that_returns_model_runner=rfr_features,
+                                        all_data_df=use_this_data, grouping_df=grouping_df,
+                                        col_to_predict=col_to_predict, data_set_description=data_set_description,
+                                        train_test_split_description="leave-one-group-out", normalize=True,
+                                        feature_cols_to_normalize=feature_cols_to_normalize, get_pimportances=True,
+                                        performance_output_path=perf_path, features_output_path=feat_path)
     elif model == "CNN":
-        th.add_model_runner(sequence_only_cnn(use_this_data, pd.DataFrame(), col_to_predict=col_to_predict,
-                                              data_set_description=data_set_description,
-                                              train_test_split_description="leave-one-group-out"))
-        should_i_normalize = False
-        get_pimportances = False
+        th.run_model_on_grouping_splits(function_that_returns_model_runner=sequence_only_cnn,
+                                        all_data_df=use_this_data, grouping_df=grouping_df,
+                                        col_to_predict=col_to_predict, data_set_description=data_set_description,
+                                        train_test_split_description="leave-one-group-out", normalize=False,
+                                        feature_cols_to_normalize=None, get_pimportances=False,
+                                        performance_output_path=perf_path, features_output_path=feat_path)
     elif model == "linreg":
-        th.add_model_runner(linreg(use_this_data, pd.DataFrame(), col_to_predict=col_to_predict,
-                                   data_set_description=data_set_description,
-                                   train_test_split_description="leave-one-group-out"))
-        should_i_normalize = True
-        get_pimportances = False
+        th.run_model_on_grouping_splits(function_that_returns_model_runner=linreg,
+                                        all_data_df=use_this_data, grouping_df=grouping_df,
+                                        col_to_predict=col_to_predict, data_set_description=data_set_description,
+                                        train_test_split_description="leave-one-group-out", normalize=True,
+                                        feature_cols_to_normalize=feature_cols_to_normalize, get_pimportances=False,
+                                        performance_output_path=perf_path, features_output_path=feat_path)
     else:
         raise ValueError("for this temporary analysis script, model must equal RFR, CNN, or Linreg")
-
-    th.run_models_on_custom_splits(grouping_df=grouping_df, performance_output_path=perf_path,
-                                   features_output_path=feat_path, normalize=should_i_normalize,
-                                   get_pimportances=get_pimportances)
 
     # th.run_test_harness()
     #

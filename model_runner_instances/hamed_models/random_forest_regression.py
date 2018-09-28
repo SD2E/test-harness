@@ -6,7 +6,7 @@ from test_harness.model_runner_subclasses.mr_sklearn_regression import SklearnRe
 from test_harness.model_runner_subclasses.mr_rf_features import RFRegression
 
 
-def rfr_features(train, test, col_to_predict, data_set_description, train_test_split_description):
+def rfr_features(training_data, testing_data, col_to_predict, data_set_description, train_test_split_description):
     # Creating an sklearn random forest regression model:
     rfr = RandomForestRegressor(bootstrap=False, min_samples_leaf=1, n_estimators=689, min_samples_split=2,
                                 max_features=0.2, max_depth=86, n_jobs=-1)
@@ -15,7 +15,7 @@ def rfr_features(train, test, col_to_predict, data_set_description, train_test_s
                           model_description="Random Forest Regressor: bootstrap=False, min_samples_leaf=1, n_estimators=689, min_samples_split=2, max_features=0.2, max_depth=86, n_jobs=-1",
                           col_to_predict=col_to_predict, topology_specific_or_general='general',
                           predict_untested=False,
-                          training_data=train, testing_data=test,
+                          training_data=training_data.copy(), testing_data=testing_data.copy(),
                           train_test_split_description=train_test_split_description,
                           data_set_description=data_set_description)
     return mr_rfr

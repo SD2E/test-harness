@@ -45,10 +45,11 @@ class KerasRegressionTwoDimensional(KerasRegression):
         stopping_callback = EarlyStopping(monitor='val_loss', min_delta=0, patience=3)
         callbacks_list = [checkpoint_callback, stopping_callback]
         # Jed added this next bit before model.fit to make it fit from scratch if model is being reused
-        session = K.get_session()
-        for layer in self.model.layers: 
-            if hasattr(layer, 'kernel_initializer'):
-                layer.kernel.initializer.run(session=session)
+        # commented that code out for now because it won't be necessary after I move custom_splits to test_harness level
+        # session = K.get_session()
+        # for layer in self.model.layers:
+        #     if hasattr(layer, 'kernel_initializer'):
+        #         layer.kernel.initializer.run(session=session)
         self.model.fit(np.expand_dims(np.stack([x[0] for x in X.values]), 3), y, validation_split=0.1,
                        epochs=self.epochs, batch_size=self.batch_size, verbose=self.verbose, callbacks=callbacks_list)
         self.model.load_weights(checkpoint_filepath)
@@ -58,7 +59,7 @@ class KerasRegressionTwoDimensional(KerasRegression):
         return self.model.predict(np.expand_dims(np.stack([x[0] for x in X.values]), 3))
 
 
-def sequence_only_cnn(training_data_file, testing_data_file, col_to_predict, data_set_description="",
+def sequence_only_cnn(training_data, testing_data, col_to_predict, data_set_description="",
                       train_test_split_description=""):
     amino_dict = dict(zip(
         ['A', 'R', 'N', 'D', 'C', 'E', 'Q', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V',
@@ -67,8 +68,8 @@ def sequence_only_cnn(training_data_file, testing_data_file, col_to_predict, dat
     # training_data = pd.read_csv(training_data_file, sep=',', comment='#')
     # testing_data = pd.read_csv(testing_data_file, sep=',', comment='#')
     # untested_data = pd.read_csv(untested_data_file, sep=',', comment='#')
-    training_data = training_data_file.copy()
-    testing_data = testing_data_file.copy()
+    training_data = training_data.copy()
+    testing_data = testing_data.copy()
 
     # MAX_RESIDUES = max(training_data.sequence.map(len).max(), testing_data.sequence.map(len).max())
     MAX_RESIDUES = training_data.sequence.map(len).max()

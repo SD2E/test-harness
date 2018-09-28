@@ -3,6 +3,7 @@ import json
 import time
 import pandas as pd
 from unique_id import get_id
+from sklearn import preprocessing
 
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)
@@ -92,34 +93,94 @@ class TestHarness:
             results = model_runner.run_model()
             end = time.time()
             print('model finished at {}'.format(end))
-            print('total time elapsed for this model = {}'.format(end-start))
+            print('total time elapsed for this model = {}'.format(end - start))
             print()
             self._finished_models.append((model_runner, results))
 
-    def run_models_on_splits_by_columns(self, cols=['topology', 'library'], performance_output_path=None,
-                                       features_output_path=None):
-        for model_runner in self.model_runners:
-            split_results, split_features = model_runner.splits_by_columns(cols=cols)
-            split_results = split_results.sort_values('R Squared', ascending=False)
-            print(split_results)
-            print(split_features)
-            if performance_output_path is not None:
-                split_results.to_csv(performance_output_path, index=False)
-            if features_output_path is not None:
-                split_features.to_csv(features_output_path, index=False)
+    def run_model_on_grouping_splits(self, function_that_returns_model_runner, all_data_df, grouping_df, col_to_predict,
+                                     data_set_description, train_test_split_description="leave-one-group-out",
+                                     normalize=False, feature_cols_to_normalize=None, get_pimportances=False,
+                                     performance_output_path=None, features_output_path=None):
+        if not callable(function_that_returns_model_runner):
+            raise ValueError('function_that_returns_model_runner must be a function.')
 
-    def run_models_on_custom_splits(self, grouping_df, performance_output_path=None, features_output_path=None,
-                                    normalize=True, get_pimportances=True):
-        for model_runner in self.model_runners:
-            split_results, split_features = model_runner.custom_splits(grouping_df, normalize=normalize,
-                                                                       get_pimportances=get_pimportances)
-            split_results = split_results.sort_values('R Squared', ascending=False)
-            print(split_results)
-            print(split_features)
-            if performance_output_path is not None:
-                split_results.to_csv(performance_output_path, index=False)
-            if split_features is not None and features_output_path is not None:
-                split_features.to_csv(features_output_path, index=False)
+        grouping_df = grouping_df.rename(columns={'name': 'topology'})
+
+        all_data = all_data_df.copy()
+
+        relevant_groupings = grouping_df.copy()
+        relevant_groupings = relevant_groupings.loc[(relevant_groupings['library'].isin(all_data['library'])) &
+                                                    (relevant_groupings['topology'].isin(all_data['topology']))]
+        print(relevant_groupings)
+        print()
+
+        splits_results = pd.DataFrame()
+        splits_features = None
+        for group in list(set(relevant_groupings['group_index'])):
+            train_split = all_data.copy()
+            test_split = all_data.copy()
+            print("Creating test split based on group {}:".format(group))
+            group_df = relevant_groupings.loc[relevant_groupings['group_index'] == group]
+            print(group_df.to_string(index=False))
+            train_split = train_split.loc[~((train_split['library'].isin(group_df['library'])) &
+                                            (train_split['topology'].isin(group_df['topology'])))]
+            test_split = test_split.loc[(test_split['library'].isin(group_df['library'])) &
+                                        (test_split['topology'].isin(group_df['topology']))]
+
+            if normalize is True:
+                if feature_cols_to_normalize is None:
+                    raise ValueError(
+                        "if normalize is True, then feature_cols_to_normalize must be a list of column names")
+                print("Normalizing training and testing splits...")
+                scaler = preprocessing.StandardScaler().fit(train_split[feature_cols_to_normalize])
+                normalized_train = train_split.copy()
+                normalized_train[feature_cols_to_normalize] = scaler.transform(
+                    normalized_train[feature_cols_to_normalize])
+                normalized_test = test_split.copy()
+                normalized_test[feature_cols_to_normalize] = scaler.transform(
+                    normalized_test[feature_cols_to_normalize])
+                train_split, test_split = normalized_train.copy(), normalized_test.copy()
+
+            print("Number of samples in train split:", train_split.shape)
+            print("Number of samples in test split:", test_split.shape)
+
+            model_runner = function_that_returns_model_runner(training_data=train_split,
+                                                              testing_data=test_split,
+                                                              col_to_predict=col_to_predict,
+                                                              data_set_description=data_set_description,
+                                                              train_test_split_description=train_test_split_description)
+
+            this_run_results = model_runner.run_model()
+            this_run_results['test_split'] = str(list(set(group_df['library'])) + list(set(group_df['topology'])))
+            this_run_results['num_proteins_in_test_set'] = len(test_split)
+            cols = list(this_run_results)
+            cols.insert(1, cols.pop(cols.index('num_proteins_in_test_set')))
+            cols.insert(1, cols.pop(cols.index('test_split')))
+            this_run_results = this_run_results[cols]
+            print(this_run_results)
+            splits_results = pd.concat([splits_results, this_run_results])
+
+            if get_pimportances is True:
+                this_run_perms = model_runner.permutation_importances
+                this_run_perms.rename(
+                    columns={'Importance': str(list(set(group_df['library'])) + list(set(group_df['topology'])))},
+                    inplace=True)
+                if isinstance(this_run_perms, pd.DataFrame):
+                    if splits_features is None:
+                        splits_features = this_run_perms
+                    else:
+                        splits_features = pd.merge(splits_features, this_run_perms, on='Feature')
+            print()
+
+        splits_results = splits_results.sort_values('R Squared', ascending=False)
+        print(splits_results)
+        print()
+        print(splits_features)
+        if performance_output_path is not None:
+            print(performance_output_path)
+            splits_results.to_csv(performance_output_path, index=False)
+        if splits_features is not None and features_output_path is not None:
+            splits_features.to_csv(features_output_path, index=False)
 
     def run_test_harness(self):
         for x in self._finished_models:

@@ -4,7 +4,6 @@ import inspect
 import pandas as pd
 from math import sqrt
 from abc import ABCMeta, abstractmethod
-from sklearn import preprocessing
 from sklearn.metrics import mean_squared_error
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import roc_auc_score, r2_score
@@ -130,116 +129,6 @@ class ModelRunner(metaclass=ABCMeta):
     @abstractmethod
     def run_model(self, train, test, predict):
         pass
-
-    def normalize_standard_scaler(self, train, test):
-        scaler = preprocessing.StandardScaler().fit(train[self.feature_cols_to_use])
-        normalized_train = train.copy()
-        normalized_train[self.feature_cols_to_use] = scaler.transform(normalized_train[self.feature_cols_to_use])
-        normalized_test = test.copy()
-        normalized_test[self.feature_cols_to_use] = scaler.transform(normalized_test[self.feature_cols_to_use])
-        return normalized_train, normalized_test
-
-
-    def splits_by_columns(self, cols=['topology', 'library']):
-        all_data = pd.concat([self.training_data.copy(), self.testing_data.copy()])
-        unique_combos = (all_data[cols].drop_duplicates())
-
-        combinations = []
-        for index, row in unique_combos.iterrows():
-            combinations.append(dict(row))
-        print(combinations)
-
-        print("Number of train/test split combinations to iterate through =", len(combinations))
-
-        splits_results = pd.DataFrame()
-        splits_features = None
-        for combo in combinations:
-            test_split = all_data.copy()
-            train_split = all_data.copy()
-            print("Test split based on:", combo)
-            train_split = train_split.loc[~(train_split[list(combo)] == pd.Series(combo)).all(axis=1)]
-            test_split = test_split.loc[(test_split[list(combo)] == pd.Series(combo)).all(axis=1)]
-            print("Number of samples in train split:", train_split.shape)
-            print("Number of samples in test split:", test_split.shape)
-            this_run_results = self.run_model(train_split, test_split, None)
-            this_run_results['test_split'] = str(combo)
-            splits_results = pd.concat([splits_results, this_run_results])
-
-            # this_run_features = self.feature_importances
-            # this_run_features.rename(columns={'Importance': combo['library'] + '_' + combo['topology']}, inplace=True)
-            # if isinstance(this_run_features, pd.DataFrame):
-            #     if splits_features is None:
-            #         splits_features = this_run_features
-            #     else:
-            #         splits_features = pd.merge(splits_features, this_run_features, on='Feature')
-            # print()
-
-            this_run_perms = self.permutation_importances
-            this_run_perms.rename(columns={'Importance': combo['library'] + '_' + combo['topology']}, inplace=True)
-            if isinstance(this_run_perms, pd.DataFrame):
-                if splits_features is None:
-                    splits_features = this_run_perms
-                else:
-                    splits_features = pd.merge(splits_features, this_run_perms, on='Feature')
-            print()
-
-        return splits_results, splits_features
-
-    def custom_splits(self, grouping_df, normalize=True, get_pimportances=True):
-        # Have to rename the "name" column to "topology" because it's actually topology information. The column was
-        # named "name" only because the data had to conform to restrictions of the Data Versioning Repo
-        grouping_df = grouping_df.rename(columns={'name': 'topology'})
-
-        all_data = pd.concat([self.training_data.copy(), self.testing_data.copy()])
-
-        relevant_groupings = grouping_df.copy()
-        relevant_groupings = relevant_groupings.loc[(relevant_groupings['library'].isin(all_data['library'])) &
-                                                    (relevant_groupings['topology'].isin(all_data['topology']))]
-        print(relevant_groupings)
-        print()
-
-        splits_results = pd.DataFrame()
-        splits_features = None
-        for group in list(set(relevant_groupings['group_index'])):
-            train_split = all_data.copy()
-            test_split = all_data.copy()
-            print("Creating test split based on group {}:".format(group))
-            group_df = relevant_groupings.loc[relevant_groupings['group_index'] == group]
-            print(group_df.to_string(index=False))
-            train_split = train_split.loc[~((train_split['library'].isin(group_df['library'])) &
-                                            (train_split['topology'].isin(group_df['topology'])))]
-            test_split = test_split.loc[(test_split['library'].isin(group_df['library'])) &
-                                        (test_split['topology'].isin(group_df['topology']))]
-
-            if normalize is True:
-                print("Normalizing training and testing splits...")
-                train_split, test_split = self.normalize_standard_scaler(train_split, test_split)
-
-            print("Number of samples in train split:", train_split.shape)
-            print("Number of samples in test split:", test_split.shape)
-            this_run_results = self.run_model(train_split, test_split, None)
-            this_run_results['test_split'] = str(list(set(group_df['library'])) + list(set(group_df['topology'])))
-            this_run_results['num_proteins_in_test_set'] = len(test_split)
-            cols = list(this_run_results)
-            cols.insert(1, cols.pop(cols.index('num_proteins_in_test_set')))
-            cols.insert(1, cols.pop(cols.index('test_split')))
-            this_run_results = this_run_results[cols]
-            print(this_run_results)
-            splits_results = pd.concat([splits_results, this_run_results])
-
-            if get_pimportances is True:
-                this_run_perms = self.permutation_importances
-                this_run_perms.rename(
-                    columns={'Importance': str(list(set(group_df['library'])) + list(set(group_df['topology'])))},
-                    inplace=True)
-                if isinstance(this_run_perms, pd.DataFrame):
-                    if splits_features is None:
-                        splits_features = this_run_perms
-                    else:
-                        splits_features = pd.merge(splits_features, this_run_perms, on='Feature')
-                print()
-
-        return splits_results, splits_features
 
 
 class ClassificationModelRunner(ModelRunner, metaclass=ABCMeta):
