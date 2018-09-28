@@ -71,8 +71,7 @@ def sequence_only_cnn(training_data, testing_data, col_to_predict, data_set_desc
     training_data = training_data.copy()
     testing_data = testing_data.copy()
 
-    # MAX_RESIDUES = max(training_data.sequence.map(len).max(), testing_data.sequence.map(len).max())
-    MAX_RESIDUES = training_data.sequence.map(len).max()
+    MAX_RESIDUES = max(training_data.sequence.map(len).max(), testing_data.sequence.map(len).max())
     PADDING = 14  # derived from model architecture
 
     def make_code(sequence):
@@ -85,7 +84,7 @@ def sequence_only_cnn(training_data, testing_data, col_to_predict, data_set_desc
     training_data['encoded_sequence'] = training_data.sequence.apply(make_code)
     training_data = training_data.sample(
         frac=1)  # shuffle data, because validation data are selected from end before shuffling
-    # testing_data['encoded_sequence'] = testing_data.sequence.apply(make_code)
+    testing_data['encoded_sequence'] = testing_data.sequence.apply(make_code)
     # untested_data['encoded_sequence'] = untested_data.sequence.apply(make_code)
 
     inputs = Input(shape=(23, MAX_RESIDUES + 2 + 2 * PADDING, 1))  # 22 amino acids plus null/beginning/end
