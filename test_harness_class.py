@@ -182,6 +182,58 @@ class TestHarness:
         if splits_features is not None and features_output_path is not None:
             splits_features.to_csv(features_output_path, index=False)
 
+    def run_model_general(self, model_runner_instance, train, test, is_this_sequence_cnn=False,
+                          normalize=False, feature_cols_to_normalize=None,
+                          get_pimportances=False, performance_output_path=None, features_output_path=None):
+
+        results = pd.DataFrame()
+        features = None
+        train_split = train.copy()
+        test_split = test.copy()
+        if normalize is True:
+            if feature_cols_to_normalize is None:
+                raise ValueError(
+                    "if normalize is True, then feature_cols_to_normalize must be a list of column names")
+            print("Normalizing training and testing splits...")
+            scaler = preprocessing.StandardScaler().fit(train_split[feature_cols_to_normalize])
+            normalized_train = train_split.copy()
+            normalized_train[feature_cols_to_normalize] = scaler.transform(
+                normalized_train[feature_cols_to_normalize])
+            normalized_test = test_split.copy()
+            normalized_test[feature_cols_to_normalize] = scaler.transform(
+                normalized_test[feature_cols_to_normalize])
+            train_split, test_split = normalized_train.copy(), normalized_test.copy()
+
+        print("Number of samples in train split:", train_split.shape)
+        print("Number of samples in test split:", test_split.shape)
+
+        if is_this_sequence_cnn is True:
+            this_run_results = model_runner_instance.run_model()
+        else:
+            this_run_results = model_runner_instance.run_model(train_split, test_split)
+        this_run_results['num_proteins_in_train_set'] = len(train_split)
+        this_run_results['num_proteins_in_test_set'] = len(test_split)
+        print(this_run_results)
+        results = pd.concat([results, this_run_results])
+
+        if get_pimportances is True:
+            this_run_perms = model_runner_instance.permutation_importances
+            if isinstance(this_run_perms, pd.DataFrame):
+                if features is None:
+                    features = this_run_perms
+                else:
+                    features = pd.merge(features, this_run_perms, on='Feature')
+        print()
+        splits_results = results.sort_values('R Squared', ascending=False)
+        print(splits_results)
+        print()
+        print(features)
+        if performance_output_path is not None:
+            print(performance_output_path)
+            splits_results.to_csv(performance_output_path, index=False)
+        if features is not None and features_output_path is not None:
+            features.to_csv(features_output_path, index=False)
+
     def run_test_harness(self):
         for x in self._finished_models:
             model_runner_instance = x[0]

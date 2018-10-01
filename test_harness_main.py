@@ -160,6 +160,64 @@ def main(args):
                                  'ss_sc', 'sum_best_frags', 'total_score', 'tryp_cut_sites', 'two_core_each',
                                  'worst6frags', 'worstfrag']
 
+    train1, test1 = train_test_split(data_RD_16k, test_size=0.2, random_state=5,
+                                     stratify=data_RD_16k[['topology', 'library_original']])
+    train2, test2 = train1.copy(), combined_data.loc[
+        combined_data['library_original'].isin(['Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
+    train3, test3 = train_test_split(data_RD_BL_81k, test_size=0.2, random_state=5,
+                                     stratify=data_RD_BL_81k[['topology', 'library_original']])
+    train4, test4 = train3.copy(), combined_data.loc[combined_data['library_original'].isin(
+        ['topology_mining_and_Longxing_chip_1', 'topology_mining_and_Longxing_chip_2'])].copy()
+    train5, test5 = train_test_split(data_RD_BL_TA1R1_105k, test_size=0.2, random_state=5,
+                                     stratify=data_RD_BL_TA1R1_105k[['topology', 'library_original']])
+    train6, test6 = train5.copy(), combined_data.loc[
+        combined_data['library_original'].isin(['topology_mining_and_Longxing_chip_3'])].copy()
+    train7, test7 = train_test_split(data_RD_BL_TA1R1_KJ_114k, test_size=0.2, random_state=5,
+                                     stratify=data_RD_BL_TA1R1_KJ_114k[['topology', 'library_original']])
+
+    print()
+    print(train1.shape, test1.shape, (train1.shape[0] + test1.shape[0]))
+    print(train2.shape, test2.shape, (train2.shape[0] + test2.shape[0]))
+    print(train3.shape, test3.shape, (train3.shape[0] + test3.shape[0]))
+    print(train4.shape, test4.shape, (train4.shape[0] + test4.shape[0]))
+    print(train5.shape, test5.shape, (train5.shape[0] + test5.shape[0]))
+    print(train6.shape, test6.shape, (train6.shape[0] + test6.shape[0]))
+    print(train7.shape, test7.shape, (train7.shape[0] + test7.shape[0]))
+    print()
+
+    # Change these:
+    my_train = train1.copy()
+    my_test = test1.copy()
+    data_set_description = train_test_split_description = "1"
+    col_to_predict = "stabilityscore"
+
+
+
+    mr_linreg = linreg(my_train, my_test, col_to_predict, data_set_description, train_test_split_description)
+    mr_rfr = rfr_features(my_train, my_test, col_to_predict, data_set_description, train_test_split_description)
+    mr_seq = sequence_only_cnn(my_train, my_test, col_to_predict, data_set_description, train_test_split_description)
+
+    perf_path = "general_results/performances_{}-{}-{}.csv".format(data_set_description, "linreg", col_to_predict)
+    feat_path = "general_results/features_{}-{}-{}.csv".format(data_set_description, "linreg", col_to_predict)
+    print("file name for performance results = {}".format(perf_path))
+    print("file name for features results = {}".format(feat_path))
+    th.run_model_general(mr_linreg, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path, feat_path)
+
+    perf_path = "general_results/performances_{}-{}-{}.csv".format(data_set_description, "RFR", col_to_predict)
+    feat_path = "general_results/features_{}-{}-{}.csv".format(data_set_description, "RFR", col_to_predict)
+    print("file name for performance results = {}".format(perf_path))
+    print("file name for features results = {}".format(feat_path))
+    th.run_model_general(mr_rfr, my_train, my_test, False, True, feature_cols_to_normalize, True, perf_path, feat_path)
+
+    perf_path = "general_results/performances_{}-{}-{}.csv".format(data_set_description, "CNN", col_to_predict)
+    feat_path = "general_results/features_{}-{}-{}.csv".format(data_set_description, "CNN", col_to_predict)
+    print("file name for performance results = {}".format(perf_path))
+    print("file name for features results = {}".format(feat_path))
+    th.run_model_general(mr_seq, my_train, my_test, True, False, None, False, perf_path, feat_path)
+
+
+    # Leave one group out runs, finished so commenting out for now to do general runs
+    '''
     # Change these values for different models/col_to_predict/data
     # model options: "RFR", "CNN", "lingreg"
     # col_to_predict options: "stabilityscore", "stabilityscore_calibrated", "stabilityscore_cnn",
@@ -211,6 +269,7 @@ def main(args):
                                         performance_output_path=perf_path, features_output_path=feat_path)
     else:
         raise ValueError("for this temporary analysis script, model must equal RFR, CNN, or Linreg")
+    '''
 
     # th.run_test_harness()
     #
