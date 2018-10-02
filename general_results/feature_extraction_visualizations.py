@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import ast
+import os
 import itertools
 import pandas as pd
 import numpy as np
@@ -14,40 +14,27 @@ pd.set_option('display.max_colwidth', -1)
 
 
 def main():
-    csvs = ["performances_114k-CNN-stabilityscore.csv"]
-    for csv in csvs:
-        df = pd.read_csv(csv)
-        bar_plot_new_splits(df, 'test_split', 'R Squared', csv)
+    files = [f for f in os.listdir('.') if os.path.isfile(f)]
+    files = [f for f in files if '.csv' in f]
+    performance_files = [f for f in files if 'performances' in f]
+    feature_files = [f for f in files if 'features' in f]
 
+    pimportance_df = None
+    for f in feature_files:
+        dataset = f.split("_")[1].split("-")[0]
+        model_used = f.split("_")[1].split("-")[1]
+        df = pd.read_csv(f, comment="#")
+        df.rename(columns={"Importance": "{}_Dataset_{}".format(model_used, dataset)}, inplace=True)
+        if pimportance_df is None:
+            pimportance_df = df.copy()
+        else:
+            pimportance_df = pd.merge(pimportance_df, df, on="Feature")
+    print(pimportance_df)
 
-def bar_plot(df, x, y):
-    separated = pd.DataFrame([ast.literal_eval(i) for i in df[x].values])
-    df['test_library'] = separated['library']
-    df['test_topology'] = separated['topology']
-    df['test_info'] = df['test_library'] + ', ' + df['test_topology']
-    print(df.shape)
+    pimportance_cols = list(pimportance_df.columns.values)
+    pimportance_cols.remove("Feature")
 
-    ax = df.plot.bar(x='test_info', y=y, legend=False)
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')
-    ax.set_xlabel('Test Split Filter')
-    ax.set_ylabel(y)
-    plt.title()
-    plt.tight_layout()
-    plt.show()
-
-
-def bar_plot_new_splits(df, x, y, title=""):
-    separated = pd.DataFrame([ast.literal_eval(i) for i in df[x].values])
-    df['test_info'] = df['test_split']
-    print(df.shape)
-
-    ax = df.plot.bar(x='test_info', y=y, legend=False)
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')
-    ax.set_xlabel('Test Split Filter')
-    ax.set_ylabel(y)
-    plt.title(title)
-    plt.tight_layout()
-    plt.show()
+    percent_overlap_heatmap(pimportance_df, pimportance_cols, 10)
 
 
 def percent_overlap_two_lists_same_size(list1, list2):
@@ -73,7 +60,7 @@ def percent_overlap_heatmap(features_df, cols_to_compare, top_n=10):
         heatmap_df.loc[c1, c2] = percent_overlap
         heatmap_df.loc[c2, c1] = percent_overlap
 
-    sns.heatmap(heatmap_df, annot=True)
+    sns.clustermap(heatmap_df, annot=True)
     plt.tight_layout()
     plt.show()
 
