@@ -224,7 +224,7 @@ class TestHarness:
                 else:
                     features = pd.merge(features, this_run_perms, on='Feature')
         print()
-        splits_results = results.sort_values('R Squared', ascending=False)
+        splits_results = results.sort_values('AUC Score', ascending=False)
         print(splits_results)
         print()
         print(features)

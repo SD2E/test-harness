@@ -256,8 +256,8 @@ class ClassificationModelRunner(ModelRunner, metaclass=ABCMeta):
         num_rows = len(df_test)
         total_equal = sum(df_test[self.col_to_predict] == df_test['mr_class_predictions'])
         percent_accuracy = float(total_equal) / float(num_rows)
-        # auc = roc_auc_score(df_test[self.col_to_predict], df_test['mr_class_probability_predictions'])
-        auc = 'n/a'
+        auc = roc_auc_score(df_test[self.col_to_predict], df_test['mr_class_probability_predictions'])
+        # auc = 'n/a'
 
         # self.model_factory()
 

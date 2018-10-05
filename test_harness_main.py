@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 from test_harness_class import TestHarness
 
 from model_runner_instances.hamed_models.random_forest_regression import rfr_features
+from model_runner_instances.hamed_models.random_forest_classification import random_forest_classification
 from model_runner_instances.jed_models.sequence_cnn import sequence_only_cnn
 from model_runner_instances.hamed_models.rocklin_models import linear_regression_topology_general_all_features as linreg
 
@@ -110,6 +111,7 @@ def main(args):
     col_order = list(combined_data.columns.values)
     col_order.insert(2, col_order.pop(col_order.index('library_original')))
     combined_data = combined_data[col_order]
+    combined_data['stable?'] = combined_data['stabilityscore'] > 1
 
     data_RD_16k = combined_data.loc[combined_data['library_original'] == 'Rocklin'].copy()
     data_RD_BL_81k = combined_data.loc[
@@ -189,10 +191,10 @@ def main(args):
     my_train = train1.copy()
     my_test = test1.copy()
     data_set_description = train_test_split_description = "1"
-    col_to_predict = "stabilityscore"
+    col_to_predict = "stable?"
 
-
-
+    # Regression:
+    '''
     mr_linreg = linreg(my_train, my_test, col_to_predict, data_set_description, train_test_split_description)
     mr_rfr = rfr_features(my_train, my_test, col_to_predict, data_set_description, train_test_split_description)
     mr_seq = sequence_only_cnn(my_train, my_test, col_to_predict, data_set_description, train_test_split_description)
@@ -214,6 +216,23 @@ def main(args):
     print("file name for performance results = {}".format(perf_path))
     print("file name for features results = {}".format(feat_path))
     th.run_model_general(mr_seq, my_train, my_test, True, False, None, False, perf_path, feat_path)
+    '''
+
+    # Classification:
+    mr_rfc = random_forest_classification(my_train, my_test, col_to_predict, data_set_description,
+                                          train_test_split_description)
+
+    perf_path = "general_results/classification_performances_{}-{}-{}.csv".format(data_set_description, "RFC",
+                                                                                  col_to_predict)
+    feat_path = "general_results/classification_features_{}-{}-{}.csv".format(data_set_description, "RFC",
+                                                                              col_to_predict)
+    print("file name for performance results = {}".format(perf_path))
+    print("file name for features results = {}".format(feat_path))
+    th.run_model_general(mr_rfc, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path,
+                         feat_path)
+
+
+
 
 
     # Leave one group out runs, finished so commenting out for now to do general runs

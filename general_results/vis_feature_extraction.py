@@ -16,15 +16,24 @@ pd.set_option('display.max_colwidth', -1)
 def main():
     files = [f for f in os.listdir('.') if os.path.isfile(f)]
     files = [f for f in files if '.csv' in f]
-    performance_files = [f for f in files if 'performances' in f]
     feature_files = [f for f in files if 'features' in f]
+
+    feature_files = [f for f in feature_files if ("1" in f) or ("3" in f) or ("5" in f) or ("7" in f)]
 
     pimportance_df = None
     for f in feature_files:
         dataset = f.split("_")[1].split("-")[0]
+        if dataset == "1":
+            dataset = "Rocklin Dataset\n#Topologies = 4"
+        elif dataset == "3":
+            dataset = "SD2 Round 1\n#Topologies = 11"
+        elif dataset == "5":
+            dataset = "SD2 Round 2\n#Topologies = 21"
+        elif dataset == "7":
+            dataset = "SD2 Round 3\n#Topologies = 21"
         model_used = f.split("_")[1].split("-")[1]
         df = pd.read_csv(f, comment="#")
-        df.rename(columns={"Importance": "{}_Dataset_{}".format(model_used, dataset)}, inplace=True)
+        df.rename(columns={"Importance": "{}".format(dataset)}, inplace=True)
         if pimportance_df is None:
             pimportance_df = df.copy()
         else:
@@ -60,7 +69,16 @@ def percent_overlap_heatmap(features_df, cols_to_compare, top_n=10):
         heatmap_df.loc[c1, c2] = percent_overlap
         heatmap_df.loc[c2, c1] = percent_overlap
 
-    sns.clustermap(heatmap_df, annot=True)
+    ax = sns.heatmap(heatmap_df, annot=True, cmap="YlGnBu", annot_kws={"size": 15})
+    ax.figure.axes[-1].set_ylabel('Percent Overlap', size=14)
+    for t in ax.texts:
+        t.set_text("{0:.0%}".format(float(t.get_text())))
+    cbar = ax.collections[0].colorbar
+    cbar.set_ticks([0.6, 0.8, 1])
+    cbar.set_ticklabels(["60%", "80%", "100%"])
+
+    plt.xticks(rotation=0, fontsize=12)
+    plt.yticks(fontsize=12)
     plt.tight_layout()
     plt.show()
 

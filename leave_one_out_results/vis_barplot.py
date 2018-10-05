@@ -49,34 +49,5 @@ def bar_plot_new_splits(df, x, y, title=""):
     plt.tight_layout()
     plt.show()
 
-
-def percent_overlap_two_lists_same_size(list1, list2):
-    list_size = len(list1)
-    if list_size != len(list2):
-        raise ValueError("Both lists must be of the same size.")
-    count = 0
-    for x in list1:
-        if x in list2:
-            count = count + 1
-    return float(count) / float(list_size)
-
-
-def percent_overlap_heatmap(features_df, cols_to_compare, top_n=10):
-    heatmap_df = pd.DataFrame(np.ones((len(cols_to_compare), len(cols_to_compare))), index=cols_to_compare,
-                              columns=cols_to_compare)
-    heatmap_combos = list(itertools.combinations(cols_to_compare, 2))
-
-    for c1, c2 in heatmap_combos:
-        c1_importances = list(features_df.sort_values(by=c1, ascending=False)[:top_n]['Feature'])
-        c2_importances = list(features_df.sort_values(by=c2, ascending=False)[:top_n]['Feature'])
-        percent_overlap = percent_overlap_two_lists_same_size(c1_importances, c2_importances)
-        heatmap_df.loc[c1, c2] = percent_overlap
-        heatmap_df.loc[c2, c1] = percent_overlap
-
-    sns.heatmap(heatmap_df, annot=True)
-    plt.tight_layout()
-    plt.show()
-
-
 if __name__ == '__main__':
     main()
