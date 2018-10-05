@@ -104,15 +104,17 @@ def linear_regression_topology_general_all_features(training_data, testing_data,
     return mr
 
 
-def logistic_classifier_topology_general_all_features(train=None, test=None):
+def logistic_classifier_topology_general_all_features(training_data, testing_data, col_to_predict, data_set_description,
+                                                      train_test_split_description):
     rocklins_logistic_model = LogisticRegression(penalty='l1', C=0.1)
 
     mr = SklearnClassification(model=rocklins_logistic_model,
                                model_description="Rocklin Logistic: sklearn LogisticRegression with penalty='l1' and C=0.1",
-                               topology_specific_or_general='general',
-                               training_data=train, testing_data=test, data_set_description='15k',
-                               train_test_split_description='12k-3k',
-                               predict_untested=False)
+                               col_to_predict=col_to_predict, topology_specific_or_general='general',
+                               predict_untested=False,
+                               training_data=training_data.copy(), testing_data=testing_data.copy(),
+                               train_test_split_description=train_test_split_description,
+                               data_set_description=data_set_description)
 
     return mr
 

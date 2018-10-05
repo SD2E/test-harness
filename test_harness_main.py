@@ -14,6 +14,7 @@ from model_runner_instances.hamed_models.random_forest_regression import rfr_fea
 from model_runner_instances.hamed_models.random_forest_classification import random_forest_classification
 from model_runner_instances.jed_models.sequence_cnn import sequence_only_cnn
 from model_runner_instances.hamed_models.rocklin_models import linear_regression_topology_general_all_features as linreg
+from model_runner_instances.hamed_models.rocklin_models import logistic_classifier_topology_general_all_features
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
 # Note that if you clone the `versioned-datasets` repo at the same level as where you cloned the `protein-design` repo,
@@ -221,16 +222,26 @@ def main(args):
     # Classification:
     mr_rfc = random_forest_classification(my_train, my_test, col_to_predict, data_set_description,
                                           train_test_split_description)
+    logreg = logistic_classifier_topology_general_all_features(my_train, my_test, col_to_predict, data_set_description,
+                                                               train_test_split_description)
 
-    perf_path = "general_results/classification_performances_{}-{}-{}.csv".format(data_set_description, "RFC",
+    perf_path = "general_results/classification_performances_{}-{}-{}.csv".format(data_set_description, "logreg",
                                                                                   col_to_predict)
-    feat_path = "general_results/classification_features_{}-{}-{}.csv".format(data_set_description, "RFC",
+    feat_path = "general_results/classification_features_{}-{}-{}.csv".format(data_set_description, "logreg",
                                                                               col_to_predict)
     print("file name for performance results = {}".format(perf_path))
     print("file name for features results = {}".format(feat_path))
-    th.run_model_general(mr_rfc, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path,
+    th.run_model_general(logreg, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path,
                          feat_path)
 
+    # perf_path = "general_results/classification_performances_{}-{}-{}.csv".format(data_set_description, "RFC",
+    #                                                                               col_to_predict)
+    # feat_path = "general_results/classification_features_{}-{}-{}.csv".format(data_set_description, "RFC",
+    #                                                                           col_to_predict)
+    # print("file name for performance results = {}".format(perf_path))
+    # print("file name for features results = {}".format(feat_path))
+    # th.run_model_general(mr_rfc, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path,
+    #                      feat_path)
 
 
 
