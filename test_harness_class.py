@@ -173,7 +173,7 @@ class TestHarness:
             print()
 
         # Sort by R Squared or AUC depending on regression/classification... update this
-        splits_results = splits_results.sort_values('AUC', ascending=False)
+        splits_results = splits_results.sort_values('AUC Score', ascending=False)
         print(splits_results)
         print()
         print(splits_features)
