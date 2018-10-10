@@ -109,7 +109,7 @@ class TestHarness:
         all_data = all_data_df.copy()
 
         relevant_groupings = grouping_df.copy()
-        relevant_groupings = relevant_groupings.loc[(relevant_groupings['library'].isin(all_data['library'])) &
+        relevant_groupings = relevant_groupings.loc[(relevant_groupings['dataset'].isin(all_data['dataset'])) &
                                                     (relevant_groupings['topology'].isin(all_data['topology']))]
         print(relevant_groupings)
         print()
@@ -122,9 +122,9 @@ class TestHarness:
             print("Creating test split based on group {}:".format(group))
             group_df = relevant_groupings.loc[relevant_groupings['group_index'] == group]
             print(group_df.to_string(index=False))
-            train_split = train_split.loc[~((train_split['library'].isin(group_df['library'])) &
+            train_split = train_split.loc[~((train_split['dataset'].isin(group_df['dataset'])) &
                                             (train_split['topology'].isin(group_df['topology'])))]
-            test_split = test_split.loc[(test_split['library'].isin(group_df['library'])) &
+            test_split = test_split.loc[(test_split['dataset'].isin(group_df['dataset'])) &
                                         (test_split['topology'].isin(group_df['topology']))]
 
             if normalize is True:
@@ -151,7 +151,7 @@ class TestHarness:
                                                               train_test_split_description=train_test_split_description)
 
             this_run_results = model_runner.run_model()
-            this_run_results['test_split'] = str(list(set(group_df['library'])) + list(set(group_df['topology'])))
+            this_run_results['test_split'] = str(list(set(group_df['dataset'])) + list(set(group_df['topology'])))
             this_run_results['num_proteins_in_test_set'] = len(test_split)
             cols = list(this_run_results)
             cols.insert(1, cols.pop(cols.index('num_proteins_in_test_set')))
@@ -163,7 +163,7 @@ class TestHarness:
             if get_pimportances is True:
                 this_run_perms = model_runner.permutation_importances
                 this_run_perms.rename(
-                    columns={'Importance': str(list(set(group_df['library'])) + list(set(group_df['topology'])))},
+                    columns={'Importance': str(list(set(group_df['dataset'])) + list(set(group_df['topology'])))},
                     inplace=True)
                 if isinstance(this_run_perms, pd.DataFrame):
                     if splits_features is None:
@@ -172,7 +172,8 @@ class TestHarness:
                         splits_features = pd.merge(splits_features, this_run_perms, on='Feature')
             print()
 
-        splits_results = splits_results.sort_values('R Squared', ascending=False)
+        # Sort by R Squared or AUC depending on regression/classification... update this
+        splits_results = splits_results.sort_values('AUC', ascending=False)
         print(splits_results)
         print()
         print(splits_features)

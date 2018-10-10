@@ -113,7 +113,7 @@ def main(args):
              'topology_mining_and_Longxing_chip_2', 'topology_mining_and_Longxing_chip_3'])].copy()
 
     # Grouping Data
-    grouping_df = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein_groupings/v4_data.hugh.v1.protein_groupings.csv'),
+    grouping_df = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/metadata/protein_groupings_by_uw.metadata.csv'),
                               comment='#', low_memory=False)
     grouping_df['dataset'] = grouping_df['dataset'].replace({"longxing_untested": "t_l_untested",
                                                              "topmining_untested": "t_l_untested"})
