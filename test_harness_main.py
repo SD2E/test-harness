@@ -6,7 +6,6 @@ import types
 import pandas as pd
 from tabulate import tabulate
 from pathlib import Path
-from versioned_data_scripts.combine_versioned_data_v0 import combine_data
 from sklearn.model_selection import train_test_split
 from test_harness_class import TestHarness
 
@@ -77,59 +76,40 @@ def main(args):
 
     th = TestHarness(output_path=output_dir)
 
-    new_ss_file_names = ['Eva1.Rocklin_calibrated_experimental_stability_scores.v4.csv',
-                         'Eva2.Rocklin_calibrated_experimental_stability_scores.v4.csv',
-                         'Inna.Rocklin_calibrated_experimental_stability_scores.v4.csv',
-                         'Longxing.Rocklin_calibrated_experimental_stability_scores.v4.csv',
-                         'Rocklin.Rocklin_calibrated_experimental_stability_scores.csv',
-                         'topology_mining_and_Longxing_chip_1.Rocklin_calibrated_experimental_stability_scores.v4.csv',
-                         'topology_mining_and_Longxing_chip_2.Rocklin_calibrated_experimental_stability_scores.v4.csv',
-                         'topology_mining_and_Longxing_chip_3.Rocklin_calibrated_experimental_stability_scores.v3.csv']
-    frames = []
-    for nssf in new_ss_file_names:
-        df = pd.read_csv(os.path.join(VERSIONED_DATA, 'experimental_stability_scores/', nssf), comment='#',
-                         low_memory=False)
-        df_new_ss = df[['library', 'name', 'stabilityscore_calibrated', 'stabilityscore_calibrated_t',
-                        'stabilityscore_calibrated_c']]
-        frames.append(df_new_ss)
-    francis_new_calibrated_ss = pd.concat(frames)
-    francis_new_calibrated_ss.rename(columns={'stabilityscore_calibrated': 'stabilityscore_calibrated_v2',
-                                              'stabilityscore_calibrated_t': 'stabilityscore_calibrated_t_v2',
-                                              'stabilityscore_calibrated_c': 'stabilityscore_calibrated_c_v2'},
-                                     inplace=True)
-
-    combined_data = pd.read_csv(os.path.join(VERSIONED_DATA, 'aggregated_data/all_libs_cleaned.v0.aggregated_data.csv'),
+    combined_data = pd.read_csv(os.path.join(VERSIONED_DATA,
+                                             'protein-design/aggregated_data/all_libs_cleaned.v1.aggregated_data.csv'),
                                 comment='#', low_memory=False)
 
-    combined_data = combined_data.merge(francis_new_calibrated_ss, on=['library', 'name'])
-
-    combined_data['library_original'] = combined_data['library']
-    combined_data['library'] = combined_data['library'].replace({"topology_mining_and_Longxing_chip_1": "t_l_untested",
+    combined_data['dataset_original'] = combined_data['dataset']
+    combined_data['dataset'] = combined_data['dataset'].replace({"topology_mining_and_Longxing_chip_1": "t_l_untested",
                                                                  "topology_mining_and_Longxing_chip_2": "t_l_untested",
                                                                  "topology_mining_and_Longxing_chip_3": "t_l_untested"})
 
     # Changing the order of columns in combined_data
     col_order = list(combined_data.columns.values)
-    col_order.insert(2, col_order.pop(col_order.index('library_original')))
+    col_order.insert(2, col_order.pop(col_order.index('dataset_original')))
     combined_data = combined_data[col_order]
     combined_data['stable?'] = combined_data['stabilityscore'] > 1
+    combined_data['3_stability_bins'] = pd.cut(combined_data['stabilityscore'], bins=[-100, 0, 1, 100],
+                                               labels=["trash", "unstable", "stable"])
+    # print(combined_data[['stabilityscore', '3_stability_bins']])
 
-    data_RD_16k = combined_data.loc[combined_data['library_original'] == 'Rocklin'].copy()
+    data_RD_16k = combined_data.loc[combined_data['dataset_original'] == 'Rocklin'].copy()
     data_RD_BL_81k = combined_data.loc[
-        combined_data['library_original'].isin(['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
+        combined_data['dataset_original'].isin(['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
     data_RD_BL_TA1R1_105k = combined_data.loc[
-        combined_data['library_original'].isin(
+        combined_data['dataset_original'].isin(
             ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
              'topology_mining_and_Longxing_chip_2'])].copy()
     data_RD_BL_TA1R1_KJ_114k = combined_data.loc[
-        combined_data['library_original'].isin(
+        combined_data['dataset_original'].isin(
             ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
              'topology_mining_and_Longxing_chip_2', 'topology_mining_and_Longxing_chip_3'])].copy()
 
     # Grouping Data
     grouping_df = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein_groupings/v4_data.hugh.v1.protein_groupings.csv'),
                               comment='#', low_memory=False)
-    grouping_df['library'] = grouping_df['library'].replace({"longxing_untested": "t_l_untested",
+    grouping_df['dataset'] = grouping_df['dataset'].replace({"longxing_untested": "t_l_untested",
                                                              "topmining_untested": "t_l_untested"})
     print(grouping_df)
 
@@ -164,19 +144,19 @@ def main(args):
                                  'worst6frags', 'worstfrag']
 
     train1, test1 = train_test_split(data_RD_16k, test_size=0.2, random_state=5,
-                                     stratify=data_RD_16k[['topology', 'library_original']])
+                                     stratify=data_RD_16k[['topology', 'dataset_original']])
     train2, test2 = train1.copy(), combined_data.loc[
-        combined_data['library_original'].isin(['Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
+        combined_data['dataset_original'].isin(['Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
     train3, test3 = train_test_split(data_RD_BL_81k, test_size=0.2, random_state=5,
-                                     stratify=data_RD_BL_81k[['topology', 'library_original']])
-    train4, test4 = train3.copy(), combined_data.loc[combined_data['library_original'].isin(
+                                     stratify=data_RD_BL_81k[['topology', 'dataset_original']])
+    train4, test4 = train3.copy(), combined_data.loc[combined_data['dataset_original'].isin(
         ['topology_mining_and_Longxing_chip_1', 'topology_mining_and_Longxing_chip_2'])].copy()
     train5, test5 = train_test_split(data_RD_BL_TA1R1_105k, test_size=0.2, random_state=5,
-                                     stratify=data_RD_BL_TA1R1_105k[['topology', 'library_original']])
+                                     stratify=data_RD_BL_TA1R1_105k[['topology', 'dataset_original']])
     train6, test6 = train5.copy(), combined_data.loc[
-        combined_data['library_original'].isin(['topology_mining_and_Longxing_chip_3'])].copy()
+        combined_data['dataset_original'].isin(['topology_mining_and_Longxing_chip_3'])].copy()
     train7, test7 = train_test_split(data_RD_BL_TA1R1_KJ_114k, test_size=0.2, random_state=5,
-                                     stratify=data_RD_BL_TA1R1_KJ_114k[['topology', 'library_original']])
+                                     stratify=data_RD_BL_TA1R1_KJ_114k[['topology', 'dataset_original']])
 
     print()
     print(train1.shape, test1.shape, (train1.shape[0] + test1.shape[0]))
@@ -192,7 +172,7 @@ def main(args):
     my_train = train1.copy()
     my_test = test1.copy()
     data_set_description = train_test_split_description = "1"
-    col_to_predict = "stable?"
+    col_to_predict = "3_stability_bins"
 
     # Regression:
     '''
@@ -219,7 +199,7 @@ def main(args):
     th.run_model_general(mr_seq, my_train, my_test, True, False, None, False, perf_path, feat_path)
     '''
 
-    # Classification:
+    # General Classification:
     mr_rfc = random_forest_classification(my_train, my_test, col_to_predict, data_set_description,
                                           train_test_split_description)
     logreg = logistic_classifier_topology_general_all_features(my_train, my_test, col_to_predict, data_set_description,
@@ -234,17 +214,69 @@ def main(args):
     th.run_model_general(logreg, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path,
                          feat_path)
 
-    # perf_path = "general_results/classification_performances_{}-{}-{}.csv".format(data_set_description, "RFC",
-    #                                                                               col_to_predict)
-    # feat_path = "general_results/classification_features_{}-{}-{}.csv".format(data_set_description, "RFC",
-    #                                                                           col_to_predict)
-    # print("file name for performance results = {}".format(perf_path))
-    # print("file name for features results = {}".format(feat_path))
-    # th.run_model_general(mr_rfc, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path,
-    #                      feat_path)
+    perf_path = "general_results/classification_performances_{}-{}-{}.csv".format(data_set_description, "RFC",
+                                                                                  col_to_predict)
+    feat_path = "general_results/classification_features_{}-{}-{}.csv".format(data_set_description, "RFC",
+                                                                              col_to_predict)
+    print("file name for performance results = {}".format(perf_path))
+    print("file name for features results = {}".format(feat_path))
+    th.run_model_general(mr_rfc, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path,
+                         feat_path)
 
+    '''
+    # Leave one out Classification:
+    # Change these values for different models/col_to_predict/data
+    # model options: "RFR", "CNN", "lingreg"
+    # col_to_predict options: "stabilityscore", "stabilityscore_calibrated", "stabilityscore_cnn",
+    #                         "stabilityscore_cnn_calibrated", "stabilityscore_calibrated_v2"
+    # data_set_description options: "16k", "81k", "105k", "114k"
+    # --------------
+    model = "RFR"
+    col_to_predict = "stabilityscore"
+    data_set_description = "16k"
+    # --------------
 
+    if data_set_description == "16k":
+        use_this_data = data_RD_16k
+    elif data_set_description == "81k":
+        use_this_data = data_RD_BL_81k
+    elif data_set_description == "105k":
+        use_this_data = data_RD_BL_TA1R1_105k
+    elif data_set_description == "114k":
+        use_this_data = data_RD_BL_TA1R1_KJ_114k
+    else:
+        raise ValueError("for this temporary analysis script, data_set_description must equal 16k, 81k, 105k, or 114k")
 
+    perf_path = "leave_one_out_results/performances_{}-{}-{}.csv".format(data_set_description, model, col_to_predict)
+    feat_path = "leave_one_out_results/features_{}-{}-{}.csv".format(data_set_description, model, col_to_predict)
+    print("file name for performance results = {}".format(perf_path))
+    print("file name for features results = {}".format(feat_path))
+    print()
+
+    if model == "RFR":
+        th.run_model_on_grouping_splits(function_that_returns_model_runner=rfr_features,
+                                        all_data_df=use_this_data, grouping_df=grouping_df,
+                                        col_to_predict=col_to_predict, data_set_description=data_set_description,
+                                        train_test_split_description="leave-one-group-out", normalize=True,
+                                        feature_cols_to_normalize=feature_cols_to_normalize, get_pimportances=True,
+                                        performance_output_path=perf_path, features_output_path=feat_path)
+    elif model == "CNN":
+        th.run_model_on_grouping_splits(function_that_returns_model_runner=sequence_only_cnn,
+                                        all_data_df=use_this_data, grouping_df=grouping_df,
+                                        col_to_predict=col_to_predict, data_set_description=data_set_description,
+                                        train_test_split_description="leave-one-group-out", normalize=False,
+                                        feature_cols_to_normalize=None, get_pimportances=False,
+                                        performance_output_path=perf_path, features_output_path=feat_path)
+    elif model == "linreg":
+        th.run_model_on_grouping_splits(function_that_returns_model_runner=linreg,
+                                        all_data_df=use_this_data, grouping_df=grouping_df,
+                                        col_to_predict=col_to_predict, data_set_description=data_set_description,
+                                        train_test_split_description="leave-one-group-out", normalize=True,
+                                        feature_cols_to_normalize=feature_cols_to_normalize, get_pimportances=False,
+                                        performance_output_path=perf_path, features_output_path=feat_path)
+    else:
+        raise ValueError("for this temporary analysis script, model must equal RFR, CNN, or Linreg")
+    '''
 
     # Leave one group out runs, finished so commenting out for now to do general runs
     '''
