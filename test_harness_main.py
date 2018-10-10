@@ -89,9 +89,15 @@ def main(args):
     col_order = list(combined_data.columns.values)
     col_order.insert(2, col_order.pop(col_order.index('dataset_original')))
     combined_data = combined_data[col_order]
-    combined_data['stable?'] = combined_data['stabilityscore'] > 1
-    combined_data['3_stability_bins'] = pd.cut(combined_data['stabilityscore'], bins=[-100, 0, 1, 100],
-                                               labels=["trash", "unstable", "stable"])
+    combined_data['stabilityscore_2classes'] = combined_data['stabilityscore'] > 1
+    combined_data['stabilityscore_calibrated_2classes'] = combined_data['stabilityscore_calibrated'] > 1
+    combined_data['stabilityscore_cnn_2classes'] = combined_data['stabilityscore_cnn'] > 1
+    combined_data['stabilityscore_cnn_calibrated_2classes'] = combined_data['stabilityscore_cnn_calibrated'] > 1
+
+
+    # do this later (need AUC multi-class alternative):
+    # combined_data['3_stability_bins'] = pd.cut(combined_data['stabilityscore'], bins=[-100, 0, 1, 100],
+    #                                            labels=["trash", "unstable", "stable"])
     # print(combined_data[['stabilityscore', '3_stability_bins']])
 
     data_RD_16k = combined_data.loc[combined_data['dataset_original'] == 'Rocklin'].copy()
@@ -143,6 +149,7 @@ def main(args):
                                  'ss_sc', 'sum_best_frags', 'total_score', 'tryp_cut_sites', 'two_core_each',
                                  'worst6frags', 'worstfrag']
 
+    '''
     train1, test1 = train_test_split(data_RD_16k, test_size=0.2, random_state=5,
                                      stratify=data_RD_16k[['topology', 'dataset_original']])
     train2, test2 = train1.copy(), combined_data.loc[
@@ -172,10 +179,10 @@ def main(args):
     my_train = train1.copy()
     my_test = test1.copy()
     data_set_description = train_test_split_description = "1"
-    col_to_predict = "3_stability_bins"
+    col_to_predict = "stable?"
 
     # Regression:
-    '''
+
     mr_linreg = linreg(my_train, my_test, col_to_predict, data_set_description, train_test_split_description)
     mr_rfr = rfr_features(my_train, my_test, col_to_predict, data_set_description, train_test_split_description)
     mr_seq = sequence_only_cnn(my_train, my_test, col_to_predict, data_set_description, train_test_split_description)
@@ -197,7 +204,7 @@ def main(args):
     print("file name for performance results = {}".format(perf_path))
     print("file name for features results = {}".format(feat_path))
     th.run_model_general(mr_seq, my_train, my_test, True, False, None, False, perf_path, feat_path)
-    '''
+
 
     # General Classification:
     mr_rfc = random_forest_classification(my_train, my_test, col_to_predict, data_set_description,
@@ -222,17 +229,17 @@ def main(args):
     print("file name for features results = {}".format(feat_path))
     th.run_model_general(mr_rfc, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path,
                          feat_path)
-
     '''
+
     # Leave one out Classification:
     # Change these values for different models/col_to_predict/data
-    # model options: "RFR", "CNN", "lingreg"
-    # col_to_predict options: "stabilityscore", "stabilityscore_calibrated", "stabilityscore_cnn",
-    #                         "stabilityscore_cnn_calibrated", "stabilityscore_calibrated_v2"
+    # model options: "RFC", "CNN", "logreg"
+    # col_to_predict options: "stabilityscore_2classes", "stabilityscore_calibrated_2classes",
+    #                           "stabilityscore_cnn_2classes", "stabilityscore_cnn_calibrated_2classes"
     # data_set_description options: "16k", "81k", "105k", "114k"
     # --------------
-    model = "RFR"
-    col_to_predict = "stabilityscore"
+    model = "logreg"
+    col_to_predict = "stabilityscore_2classes"
     data_set_description = "16k"
     # --------------
 
@@ -247,28 +254,30 @@ def main(args):
     else:
         raise ValueError("for this temporary analysis script, data_set_description must equal 16k, 81k, 105k, or 114k")
 
-    perf_path = "leave_one_out_results/performances_{}-{}-{}.csv".format(data_set_description, model, col_to_predict)
-    feat_path = "leave_one_out_results/features_{}-{}-{}.csv".format(data_set_description, model, col_to_predict)
+    perf_path = "leave_one_out_results/classification_performances_{}-{}-{}.csv".format(data_set_description, model,
+                                                                                        col_to_predict)
+    feat_path = "leave_one_out_results/classification_features_{}-{}-{}.csv".format(data_set_description, model,
+                                                                                    col_to_predict)
     print("file name for performance results = {}".format(perf_path))
     print("file name for features results = {}".format(feat_path))
     print()
 
-    if model == "RFR":
-        th.run_model_on_grouping_splits(function_that_returns_model_runner=rfr_features,
+    if model == "RFC":
+        th.run_model_on_grouping_splits(function_that_returns_model_runner=random_forest_classification,
                                         all_data_df=use_this_data, grouping_df=grouping_df,
                                         col_to_predict=col_to_predict, data_set_description=data_set_description,
                                         train_test_split_description="leave-one-group-out", normalize=True,
-                                        feature_cols_to_normalize=feature_cols_to_normalize, get_pimportances=True,
+                                        feature_cols_to_normalize=feature_cols_to_normalize, get_pimportances=False,
                                         performance_output_path=perf_path, features_output_path=feat_path)
-    elif model == "CNN":
-        th.run_model_on_grouping_splits(function_that_returns_model_runner=sequence_only_cnn,
-                                        all_data_df=use_this_data, grouping_df=grouping_df,
-                                        col_to_predict=col_to_predict, data_set_description=data_set_description,
-                                        train_test_split_description="leave-one-group-out", normalize=False,
-                                        feature_cols_to_normalize=None, get_pimportances=False,
-                                        performance_output_path=perf_path, features_output_path=feat_path)
-    elif model == "linreg":
-        th.run_model_on_grouping_splits(function_that_returns_model_runner=linreg,
+    # elif model == "CNN":
+    #     th.run_model_on_grouping_splits(function_that_returns_model_runner=sequence_only_cnn,
+    #                                     all_data_df=use_this_data, grouping_df=grouping_df,
+    #                                     col_to_predict=col_to_predict, data_set_description=data_set_description,
+    #                                     train_test_split_description="leave-one-group-out", normalize=False,
+    #                                     feature_cols_to_normalize=None, get_pimportances=False,
+    #                                     performance_output_path=perf_path, features_output_path=feat_path)
+    elif model == "logreg":
+        th.run_model_on_grouping_splits(function_that_returns_model_runner=logistic_classifier_topology_general_all_features,
                                         all_data_df=use_this_data, grouping_df=grouping_df,
                                         col_to_predict=col_to_predict, data_set_description=data_set_description,
                                         train_test_split_description="leave-one-group-out", normalize=True,
@@ -276,9 +285,8 @@ def main(args):
                                         performance_output_path=perf_path, features_output_path=feat_path)
     else:
         raise ValueError("for this temporary analysis script, model must equal RFR, CNN, or Linreg")
-    '''
 
-    # Leave one group out runs, finished so commenting out for now to do general runs
+    # Leave one group out regression runs, finished so commenting out for now to do general runs
     '''
     # Change these values for different models/col_to_predict/data
     # model options: "RFR", "CNN", "lingreg"
