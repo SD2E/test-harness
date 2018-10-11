@@ -23,6 +23,7 @@ class KerasClassification(ClassificationModelRunner):
     def _predict(self, X):
         return self.model.predict_classes(X)
 
+    #TODO: Need to update this to use Keras' predict_proba function
     def _predict_proba(self, X):
         probs = [x[0] for x in self.model.predict(X)]
         return probs

@@ -9,6 +9,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import roc_auc_score, r2_score
 import itertools
 import rfpimp
+
 # from test_harness.model_factory import ModelFactory, ModelVisitor
 # import BlackBoxAuditing as BBA
 
@@ -26,8 +27,7 @@ class ModelRunner(metaclass=ABCMeta):
     def __init__(self, model=LinearRegression(),
                  model_description='Default sklearn Linear Regression', training_data=None, testing_data=None,
                  data_set_description=None, train_test_split_description=None, col_to_predict='stabilityscore',
-                 feature_cols_to_use=None, id_col='name', topology_col='topology',
-                 topology_specific_or_general='general', predict_untested=None):
+                 feature_cols_to_use=None, id_col='name', topology_col='topology', predict_untested=None):
         self.model = model
         self.model_description = model_description
         self.training_data = training_data
@@ -38,7 +38,6 @@ class ModelRunner(metaclass=ABCMeta):
         self.feature_cols_to_use = feature_cols_to_use
         self.id_col = id_col
         self.topology_col = topology_col
-        self.topology_specific_or_general = topology_specific_or_general
         self.predict_untested = predict_untested
         self.stack_trace = inspect.stack()
         self.feature_importances = None
@@ -49,7 +48,8 @@ class ModelRunner(metaclass=ABCMeta):
             train_path = os.path.join(DEFAULT_DATA_PATH, 'consistent_training_data_v1.asap.csv')
             test_path = os.path.join(DEFAULT_DATA_PATH, 'consistent_testing_data_v1.asap.csv')
             if (not os.path.isfile(train_path) and not os.path.isfile(test_path)):
-                raise IOError("Training or Testing default data does not exist in the default data path. Perhaps you forgot to download the data?")
+                raise IOError(
+                    "Training or Testing default data does not exist in the default data path. Perhaps you forgot to download the data?")
             self.training_data = pd.read_csv(train_path, comment='#', sep=',')
             self.testing_data = pd.read_csv(test_path, comment='#', sep=',')
             self.data_set_description = 'Default: All V1 Data'
@@ -64,9 +64,11 @@ class ModelRunner(metaclass=ABCMeta):
                                 "train_test_split_description" must all be None or all be Pandas Dataframes.""")
 
         if self.predict_untested is None:
-            untested_path = os.path.join(DEFAULT_DATA_PATH, 'normalized_and_cleaned_untested_designs_v1_with_lib.asap.csv')
+            untested_path = os.path.join(DEFAULT_DATA_PATH,
+                                         'normalized_and_cleaned_untested_designs_v1_with_lib.asap.csv')
             if not os.path.isfile(untested_path):
-                raise IOError("Untested default data does not exist in the default data path. Perhaps you forgot to download the data?")
+                raise IOError(
+                    "Untested default data does not exist in the default data path. Perhaps you forgot to download the data?")
             self.predict_untested = pd.read_csv(untested_path, comment='#', sep=',')
         elif (not self.predict_untested is False and not isinstance(self.predict_untested, pd.DataFrame)):
             raise ValueError("'predict_untested must be None, False, or a Pandas Dataframe.")
@@ -107,9 +109,6 @@ class ModelRunner(metaclass=ABCMeta):
             raise ValueError(
                 'feature_cols_to_use must be a list, a dict, or None. None defaults to all available Rosetta features.')
 
-        if self.topology_specific_or_general != 'general' and self.topology_specific_or_general != 'specific':
-            raise ValueError("'topology_specific_or_general' must be a string equal to 'general' or 'specific'")
-
     @abstractmethod
     def _fit(self, X, y):
         pass
@@ -123,10 +122,6 @@ class ModelRunner(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def _topology_specific_predictions(self, train, test, predict):
-        pass
-
-    @abstractmethod
     def run_model(self, train, test, predict):
         pass
 
@@ -136,12 +131,11 @@ class ClassificationModelRunner(ModelRunner, metaclass=ABCMeta):
                  model_description='Default sklearn Logistic Regression Classifier', training_data=None,
                  testing_data=None, data_set_description=None, train_test_split_description=None,
                  col_to_predict='stable?', feature_cols_to_use=None, id_col='name', topology_col='topology',
-                 topology_specific_or_general='general', predict_untested=None):
+                 predict_untested=None):
         super(ClassificationModelRunner, self).__init__(model, model_description, training_data,
                                                         testing_data, data_set_description,
                                                         train_test_split_description, col_to_predict,
-                                                        feature_cols_to_use, id_col, topology_col,
-                                                        topology_specific_or_general, predict_untested)
+                                                        feature_cols_to_use, id_col, topology_col, predict_untested)
         self.type = 'classification'
 
     # in subclasses, this method should return probability values for being in the positive (1) class
@@ -162,45 +156,18 @@ class ClassificationModelRunner(ModelRunner, metaclass=ABCMeta):
         test_df.loc[:, 'mr_class_predictions'] = self._predict(test_df[self.feature_cols_to_use])
         print(("classifier testing time was: {}".format(time.time() - testing_start_time)))
 
-        test_df.loc[:, 'mr_class_probability_predictions'] = self._predict_proba(test_df[self.feature_cols_to_use])
+        #TODO: uncomment next line after I fix the _predict_proba method for Keras classifiers
+        # test_df.loc[:, 'mr_class_probability_predictions'] = self._predict_proba(test_df[self.feature_cols_to_use])
 
         if self.predict_untested is not False:
             prediction_start_time = time.time()
             self.predict_untested.loc[:, 'mr_class_predictions'] = self._predict(
                 self.predict_untested[self.feature_cols_to_use])
-            self.predict_untested.loc[:, 'mr_class_probability_predictions'] = self._predict_proba(
-                self.predict_untested[self.feature_cols_to_use])
+            # TODO: uncomment next line after I fix the _predict_proba method for Keras classifiers
+            # self.predict_untested.loc[:, 'mr_class_probability_predictions'] = self._predict_proba(
+            #     self.predict_untested[self.feature_cols_to_use])
             print(("class prediction time was: {}".format(time.time() - prediction_start_time)))
             self.predict_untested.sort_values('mr_class_predictions', inplace=True, ascending=False)
-
-        return test_df
-
-    # TODO: incorporate timing for topology specific predictions
-    def _topology_specific_predictions(self, train, test, predict):
-        train_df = train.copy()
-        test_df = test.copy()
-
-        topologies_in_train_df = set(train_df[self.topology_col].tolist())
-        topologies_in_test_df = set(test_df[self.topology_col].tolist())
-        if topologies_in_train_df != topologies_in_test_df:
-            raise ValueError(
-                'Topologies in train_df and test_df are not matching up. They must consist of the same elements.')
-        topologies = list(topologies_in_train_df.intersection(topologies_in_test_df))
-
-        for t in topologies:
-            t_train_df = train_df.loc[train_df[self.topology_col] == t].copy()
-            t_test_df = test_df.loc[test_df[self.topology_col] == t].copy()
-            if isinstance(self.feature_cols_to_use, list):
-                cols_to_use = list(self.feature_cols_to_use)
-            elif isinstance(self.feature_cols_to_use, dict):
-                cols_to_use = self.feature_cols_to_use[t]
-            else:
-                raise ValueError("'self.feature_cols_to_use' must be a list or a dict")
-
-            self._fit(t_train_df[cols_to_use], t_train_df[self.col_to_predict])
-            test_df.loc[test_df[self.topology_col] == t, 'mr_class_predictions'] = self._predict(t_test_df[cols_to_use])
-            test_df.loc[test_df[self.topology_col] == t, 'mr_class_probability_predictions'] = self._predict_proba(
-                t_test_df[cols_to_use])
 
         return test_df
 
@@ -214,9 +181,10 @@ class ClassificationModelRunner(ModelRunner, metaclass=ABCMeta):
         to_pred_index = self.training_data.columns.get_loc(self.col_to_predict)
         types_list[to_pred_index] = str
         datatuple = (
-        [self.col_to_predict] + self.feature_cols_to_use, self.training_data[self.feature_cols_to_use].values.tolist(),
-        self.testing_data[self.feature_cols_to_use].values.tolist(), self.col_to_predict,
-        [], types_list)
+            [self.col_to_predict] + self.feature_cols_to_use,
+            self.training_data[self.feature_cols_to_use].values.tolist(),
+            self.testing_data[self.feature_cols_to_use].values.tolist(), self.col_to_predict,
+            [], types_list)
         auditor(data=datatuple,
                 output_dir='/Users/he/PycharmProjects/SD2/protein-design/test_harness/model_factory_output',
                 features_to_audit=self.feature_cols_to_use)
@@ -232,15 +200,10 @@ class ClassificationModelRunner(ModelRunner, metaclass=ABCMeta):
 
         leaderboard_cols = ['Run ID', 'AUC Score', 'Classification Accuracy', 'Model Description',
                             'Number Of Features Used', 'Column Predicted', 'Data Set Description',
-                            'Train/Test Split Description', 'Topology Specific or General?']
+                            'Train/Test Split Description']
         this_run_results = pd.DataFrame(columns=leaderboard_cols)
 
-        if self.topology_specific_or_general == 'general':
-            df_test = self._topology_general_predictions(train, test, predict)
-        elif self.topology_specific_or_general == 'specific':
-            df_test = self._topology_specific_predictions(train, test, predict)
-        else:
-            raise ValueError("'self.topology_specific_or_general' must take on a value of 'specific' or 'general'")
+        df_test = self._topology_general_predictions(train, test, predict)
 
         self.test_predictions_df = df_test.copy()
 
@@ -265,7 +228,6 @@ class ClassificationModelRunner(ModelRunner, metaclass=ABCMeta):
                       'Data Set Description': self.data_set_description,
                       'Train/Test Split Description': self.train_test_split_description,
                       'Column Predicted': self.col_to_predict, 'Number Of Features Used': num_features_used,
-                      'Topology Specific or General?': self.topology_specific_or_general,
                       'Classification Accuracy': percent_accuracy, 'AUC Score': auc, 'Run ID': 'n/a'}
         this_run_results = this_run_results.append(row_to_add, ignore_index=True)
         # print(tabulate(this_run_results, headers='keys', tablefmt='fancy_grid'))
@@ -277,13 +239,11 @@ class RegressionModelRunner(ModelRunner, metaclass=ABCMeta):
     def __init__(self, model=LinearRegression(),
                  model_description='Default sklearn Linear Regression', training_data=None, testing_data=None,
                  data_set_description=None, train_test_split_description=None, col_to_predict='stabilityscore',
-                 feature_cols_to_use=None, id_col='name', topology_col='topology',
-                 topology_specific_or_general='general', predict_untested=None):
+                 feature_cols_to_use=None, id_col='name', topology_col='topology', predict_untested=None):
         super(RegressionModelRunner, self).__init__(model, model_description, training_data,
                                                     testing_data, data_set_description,
                                                     train_test_split_description, col_to_predict,
-                                                    feature_cols_to_use, id_col, topology_col,
-                                                    topology_specific_or_general, predict_untested)
+                                                    feature_cols_to_use, id_col, topology_col, predict_untested)
         self.type = 'regression'
 
     def _topology_general_predictions(self, train, test, predict):
@@ -319,33 +279,6 @@ class RegressionModelRunner(ModelRunner, metaclass=ABCMeta):
 
         return test_df
 
-    # TODO: incorporate timing for topology specific predictions
-    def _topology_specific_predictions(self, train, test, predict):
-        train_df = train.copy()
-        test_df = test.copy()
-        topologies_in_train_df = set(train_df[self.topology_col].tolist())
-        topologies_in_test_df = set(test_df[self.topology_col].tolist())
-        if topologies_in_train_df != topologies_in_test_df:
-            raise ValueError(
-                'Topologies in train_df and test_df are not matching up. They must consist of the same elements.')
-        topologies = list(topologies_in_train_df.intersection(topologies_in_test_df))
-
-        for t in topologies:
-            t_train_df = train_df.loc[train_df[self.topology_col] == t].copy()
-            t_test_df = test_df.loc[test_df[self.topology_col] == t].copy()
-            if isinstance(self.feature_cols_to_use, list):
-                cols_to_use = list(self.feature_cols_to_use)
-            elif isinstance(self.feature_cols_to_use, dict):
-                cols_to_use = self.feature_cols_to_use[t]
-            else:
-                raise ValueError("'self.feature_cols_to_use' must be a list or a dict")
-
-            self._fit(t_train_df[cols_to_use], t_train_df[self.col_to_predict])
-            test_df.loc[test_df[self.topology_col] == t, 'mr_value_predictions'] = self._predict(t_test_df[cols_to_use])
-        test_df['residuals'] = test_df[self.col_to_predict] - test_df['mr_value_predictions']
-
-        return test_df
-
     def run_model(self, train=None, test=None, predict=None):
         if train is None:
             train = self.training_data
@@ -356,15 +289,10 @@ class RegressionModelRunner(ModelRunner, metaclass=ABCMeta):
 
         leaderboard_cols = ['Run ID', 'RMSE', 'Percent Error', 'R Squared', 'Model Description',
                             'Number Of Features Used', 'Column Predicted', 'Data Set Description',
-                            'Train/Test Split Description', 'Topology Specific or General?']
+                            'Train/Test Split Description']
         this_run_results = pd.DataFrame(columns=leaderboard_cols)
 
-        if self.topology_specific_or_general == 'general':
-            df_test = self._topology_general_predictions(train, test, predict)
-        elif self.topology_specific_or_general == 'specific':
-            df_test = self._topology_specific_predictions(train, test, predict)
-        else:
-            raise ValueError("'self.topology_specific_or_general' must take on a value of 'specific' or 'general'")
+        df_test = self._topology_general_predictions(train, test, predict)
 
         self.test_predictions_df = df_test.copy()
 
@@ -386,8 +314,7 @@ class RegressionModelRunner(ModelRunner, metaclass=ABCMeta):
                       'Data Set Description': self.data_set_description,
                       'Train/Test Split Description': self.train_test_split_description,
                       'Column Predicted': self.col_to_predict, 'Number Of Features Used': num_features_used,
-                      'Topology Specific or General?': self.topology_specific_or_general, 'RMSE': rmse,
-                      'Run ID': 'n/a', 'Percent Error': percent_error, 'R Squared': r_squared}
+                      'RMSE': rmse, 'Run ID': 'n/a', 'Percent Error': percent_error, 'R Squared': r_squared}
         this_run_results = this_run_results.append(row_to_add, ignore_index=True)
         # print(this_run_results)
 
