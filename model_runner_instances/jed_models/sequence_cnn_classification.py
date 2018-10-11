@@ -64,7 +64,10 @@ class KerasClassificationTwoDimensional(KerasClassification):
     def _predict(self, X):
         return self.model.predict(np.expand_dims(np.stack([x[0] for x in X.values]), 3))
 
-
+    def _predict_proba(self, X):
+        return self._predict(X)
+    
+    
 def sequence_only_cnn_classification(training_data, testing_data, col_to_predict, data_set_description="",
                                      train_test_split_description=""):
     amino_dict = dict(zip(
