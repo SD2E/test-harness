@@ -27,14 +27,12 @@ from keras import backend as K
 class KerasClassificationTwoDimensional(KerasClassification):
     def __init__(self, model, model_description, training_data=None, testing_data=None,
                  data_set_description=None, train_test_split_description=None, col_to_predict='stabilityscore_2classes',
-                 feature_cols_to_use=None, id_col='name', topology_col='topology',
-                 topology_specific_or_general='general', predict_untested=False, epochs=25, batch_size=1000,
-                 verbose=0):
+                 feature_cols_to_use=None, id_col='name', topology_col='topology', predict_untested=False, epochs=25,
+                 batch_size=1000, verbose=0):
         super(KerasClassificationTwoDimensional, self).__init__(model, model_description, training_data, testing_data,
-                                                            data_set_description, train_test_split_description,
-                                                            col_to_predict,
-                                                            feature_cols_to_use, id_col, topology_col,
-                                                            topology_specific_or_general, predict_untested)
+                                                                data_set_description, train_test_split_description,
+                                                                col_to_predict, feature_cols_to_use, id_col,
+                                                                topology_col, predict_untested)
         self.epochs = epochs
         self.batch_size = batch_size
         self.verbose = verbose
@@ -47,7 +45,8 @@ class KerasClassificationTwoDimensional(KerasClassification):
         self.class_weight = class_weights_dict
 
     def _fit(self, X, y):
-        checkpoint_filepath = 'sequence_only_cnn_classification_{}.best.hdf5'.format(str(randint(1000000000, 9999999999)))
+        checkpoint_filepath = 'sequence_only_cnn_classification_{}.best.hdf5'.format(
+            str(randint(1000000000, 9999999999)))
         checkpoint_callback = ModelCheckpoint(checkpoint_filepath, monitor='val_loss', save_best_only=True)
         stopping_callback = EarlyStopping(monitor='val_loss', min_delta=0, patience=3)
         callbacks_list = [checkpoint_callback, stopping_callback]
@@ -67,7 +66,7 @@ class KerasClassificationTwoDimensional(KerasClassification):
 
 
 def sequence_only_cnn_classification(training_data, testing_data, col_to_predict, data_set_description="",
-                      train_test_split_description=""):
+                                     train_test_split_description=""):
     amino_dict = dict(zip(
         ['A', 'R', 'N', 'D', 'C', 'E', 'Q', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V',
          'X', 'J', 'O'], range(23)))  # 'X' means nothing, 'J' means beginning, 'O' means end
@@ -114,15 +113,14 @@ def sequence_only_cnn_classification(training_data, testing_data, col_to_predict
     model.compile(optimizer='adam', loss='mse')
 
     mr = KerasClassificationTwoDimensional(model=model,
-                                       model_description='Sequence CNN classification 400x5->200x9->100x17->80->40->1',
-                                       col_to_predict=col_to_predict,
-                                       topology_specific_or_general='general',
-                                       feature_cols_to_use=['encoded_sequence'],
-                                       training_data=training_data,
-                                       testing_data=testing_data,
-                                       # predict_untested=untested_data,
-                                       batch_size=128,
-                                       epochs=25,
-                                       data_set_description=data_set_description,
-                                       train_test_split_description=train_test_split_description)
+                                           model_description='Sequence CNN classification 400x5->200x9->100x17->80->40->1',
+                                           col_to_predict=col_to_predict,
+                                           feature_cols_to_use=['encoded_sequence'],
+                                           training_data=training_data,
+                                           testing_data=testing_data,
+                                           # predict_untested=untested_data,
+                                           batch_size=128,
+                                           epochs=25,
+                                           data_set_description=data_set_description,
+                                           train_test_split_description=train_test_split_description)
     return mr

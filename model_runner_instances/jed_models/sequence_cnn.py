@@ -27,14 +27,12 @@ from keras import backend as K
 class KerasRegressionTwoDimensional(KerasRegression):
     def __init__(self, model, model_description, training_data=None, testing_data=None,
                  data_set_description=None, train_test_split_description=None, col_to_predict='stabilityscore',
-                 feature_cols_to_use=None, id_col='name', topology_col='topology',
-                 topology_specific_or_general='general', predict_untested=False, epochs=25, batch_size=1000,
-                 verbose=0):
+                 feature_cols_to_use=None, id_col='name', topology_col='topology', predict_untested=False, epochs=25,
+                 batch_size=1000, verbose=0):
         super(KerasRegressionTwoDimensional, self).__init__(model, model_description, training_data, testing_data,
                                                             data_set_description, train_test_split_description,
-                                                            col_to_predict,
-                                                            feature_cols_to_use, id_col, topology_col,
-                                                            topology_specific_or_general, predict_untested)
+                                                            col_to_predict, feature_cols_to_use, id_col, topology_col,
+                                                            predict_untested)
         self.epochs = epochs
         self.batch_size = batch_size
         self.verbose = verbose
@@ -109,7 +107,6 @@ def sequence_only_cnn(training_data, testing_data, col_to_predict, data_set_desc
     mr = KerasRegressionTwoDimensional(model=model,
                                        model_description='Sequence CNN 400x5->200x9->100x17->80->40->1',
                                        col_to_predict=col_to_predict,
-                                       topology_specific_or_general='general',
                                        feature_cols_to_use=['encoded_sequence'],
                                        training_data=training_data,
                                        testing_data=testing_data,

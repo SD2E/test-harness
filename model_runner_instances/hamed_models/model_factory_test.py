@@ -10,7 +10,6 @@ def logreg(training_data, testing_data):
 
     mr = SklearnClassification(model=rocklins_logistic_model,
                                model_description="Rocklin Logistic: sklearn LogisticRegression with penalty='l1' and C=0.1",
-                               topology_specific_or_general='general',
                                training_data=training_data, testing_data=testing_data, data_set_description='15k',
                                train_test_split_description='12k-3k', col_to_predict='stable?',
                                predict_untested=False)

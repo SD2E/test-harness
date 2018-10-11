@@ -20,8 +20,8 @@ def keras_regression_1():
 
     # Creating an instance of the KerasRegression Model Runner subclass
     mr_kr = KerasRegression(model=kr,
-                            model_description='Keras: 2 hidden layers (9 and 61 nodes)', col_to_predict='stabilityscore',
-                            topology_specific_or_general='general')
+                            model_description='Keras: 2 hidden layers (9 and 61 nodes)', col_to_predict='stabilityscore'
+                            )
 
     return mr_kr
 
@@ -37,8 +37,8 @@ def keras_regression_2():
 
     # Creating an instance of the KerasRegression Model Runner subclass
     mr_kr = KerasRegression(model=kr,
-                            model_description='Keras: 2 hidden layers (9 and 87 nodes)', col_to_predict='stabilityscore',
-                            topology_specific_or_general='general')
+                            model_description='Keras: 2 hidden layers (9 and 87 nodes)',
+                            col_to_predict='stabilityscore')
 
     return mr_kr
 
@@ -54,8 +54,9 @@ def keras_regression_3():
 
     # Creating an instance of the KerasRegression Model Runner subclass
     mr_kr = KerasRegression(model=kr,
-                            model_description='Keras: 2 hidden layers (89 and 93 nodes)', col_to_predict='stabilityscore',
-                            topology_specific_or_general='general')
+                            model_description='Keras: 2 hidden layers (89 and 93 nodes)',
+                            col_to_predict='stabilityscore',
+                            )
 
     return mr_kr
 
@@ -73,8 +74,8 @@ def keras_regression_4():
 
     # Creating an instance of the KerasRegression Model Runner subclass
     mr_kr = KerasRegression(model=kr,
-                            model_description='Keras: 2 hidden layers (100 and 20 nodes)', col_to_predict='stabilityscore',
-                            topology_specific_or_general='general')
+                            model_description='Keras: 2 hidden layers (100 and 20 nodes)',
+                            col_to_predict='stabilityscore')
 
     return mr_kr
 
@@ -92,8 +93,8 @@ def keras_regression_5a():
 
     # Creating an instance of the KerasRegression Model Runner subclass
     mr_kr = KerasRegression(model=kr,
-                            model_description='Keras: 2 hidden layers (80 and 73 nodes) - Relu', col_to_predict='stabilityscore',
-                            topology_specific_or_general='general')
+                            model_description='Keras: 2 hidden layers (80 and 73 nodes) - Relu',
+                            col_to_predict='stabilityscore')
 
     return mr_kr
 
@@ -111,8 +112,8 @@ def keras_regression_5b():
 
     # Creating an instance of the KerasRegression Model Runner subclass
     mr_kr = KerasRegression(model=kr,
-                            model_description='Keras: 2 hidden layers (80 and 73 nodes) - Softplus', col_to_predict='stabilityscore',
-                            topology_specific_or_general='general')
+                            model_description='Keras: 2 hidden layers (80 and 73 nodes) - Softplus',
+                            col_to_predict='stabilityscore')
 
     return mr_kr
 
@@ -130,14 +131,15 @@ def keras_regression_best(train=None, test=None):
 
     # Creating an instance of the KerasRegression Model Runner subclass
     mr_kr = KerasRegression(model=kr,
-                            model_description='Keras: 2 hidden layers (80 and 73 nodes)', col_to_predict='stabilityscore',
-                            topology_specific_or_general='general',
+                            model_description='Keras: 2 hidden layers (80 and 73 nodes)',
+                            col_to_predict='stabilityscore',
                             training_data=train, testing_data=test, data_set_description='15k',
                             train_test_split_description='12k-3k',
                             predict_untested=False
                             )
 
     return mr_kr
+
 
 def jeds_keras_regression():
     kr = Sequential()
@@ -147,7 +149,7 @@ def jeds_keras_regression():
     kr.compile(optimizer='adam', loss=root_mean_squared_error)
 
     mr_kr = KerasRegression(model=kr,
-                            model_description="Jed's Keras Model: 2 hidden layers (80 and 40 nodes)', col_to_predict='stabilityscore",
-                            topology_specific_or_general='general')
+                            model_description="Jed's Keras Model: 2 hidden layers (80 and 40 nodes)', "
+                                              "col_to_predict='stabilityscore")
 
     return mr_kr

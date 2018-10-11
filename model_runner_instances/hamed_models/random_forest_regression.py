@@ -13,7 +13,7 @@ def rfr_features(training_data, testing_data, col_to_predict, data_set_descripti
     # Creating an instance of the SklearnRegression Model Runner subclass
     mr_rfr = RFRegression(model=rfr,
                           model_description="Random Forest Regressor: bootstrap=False, min_samples_leaf=1, n_estimators=689, min_samples_split=2, max_features=0.2, max_depth=86, n_jobs=-1",
-                          col_to_predict=col_to_predict, topology_specific_or_general='general',
+                          col_to_predict=col_to_predict,
                           predict_untested=False,
                           training_data=training_data.copy(), testing_data=testing_data.copy(),
                           train_test_split_description=train_test_split_description,
@@ -28,7 +28,7 @@ def random_forest_regression(train, test):
     # Creating an instance of the SklearnRegression Model Runner subclass
     mr_rfr = SklearnRegression(model=rfr,
                                model_description="Random Forest Regressor: bootstrap=False, min_samples_leaf=1, n_estimators=689, min_samples_split=2, max_features=0.2, max_depth=86, n_jobs=-1",
-                               col_to_predict='stabilityscore', topology_specific_or_general='general',
+                               col_to_predict='stabilityscore',
                                predict_untested=False,
                                training_data=train, testing_data=test, train_test_split_description='',
                                data_set_description='')
@@ -53,7 +53,7 @@ def random_forest_regression_less_features():
     # Creating an instance of the SklearnRegression Model Runner subclass
     mr_rfr = SklearnRegression(model=rfr,
                                model_description="Random Forest Regressor: bootstrap=False, min_samples_leaf=1, n_estimators=689, min_samples_split=2, max_features=0.2, max_depth=86, n_jobs=-1",
-                               col_to_predict='stabilityscore', topology_specific_or_general='general',
+                               col_to_predict='stabilityscore',
                                feature_cols_to_use=features)
     return mr_rfr
 
@@ -77,7 +77,7 @@ def random_forest_regression_diff_train_test():
     # Creating an instance of the SklearnRegression Model Runner subclass
     mr_rfr = SklearnRegression(model=rfr,
                                model_description="Random Forest Regressor: bootstrap=False, min_samples_leaf=1, n_estimators=689, min_samples_split=2, max_features=0.2, max_depth=86, n_jobs=-1",
-                               col_to_predict='stabilityscore', topology_specific_or_general='general',
+                               col_to_predict='stabilityscore',
                                training_data=train,
                                testing_data=test, data_set_description='85k data',
                                train_test_split_description="train = Rocklin 15k, test = 70k")
