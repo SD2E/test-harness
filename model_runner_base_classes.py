@@ -156,16 +156,14 @@ class ClassificationModelRunner(ModelRunner, metaclass=ABCMeta):
         test_df.loc[:, 'mr_class_predictions'] = self._predict(test_df[self.feature_cols_to_use])
         print(("classifier testing time was: {}".format(time.time() - testing_start_time)))
 
-        #TODO: uncomment next line after I fix the _predict_proba method for Keras classifiers
-        # test_df.loc[:, 'mr_class_probability_predictions'] = self._predict_proba(test_df[self.feature_cols_to_use])
+        test_df.loc[:, 'mr_class_probability_predictions'] = self._predict_proba(test_df[self.feature_cols_to_use])
 
         if self.predict_untested is not False:
             prediction_start_time = time.time()
             self.predict_untested.loc[:, 'mr_class_predictions'] = self._predict(
                 self.predict_untested[self.feature_cols_to_use])
-            # TODO: uncomment next line after I fix the _predict_proba method for Keras classifiers
-            # self.predict_untested.loc[:, 'mr_class_probability_predictions'] = self._predict_proba(
-            #     self.predict_untested[self.feature_cols_to_use])
+            self.predict_untested.loc[:, 'mr_class_probability_predictions'] = self._predict_proba(
+                self.predict_untested[self.feature_cols_to_use])
             print(("class prediction time was: {}".format(time.time() - prediction_start_time)))
             self.predict_untested.sort_values('mr_class_predictions', inplace=True, ascending=False)
 
