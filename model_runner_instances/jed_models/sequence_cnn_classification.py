@@ -1,7 +1,7 @@
 from keras.models import Sequential
 from keras.layers import Dense, Dropout
 from keras.regularizers import l2
-from test_harness.model_runner_subclasses.mr_keras_regression import KerasRegression
+from test_harness.model_runner_subclasses.mr_keras_classification import KerasClassification
 
 import pandas as pd
 import numpy as np
@@ -24,13 +24,13 @@ from keras import backend as K
 # set_session(tf.Session(config=config))
 
 
-class KerasRegressionTwoDimensional(KerasRegression):
+class KerasClassificationTwoDimensional(KerasClassification):
     def __init__(self, model, model_description, training_data=None, testing_data=None,
                  data_set_description=None, train_test_split_description=None, col_to_predict='stabilityscore',
                  feature_cols_to_use=None, id_col='name', topology_col='topology',
                  topology_specific_or_general='general', predict_untested=False, epochs=25, batch_size=1000,
                  verbose=0):
-        super(KerasRegressionTwoDimensional, self).__init__(model, model_description, training_data, testing_data,
+        super(KerasClassificationTwoDimensional, self).__init__(model, model_description, training_data, testing_data,
                                                             data_set_description, train_test_split_description,
                                                             col_to_predict,
                                                             feature_cols_to_use, id_col, topology_col,
@@ -40,7 +40,7 @@ class KerasRegressionTwoDimensional(KerasRegression):
         self.verbose = verbose
 
     def _fit(self, X, y):
-        checkpoint_filepath = 'sequence_only_cnn_{}.best.hdf5'.format(str(randint(1000000000, 9999999999)))
+        checkpoint_filepath = 'sequence_only_cnn_classification_{}.best.hdf5'.format(str(randint(1000000000, 9999999999)))
         checkpoint_callback = ModelCheckpoint(checkpoint_filepath, monitor='val_loss', save_best_only=True)
         stopping_callback = EarlyStopping(monitor='val_loss', min_delta=0, patience=3)
         callbacks_list = [checkpoint_callback, stopping_callback]
@@ -59,7 +59,7 @@ class KerasRegressionTwoDimensional(KerasRegression):
         return self.model.predict(np.expand_dims(np.stack([x[0] for x in X.values]), 3))
 
 
-def sequence_only_cnn(training_data, testing_data, col_to_predict, data_set_description="",
+def sequence_only_cnn_classification(training_data, testing_data, col_to_predict, data_set_description="",
                       train_test_split_description=""):
     amino_dict = dict(zip(
         ['A', 'R', 'N', 'D', 'C', 'E', 'Q', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V',
@@ -102,12 +102,12 @@ def sequence_only_cnn(training_data, testing_data, col_to_predict, data_set_desc
     model = Dense(80, activation='elu', kernel_regularizer=l2(.0))(model)
     model = Dropout(0.3)(model)
     model = Dense(40, activation='elu', kernel_regularizer=l2(.0))(model)
-    model = Dense(1, activation='linear', kernel_regularizer=l2(.0))(model)
+    model = Dense(1, activation='sigmoid', kernel_regularizer=l2(.0))(model)
     model = Model(inputs=inputs, outputs=model)
     model.compile(optimizer='adam', loss='mse')
 
-    mr = KerasRegressionTwoDimensional(model=model,
-                                       model_description='Sequence CNN 400x5->200x9->100x17->80->40->1',
+    mr = KerasClassificationTwoDimensional(model=model,
+                                       model_description='Sequence CNN classification 400x5->200x9->100x17->80->40->1',
                                        col_to_predict=col_to_predict,
                                        topology_specific_or_general='general',
                                        feature_cols_to_use=['encoded_sequence'],
