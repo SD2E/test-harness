@@ -26,7 +26,7 @@ from keras import backend as K
 
 class KerasClassificationTwoDimensional(KerasClassification):
     def __init__(self, model, model_description, training_data=None, testing_data=None,
-                 data_set_description=None, train_test_split_description=None, col_to_predict='stabilityscore',
+                 data_set_description=None, train_test_split_description=None, col_to_predict='stabilityscore_2classes',
                  feature_cols_to_use=None, id_col='name', topology_col='topology',
                  topology_specific_or_general='general', predict_untested=False, epochs=25, batch_size=1000,
                  verbose=0):
@@ -38,6 +38,13 @@ class KerasClassificationTwoDimensional(KerasClassification):
         self.epochs = epochs
         self.batch_size = batch_size
         self.verbose = verbose
+        # print(training_data[col_to_predict].value_counts())
+        value_counts = training_data[col_to_predict].value_counts().to_dict()
+        num_false = value_counts[False]
+        num_true = value_counts[True]
+        class_weights_dict = {False: num_false, True: num_true}
+        print("class_weights_dict = {}".format(class_weights_dict))
+        self.class_weight = class_weights_dict
 
     def _fit(self, X, y):
         checkpoint_filepath = 'sequence_only_cnn_classification_{}.best.hdf5'.format(str(randint(1000000000, 9999999999)))

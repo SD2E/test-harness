@@ -240,7 +240,7 @@ def main(args):
     #                           "stabilityscore_cnn_2classes", "stabilityscore_cnn_calibrated_2classes"
     # data_set_description options: "16k", "81k", "105k", "114k"
     # --------------
-    model = "logreg"
+    model = "CNN"
     col_to_predict = "stabilityscore_2classes"
     data_set_description = "16k"
     # --------------
