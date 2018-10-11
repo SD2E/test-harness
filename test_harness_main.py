@@ -15,6 +15,7 @@ from model_runner_instances.jed_models.sequence_cnn import sequence_only_cnn
 from model_runner_instances.jed_models.sequence_cnn_classification import sequence_only_cnn_classification
 from model_runner_instances.hamed_models.rocklin_models import linear_regression_topology_general_all_features as linreg
 from model_runner_instances.hamed_models.rocklin_models import logistic_classifier_topology_general_all_features
+from model_runner_instances.hamed_models.weighted_logistic_classifier import weighted_logistic_classifier
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
 # Note that if you clone the `versioned-datasets` repo at the same level as where you cloned the `protein-design` repo,
@@ -210,21 +211,21 @@ def main(args):
     # General Classification:
     mr_rfc = random_forest_classification(my_train, my_test, col_to_predict, data_set_description,
                                           train_test_split_description)
-    logreg = logistic_classifier_topology_general_all_features(my_train, my_test, col_to_predict, data_set_description,
+    logreg = weighted_logistic_classifier(my_train, my_test, col_to_predict, data_set_description,
                                                                train_test_split_description)
 
-    perf_path = "general_results/classification_performances_{}-{}-{}.csv".format(data_set_description, "logreg",
+    perf_path = "general_results/weighted_classification_performances_{}-{}-{}.csv".format(data_set_description, "logreg",
                                                                                   col_to_predict)
-    feat_path = "general_results/classification_features_{}-{}-{}.csv".format(data_set_description, "logreg",
+    feat_path = "general_results/weighted_classification_features_{}-{}-{}.csv".format(data_set_description, "logreg",
                                                                               col_to_predict)
     print("file name for performance results = {}".format(perf_path))
     print("file name for features results = {}".format(feat_path))
     th.run_model_general(logreg, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path,
                          feat_path)
 
-    perf_path = "general_results/classification_performances_{}-{}-{}.csv".format(data_set_description, "RFC",
+    perf_path = "general_results/weighted_classification_performances_{}-{}-{}.csv".format(data_set_description, "RFC",
                                                                                   col_to_predict)
-    feat_path = "general_results/classification_features_{}-{}-{}.csv".format(data_set_description, "RFC",
+    feat_path = "general_results/weighted_classification_features_{}-{}-{}.csv".format(data_set_description, "RFC",
                                                                               col_to_predict)
     print("file name for performance results = {}".format(perf_path))
     print("file name for features results = {}".format(feat_path))
@@ -255,9 +256,9 @@ def main(args):
     else:
         raise ValueError("for this temporary analysis script, data_set_description must equal 16k, 81k, 105k, or 114k")
 
-    perf_path = "leave_one_out_results/classification_performances_{}-{}-{}.csv".format(data_set_description, model,
+    perf_path = "leave_one_out_results/weighted_classification_performances_{}-{}-{}.csv".format(data_set_description, model,
                                                                                         col_to_predict)
-    feat_path = "leave_one_out_results/classification_features_{}-{}-{}.csv".format(data_set_description, model,
+    feat_path = "leave_one_out_results/weighted_classification_features_{}-{}-{}.csv".format(data_set_description, model,
                                                                                     col_to_predict)
     print("file name for performance results = {}".format(perf_path))
     print("file name for features results = {}".format(feat_path))
@@ -278,7 +279,7 @@ def main(args):
                                         feature_cols_to_normalize=None, get_pimportances=False,
                                         performance_output_path=perf_path, features_output_path=feat_path)
     elif model == "logreg":
-        th.run_model_on_grouping_splits(function_that_returns_model_runner=logistic_classifier_topology_general_all_features,
+        th.run_model_on_grouping_splits(function_that_returns_model_runner=weighted_logistic_classifier,
                                         all_data_df=use_this_data, grouping_df=grouping_df,
                                         col_to_predict=col_to_predict, data_set_description=data_set_description,
                                         train_test_split_description="leave-one-group-out", normalize=True,
