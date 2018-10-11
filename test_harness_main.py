@@ -12,6 +12,7 @@ from test_harness_class import TestHarness
 from model_runner_instances.hamed_models.random_forest_regression import rfr_features
 from model_runner_instances.hamed_models.random_forest_classification import random_forest_classification
 from model_runner_instances.jed_models.sequence_cnn import sequence_only_cnn
+from model_runner_instances.jed_models.sequence_cnn_classification import sequence_only_cnn_classification
 from model_runner_instances.hamed_models.rocklin_models import linear_regression_topology_general_all_features as linreg
 from model_runner_instances.hamed_models.rocklin_models import logistic_classifier_topology_general_all_features
 
@@ -269,13 +270,13 @@ def main(args):
                                         train_test_split_description="leave-one-group-out", normalize=True,
                                         feature_cols_to_normalize=feature_cols_to_normalize, get_pimportances=False,
                                         performance_output_path=perf_path, features_output_path=feat_path)
-    # elif model == "CNN":
-    #     th.run_model_on_grouping_splits(function_that_returns_model_runner=sequence_only_cnn,
-    #                                     all_data_df=use_this_data, grouping_df=grouping_df,
-    #                                     col_to_predict=col_to_predict, data_set_description=data_set_description,
-    #                                     train_test_split_description="leave-one-group-out", normalize=False,
-    #                                     feature_cols_to_normalize=None, get_pimportances=False,
-    #                                     performance_output_path=perf_path, features_output_path=feat_path)
+    elif model == "CNN":
+        th.run_model_on_grouping_splits(function_that_returns_model_runner=sequence_only_cnn_classification,
+                                        all_data_df=use_this_data, grouping_df=grouping_df,
+                                        col_to_predict=col_to_predict, data_set_description=data_set_description,
+                                        train_test_split_description="leave-one-group-out", normalize=False,
+                                        feature_cols_to_normalize=None, get_pimportances=False,
+                                        performance_output_path=perf_path, features_output_path=feat_path)
     elif model == "logreg":
         th.run_model_on_grouping_splits(function_that_returns_model_runner=logistic_classifier_topology_general_all_features,
                                         all_data_df=use_this_data, grouping_df=grouping_df,
