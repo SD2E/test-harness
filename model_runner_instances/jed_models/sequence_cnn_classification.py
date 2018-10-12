@@ -40,7 +40,7 @@ class KerasClassificationTwoDimensional(KerasClassification):
         value_counts = training_data[col_to_predict].value_counts().to_dict()
         num_false = value_counts[False]
         num_true = value_counts[True]
-        class_weights_dict = {False: num_false, True: num_true}
+        class_weights_dict = {False: num_true, True: num_false}
         print("class_weights_dict = {}".format(class_weights_dict))
         self.class_weight = class_weights_dict
 
