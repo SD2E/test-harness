@@ -28,7 +28,7 @@ class KerasClassificationTwoDimensional(KerasClassification):
     def __init__(self, model, model_description, training_data=None, testing_data=None,
                  data_set_description=None, train_test_split_description=None, col_to_predict='stabilityscore_2classes',
                  feature_cols_to_use=None, id_col='name', topology_col='topology', predict_untested=False, epochs=25,
-                 batch_size=1000, verbose=0):
+                 batch_size=1000, verbose=0, weight_classes=False):
         super(KerasClassificationTwoDimensional, self).__init__(model, model_description, training_data, testing_data,
                                                                 data_set_description, train_test_split_description,
                                                                 col_to_predict, feature_cols_to_use, id_col,
@@ -36,13 +36,15 @@ class KerasClassificationTwoDimensional(KerasClassification):
         self.epochs = epochs
         self.batch_size = batch_size
         self.verbose = verbose
-        # print(training_data[col_to_predict].value_counts())
-        value_counts = training_data[col_to_predict].value_counts().to_dict()
-        num_false = value_counts[False]
-        num_true = value_counts[True]
-        class_weights_dict = {False: num_true, True: num_false}
-        print("class_weights_dict = {}".format(class_weights_dict))
-        self.class_weight = class_weights_dict
+        if weight_classes is True:
+            # print(training_data[col_to_predict].value_counts())
+            value_counts = training_data[col_to_predict].value_counts().to_dict()
+            num_false = value_counts[False]
+            num_true = value_counts[True]
+            class_weights_dict = {False: num_true, True: num_false}
+            self.class_weight = class_weights_dict
+        else:
+            self.class_weight = None
 
     def _fit(self, X, y):
         checkpoint_filepath = 'sequence_only_cnn_classification_{}.best.hdf5'.format(
@@ -50,6 +52,7 @@ class KerasClassificationTwoDimensional(KerasClassification):
         checkpoint_callback = ModelCheckpoint(checkpoint_filepath, monitor='val_loss', save_best_only=True)
         stopping_callback = EarlyStopping(monitor='val_loss', min_delta=0, patience=3)
         callbacks_list = [checkpoint_callback, stopping_callback]
+        print("class_weights = {}".format(self.class_weight))
         self.model.fit(np.expand_dims(np.stack([x[0] for x in X.values]), 3), y, validation_split=0.1,
                        epochs=self.epochs, batch_size=self.batch_size, verbose=self.verbose, callbacks=callbacks_list,
                        class_weight=self.class_weight)
@@ -64,7 +67,7 @@ class KerasClassificationTwoDimensional(KerasClassification):
     
     
 def sequence_only_cnn_classification(training_data, testing_data, col_to_predict, data_set_description="",
-                                     train_test_split_description=""):
+                                     train_test_split_description="", weight_classes=False):
     amino_dict = dict(zip(
         ['A', 'R', 'N', 'D', 'C', 'E', 'Q', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V',
          'X', 'J', 'O'], range(23)))  # 'X' means nothing, 'J' means beginning, 'O' means end
@@ -120,5 +123,6 @@ def sequence_only_cnn_classification(training_data, testing_data, col_to_predict
                                            batch_size=128,
                                            epochs=25,
                                            data_set_description=data_set_description,
-                                           train_test_split_description=train_test_split_description)
+                                           train_test_split_description=train_test_split_description,
+                                           weight_classes=weight_classes)
     return mr
