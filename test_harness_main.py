@@ -96,7 +96,6 @@ def main(args):
     combined_data['stabilityscore_cnn_2classes'] = combined_data['stabilityscore_cnn'] > 1
     combined_data['stabilityscore_cnn_calibrated_2classes'] = combined_data['stabilityscore_cnn_calibrated'] > 1
 
-
     # do this later (need AUC multi-class alternative):
     # combined_data['3_stability_bins'] = pd.cut(combined_data['stabilityscore'], bins=[-100, 0, 1, 100],
     #                                            labels=["trash", "unstable", "stable"])
@@ -115,8 +114,9 @@ def main(args):
              'topology_mining_and_Longxing_chip_2', 'topology_mining_and_Longxing_chip_3'])].copy()
 
     # Grouping Data
-    grouping_df = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/metadata/protein_groupings_by_uw.metadata.csv'),
-                              comment='#', low_memory=False)
+    grouping_df = pd.read_csv(
+        os.path.join(VERSIONED_DATA, 'protein-design/metadata/protein_groupings_by_uw.metadata.csv'),
+        comment='#', low_memory=False)
     grouping_df['dataset'] = grouping_df['dataset'].replace({"longxing_untested": "t_l_untested",
                                                              "topmining_untested": "t_l_untested"})
     print(grouping_df)
@@ -151,7 +151,6 @@ def main(args):
                                  'ss_sc', 'sum_best_frags', 'total_score', 'tryp_cut_sites', 'two_core_each',
                                  'worst6frags', 'worstfrag']
 
-    '''
     train1, test1 = train_test_split(data_RD_16k, test_size=0.2, random_state=5,
                                      stratify=data_RD_16k[['topology', 'dataset_original']])
     train2, test2 = train1.copy(), combined_data.loc[
@@ -178,13 +177,15 @@ def main(args):
     print()
 
     # Change these:
+    # col_to_predict options: "stabilityscore_2classes", "stabilityscore_calibrated_2classes",
+    #                         "stabilityscore_cnn_2classes", "stabilityscore_cnn_calibrated_2classes"
     my_train = train1.copy()
     my_test = test1.copy()
     data_set_description = train_test_split_description = "1"
-    col_to_predict = "stable?"
+    col_to_predict = "stabilityscore_2classes"
 
-    # Regression:
-
+    # General Regression:
+    '''
     mr_linreg = linreg(my_train, my_test, col_to_predict, data_set_description, train_test_split_description)
     mr_rfr = rfr_features(my_train, my_test, col_to_predict, data_set_description, train_test_split_description)
     mr_seq = sequence_only_cnn(my_train, my_test, col_to_predict, data_set_description, train_test_split_description)
@@ -206,34 +207,43 @@ def main(args):
     print("file name for performance results = {}".format(perf_path))
     print("file name for features results = {}".format(feat_path))
     th.run_model_general(mr_seq, my_train, my_test, True, False, None, False, perf_path, feat_path)
-
+    '''
 
     # General Classification:
     mr_rfc = random_forest_classification(my_train, my_test, col_to_predict, data_set_description,
                                           train_test_split_description)
     logreg = weighted_logistic_classifier(my_train, my_test, col_to_predict, data_set_description,
-                                                               train_test_split_description)
+                                          train_test_split_description)
+    cnn = sequence_only_cnn_classification(my_train, my_test, col_to_predict, data_set_description,
+                                           train_test_split_description)
 
-    perf_path = "general_results/weighted_classification_performances_{}-{}-{}.csv".format(data_set_description, "logreg",
-                                                                                  col_to_predict)
+    perf_path = "general_results/weighted_classification_performances_{}-{}-{}.csv".format(data_set_description,
+                                                                                           "logreg",
+                                                                                           col_to_predict)
     feat_path = "general_results/weighted_classification_features_{}-{}-{}.csv".format(data_set_description, "logreg",
-                                                                              col_to_predict)
+                                                                                       col_to_predict)
     print("file name for performance results = {}".format(perf_path))
     print("file name for features results = {}".format(feat_path))
-    th.run_model_general(logreg, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path,
-                         feat_path)
+    th.run_model_general(logreg, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path, feat_path)
 
     perf_path = "general_results/weighted_classification_performances_{}-{}-{}.csv".format(data_set_description, "RFC",
-                                                                                  col_to_predict)
+                                                                                           col_to_predict)
     feat_path = "general_results/weighted_classification_features_{}-{}-{}.csv".format(data_set_description, "RFC",
-                                                                              col_to_predict)
+                                                                                       col_to_predict)
     print("file name for performance results = {}".format(perf_path))
     print("file name for features results = {}".format(feat_path))
-    th.run_model_general(mr_rfc, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path,
-                         feat_path)
-    '''
+    th.run_model_general(mr_rfc, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path, feat_path)
+
+    perf_path = "general_results/weighted_classification_performances_{}-{}-{}.csv".format(data_set_description, "CNN",
+                                                                                           col_to_predict)
+    feat_path = "general_results/weighted_classification_features_{}-{}-{}.csv".format(data_set_description, "CNN",
+                                                                                       col_to_predict)
+    print("file name for performance results = {}".format(perf_path))
+    print("file name for features results = {}".format(feat_path))
+    th.run_model_general(cnn, my_train, my_test, True, False, None, False, perf_path, feat_path)
 
     # Leave one out Classification:
+    '''
     # Change these values for different models/col_to_predict/data
     # model options: "RFC", "CNN", "logreg"
     # col_to_predict options: "stabilityscore_2classes", "stabilityscore_calibrated_2classes",
@@ -287,6 +297,7 @@ def main(args):
                                         performance_output_path=perf_path, features_output_path=feat_path)
     else:
         raise ValueError("for this temporary analysis script, model must equal RFR, CNN, or Linreg")
+    '''
 
     # Leave one group out regression runs, finished so commenting out for now to do general runs
     '''
