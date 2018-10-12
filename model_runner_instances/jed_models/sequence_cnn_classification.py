@@ -50,14 +50,9 @@ class KerasClassificationTwoDimensional(KerasClassification):
         checkpoint_callback = ModelCheckpoint(checkpoint_filepath, monitor='val_loss', save_best_only=True)
         stopping_callback = EarlyStopping(monitor='val_loss', min_delta=0, patience=3)
         callbacks_list = [checkpoint_callback, stopping_callback]
-        # Jed added this next bit before model.fit to make it fit from scratch if model is being reused
-        # commented that code out for now because it won't be necessary after I move custom_splits to test_harness level
-        # session = K.get_session()
-        # for layer in self.model.layers:
-        #     if hasattr(layer, 'kernel_initializer'):
-        #         layer.kernel.initializer.run(session=session)
         self.model.fit(np.expand_dims(np.stack([x[0] for x in X.values]), 3), y, validation_split=0.1,
-                       epochs=self.epochs, batch_size=self.batch_size, verbose=self.verbose, callbacks=callbacks_list)
+                       epochs=self.epochs, batch_size=self.batch_size, verbose=self.verbose, callbacks=callbacks_list,
+                       class_weight=self.class_weight)
         self.model.load_weights(checkpoint_filepath)
         os.remove(checkpoint_filepath)
 
