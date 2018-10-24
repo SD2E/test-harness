@@ -46,7 +46,7 @@ def model_runner_by_name(model_runner_path,
     """
     Instantiate an instance of model_runner by path
 
-    Returns: ModelRunner
+    Returns: TestHarnessModel
     Raises: Exception
     """
     try:
@@ -184,31 +184,6 @@ def main(args):
     data_set_description = train_test_split_description = "1"
     col_to_predict = "stabilityscore_2classes"
 
-    # General Regression:
-    '''
-    mr_linreg = linreg(my_train, my_test, col_to_predict, data_set_description, train_test_split_description)
-    mr_rfr = rfr_features(my_train, my_test, col_to_predict, data_set_description, train_test_split_description)
-    mr_seq = sequence_only_cnn(my_train, my_test, col_to_predict, data_set_description, train_test_split_description)
-
-    perf_path = "general_results/performances_{}-{}-{}.csv".format(data_set_description, "linreg", col_to_predict)
-    feat_path = "general_results/features_{}-{}-{}.csv".format(data_set_description, "linreg", col_to_predict)
-    print("file name for performance results = {}".format(perf_path))
-    print("file name for features results = {}".format(feat_path))
-    th.run_model_general(mr_linreg, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path, feat_path)
-
-    perf_path = "general_results/performances_{}-{}-{}.csv".format(data_set_description, "RFR", col_to_predict)
-    feat_path = "general_results/features_{}-{}-{}.csv".format(data_set_description, "RFR", col_to_predict)
-    print("file name for performance results = {}".format(perf_path))
-    print("file name for features results = {}".format(feat_path))
-    th.run_model_general(mr_rfr, my_train, my_test, False, True, feature_cols_to_normalize, True, perf_path, feat_path)
-
-    perf_path = "general_results/performances_{}-{}-{}.csv".format(data_set_description, "CNN", col_to_predict)
-    feat_path = "general_results/features_{}-{}-{}.csv".format(data_set_description, "CNN", col_to_predict)
-    print("file name for performance results = {}".format(perf_path))
-    print("file name for features results = {}".format(feat_path))
-    th.run_model_general(mr_seq, my_train, my_test, True, False, None, False, perf_path, feat_path)
-    '''
-
     # General Classification:
     mr_rfc = random_forest_classification(my_train, my_test, col_to_predict, data_set_description,
                                           train_test_split_description)
@@ -224,7 +199,7 @@ def main(args):
                                                                                        col_to_predict)
     print("file name for performance results = {}".format(perf_path))
     print("file name for features results = {}".format(feat_path))
-    th.run_model_general(logreg, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path, feat_path)
+    th._execute_custom_run(logreg, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path, feat_path)
 
     perf_path = "general_results/weighted_classification_performances_{}-{}-{}.csv".format(data_set_description, "RFC",
                                                                                            col_to_predict)
@@ -232,7 +207,7 @@ def main(args):
                                                                                        col_to_predict)
     print("file name for performance results = {}".format(perf_path))
     print("file name for features results = {}".format(feat_path))
-    th.run_model_general(mr_rfc, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path, feat_path)
+    th._execute_custom_run(mr_rfc, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path, feat_path)
 
     perf_path = "general_results/weighted_classification_performances_{}-{}-{}.csv".format(data_set_description, "CNN",
                                                                                            col_to_predict)
@@ -240,7 +215,7 @@ def main(args):
                                                                                        col_to_predict)
     print("file name for performance results = {}".format(perf_path))
     print("file name for features results = {}".format(feat_path))
-    th.run_model_general(cnn, my_train, my_test, True, False, None, False, perf_path, feat_path)
+    th._execute_custom_run(cnn, my_train, my_test, True, False, None, False, perf_path, feat_path)
 
     # Leave one out Classification:
     '''
@@ -275,21 +250,21 @@ def main(args):
     print()
 
     if model == "RFC":
-        th.run_model_on_grouping_splits(function_that_returns_model_runner=random_forest_classification,
+        th._execute_leave_one_out_run(function_that_returns_model_runner=random_forest_classification,
                                         all_data_df=use_this_data, grouping_df=grouping_df,
                                         col_to_predict=col_to_predict, data_set_description=data_set_description,
                                         train_test_split_description="leave-one-group-out", normalize=True,
                                         feature_cols_to_normalize=feature_cols_to_normalize, get_pimportances=False,
                                         performance_output_path=perf_path, features_output_path=feat_path)
     elif model == "CNN":
-        th.run_model_on_grouping_splits(function_that_returns_model_runner=sequence_only_cnn_classification,
+        th._execute_leave_one_out_run(function_that_returns_model_runner=sequence_only_cnn_classification,
                                         all_data_df=use_this_data, grouping_df=grouping_df,
                                         col_to_predict=col_to_predict, data_set_description=data_set_description,
                                         train_test_split_description="leave-one-group-out", normalize=False,
                                         feature_cols_to_normalize=None, get_pimportances=False,
                                         performance_output_path=perf_path, features_output_path=feat_path)
     elif model == "logreg":
-        th.run_model_on_grouping_splits(function_that_returns_model_runner=weighted_logistic_classifier,
+        th._execute_leave_one_out_run(function_that_returns_model_runner=weighted_logistic_classifier,
                                         all_data_df=use_this_data, grouping_df=grouping_df,
                                         col_to_predict=col_to_predict, data_set_description=data_set_description,
                                         train_test_split_description="leave-one-group-out", normalize=True,
@@ -299,62 +274,7 @@ def main(args):
         raise ValueError("for this temporary analysis script, model must equal RFR, CNN, or Linreg")
     '''
 
-    # Leave one group out regression runs, finished so commenting out for now to do general runs
-    '''
-    # Change these values for different models/col_to_predict/data
-    # model options: "RFR", "CNN", "lingreg"
-    # col_to_predict options: "stabilityscore", "stabilityscore_calibrated", "stabilityscore_cnn",
-    #                         "stabilityscore_cnn_calibrated", "stabilityscore_calibrated_v2"
-    # data_set_description options: "16k", "81k", "105k", "114k"
-    # --------------
-    model = "RFR"
-    col_to_predict = "stabilityscore"
-    data_set_description = "16k"
-    # --------------
-
-    if data_set_description == "16k":
-        use_this_data = data_RD_16k
-    elif data_set_description == "81k":
-        use_this_data = data_RD_BL_81k
-    elif data_set_description == "105k":
-        use_this_data = data_RD_BL_TA1R1_105k
-    elif data_set_description == "114k":
-        use_this_data = data_RD_BL_TA1R1_KJ_114k
-    else:
-        raise ValueError("for this temporary analysis script, data_set_description must equal 16k, 81k, 105k, or 114k")
-
-    perf_path = "leave_one_out_results/performances_{}-{}-{}.csv".format(data_set_description, model, col_to_predict)
-    feat_path = "leave_one_out_results/features_{}-{}-{}.csv".format(data_set_description, model, col_to_predict)
-    print("file name for performance results = {}".format(perf_path))
-    print("file name for features results = {}".format(feat_path))
-    print()
-
-    if model == "RFR":
-        th.run_model_on_grouping_splits(function_that_returns_model_runner=rfr_features,
-                                        all_data_df=use_this_data, grouping_df=grouping_df,
-                                        col_to_predict=col_to_predict, data_set_description=data_set_description,
-                                        train_test_split_description="leave-one-group-out", normalize=True,
-                                        feature_cols_to_normalize=feature_cols_to_normalize, get_pimportances=True,
-                                        performance_output_path=perf_path, features_output_path=feat_path)
-    elif model == "CNN":
-        th.run_model_on_grouping_splits(function_that_returns_model_runner=sequence_only_cnn,
-                                        all_data_df=use_this_data, grouping_df=grouping_df,
-                                        col_to_predict=col_to_predict, data_set_description=data_set_description,
-                                        train_test_split_description="leave-one-group-out", normalize=False,
-                                        feature_cols_to_normalize=None, get_pimportances=False,
-                                        performance_output_path=perf_path, features_output_path=feat_path)
-    elif model == "linreg":
-        th.run_model_on_grouping_splits(function_that_returns_model_runner=linreg,
-                                        all_data_df=use_this_data, grouping_df=grouping_df,
-                                        col_to_predict=col_to_predict, data_set_description=data_set_description,
-                                        train_test_split_description="leave-one-group-out", normalize=True,
-                                        feature_cols_to_normalize=feature_cols_to_normalize, get_pimportances=False,
-                                        performance_output_path=perf_path, features_output_path=feat_path)
-    else:
-        raise ValueError("for this temporary analysis script, model must equal RFR, CNN, or Linreg")
-    '''
-
-    # th.run_test_harness()
+    # th._output_results()
     #
     # ccl_path = os.path.join(output_dir, 'comparable_classification_leaderboard.html')
     # crl_path = os.path.join(output_dir, 'comparable_regression_leaderboard.html')

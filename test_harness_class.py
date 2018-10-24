@@ -1,9 +1,19 @@
 import os
 import json
 import time
+import inspect
+import itertools
 import pandas as pd
+from math import sqrt
 from unique_id import get_id
+from six import string_types
+from tabulate import tabulate
 from sklearn import preprocessing
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import roc_auc_score, r2_score
+# from test_harness.model_factory import ModelFactory, ModelVisitor
+# import BlackBoxAuditing as BBA
+from test_harness_models_abc import TestHarnessModel, ClassificationModel, RegressionModel
 
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)
@@ -11,96 +21,362 @@ pd.set_option('display.max_colwidth', -1)
 # CSS classes applied to the Pandas Dataframes when written as HTML
 css_classes = ["table-bordered", "table-striped", "table-compact"]
 
+PWD = os.getcwd()
+HERE = os.path.realpath(__file__)
+PARENT = os.path.dirname(HERE)
+DEFAULT_DATA_PATH = os.path.join(PWD, 'versioned_data/asap/')
+
+
+# TODO: If model, training_data, and other params are the same, just train once for that call of run_models
+# TODO: add date-ran and ran-by columns to leaderboards
+# TODO: add md5hashes of data to leaderboard as sorting tool
+# TODO: add cross validation
+# TODO: if test set doesn't include col_to_predict, carry out prediction instead?
+# TODO: add more checks for correct inputs using assert
+# TODO: add filelock or writing-scheduler so leaderboards are not overwritten at the same time. Might need to use SQL
+# TODO: by having the ability to "add" multiple models to the TestHarness object, you can allow for visualizations or \
+# TODO: summary stats for a certain group of runs by adding arguments to the execute_runs method!
+
+
+def make_list_if_not_list(obj):
+    if not isinstance(obj, list):
+        return [obj]
+    else:
+        return obj
+
+
+def is_list_of_strings(obj):
+    if obj and isinstance(obj, list):
+        return all(isinstance(elem, string_types) for elem in obj)
+    else:
+        return False
+
+
+def is_list_of_TH_models(obj):
+    if obj and isinstance(obj, list):
+        return all(isinstance(elem, TestHarnessModel) for elem in obj)
+    else:
+        return False
+
 
 class TestHarness:
     def __init__(self, output_path=os.path.dirname(os.path.realpath(__file__))):
         self.output_path = output_path
-        self.model_runners = []
-        self._finished_models = []
-        self.initialize_leaderboards()
+        self._custom_runs_to_execute = []
+        # loo stands for leave-one-out
+        self._loo_runs_to_execute = []
+        self._execution_id = None
+        self._finished_runs = []
+        self._flag_to_only_allow_one_execution_of_runs_per_TestHarness_object = False
+        self.custom_classification_leaderboard_cols = \
+            ['Execution ID', 'Run ID', 'AUC Score', 'Classification Accuracy', 'Model Description', 'Column Predicted',
+             'Number Of Features Used', 'Data and Split Description', 'Normalized', 'Number of Features Normalized',
+             'Feature Extraction', "Was Untested Data Predicted"]
+        self.custom_regression_leaderboard_cols = \
+            ['Execution ID', 'Run ID', 'R-Squared', 'RMSE', 'Model Description', 'Column Predicted',
+             'Number Of Features Used', 'Data and Split Description', 'Normalized', 'Number of Features Normalized',
+             'Feature Extraction', "Was Untested Data Predicted"]
+        self.loo_full_classification_leaderboard_cols = \
+            ['Execution ID', 'Leave-One-Out ID', 'Run ID', 'AUC Score', 'Classification Accuracy', 'Model Description',
+             'Column Predicted', 'Number Of Features Used', 'Data and Split Description', 'Normalized',
+             'Number of Features Normalized', 'Feature Extraction', "Was Untested Data Predicted"]
+        self.loo_full_regression_leaderboard_cols = \
+            ['Execution ID', 'Leave-One-Out ID', 'Run ID', 'R-Squared', 'RMSE', 'Model Description',
+             'Column Predicted', 'Number Of Features Used', 'Data and Split Description', 'Normalized',
+             'Number of Features Normalized', 'Feature Extraction', "Was Untested Data Predicted"]
+        self.loo_summarized_classification_leaderboard_cols = \
+            ['Execution ID', 'Leave-One-Out ID', 'Mean AUC Score', 'Mean Classification Accuracy', 'Model Description',
+             'Column Predicted', 'Number Of Features Used', 'Data and Split Description', 'Normalized',
+             'Number of Features Normalized', 'Feature Extraction', "Was Untested Data Predicted"]
+        self.loo_summarized_regression_leaderboard_cols = \
+            ['Execution ID', 'Leave-One-Out ID', 'Mean R-Squared', 'Mean RMSE', 'Model Description',
+             'Column Predicted', 'Number Of Features Used', 'Data and Split Description', 'Normalized',
+             'Number of Features Normalized', 'Feature Extraction', "Was Untested Data Predicted"]
 
-    def add_model_runner(self, model_runner_instance):
-        self.model_runners.append(model_runner_instance)
+    class FinishedRunOutputs:
+        def __init__(self, run_type, model_type, row_for_leaderboard, stack_trace, train_df, test_df_with_preds,
+                     untested_df_with_preds=False):
+            self.run_type = run_type
+            self.model_type = model_type
+            self.row_for_leaderboard = row_for_leaderboard
+            self.stack_trace = stack_trace
+            self.training_data = train_df
+            self.testing_data = test_df_with_preds
+            self.untested_data = untested_df_with_preds
 
-    def remove_model_runner(self, model_runner_instance):
-        self.model_runners.remove(model_runner_instance)
+    # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
+    # TODO: make feature_extraction options something like: "BBA", "permutation", and "custom", where custom means that
+    # TODO: it's not a black box feature tool, but rather a specific one defined inside of the TestHarnessModel object
+    def add_custom_runs(self, test_harness_models, training_data, testing_data, data_and_split_description,
+                        cols_to_predict, feature_cols_to_use, normalize=False, feature_cols_to_normalize=None,
+                        feature_extraction=False, predict_untested_data=False):
+        # Adds custom run(s) to the TestHarness object
+        # If you pass a list of models and/or list of columns to predict, a custom run will be added for every
+        # combination of models and columns to predict that you provided.
+        # Custom runs require providing:
+        #       - a TestHarnessModel or list of TestHarnessModels
+        #       - a training dataframe and a testing dataframe
+        #       - a column to predict or list of columns to predict
+        #       - other arguments
+        test_harness_models = make_list_if_not_list(test_harness_models)
+        cols_to_predict = make_list_if_not_list(cols_to_predict)
+        feature_cols_to_use = make_list_if_not_list(feature_cols_to_use)
+        feature_cols_to_normalize = make_list_if_not_list(feature_cols_to_normalize)
 
-    def initialize_leaderboards(self):
-        self.class_leaderboard_cols = ['Run ID', 'AUC Score', 'Classification Accuracy',
-                                       'Model Description', 'Number Of Features Used', 'Column Predicted',
-                                       'Data Set Description', 'Train/Test Split Description',
-                                       'Topology Specific or General?']
+        # Single strings are included in the assert error messages because the make_list_if_not_list function was used
+        assert is_list_of_TH_models(
+            test_harness_models), "test_harness_models must be a TestHarnessModel object or a list of TestHarnessModel objects"
+        assert isinstance(training_data, pd.DataFrame), "training_data must be a Pandas Dataframe"
+        assert isinstance(testing_data, pd.DataFrame), "testing_data must be a Pandas Dataframe"
+        assert isinstance(data_and_split_description, str), "data_and_split_description must be a string"
+        assert is_list_of_strings(cols_to_predict), "cols_to_predict must be a string or a list of strings"
+        assert is_list_of_strings(feature_cols_to_use), "feature_cols_to_use must be a string or a list of strings"
+        assert isinstance(normalize, bool), "normalize must be True or False"
+        assert (feature_cols_to_normalize is None) or is_list_of_strings(feature_cols_to_normalize), \
+            "feature_cols_to_normalize must be None, a string, or a list of strings"
+        assert isinstance(feature_extraction, bool), "feature_extraction must be True or False"
+        assert (predict_untested_data == False) or (isinstance(predict_untested_data, pd.DataFrame)), \
+            "predict_untested_data must be False or a Pandas Dataframe"
 
-        self.reg_leaderboard_cols = ['Run ID', 'RMSE', 'Percent Error', 'R Squared',
-                                     'Model Description', 'Number Of Features Used', 'Column Predicted',
-                                     'Data Set Description', 'Train/Test Split Description',
-                                     'Topology Specific or General?']
+        for combo in itertools.product(test_harness_models, cols_to_predict):
+            test_harness_model = combo[0]
+            col_to_predict = combo[1]
+            custom_run_dict = {"test_harness_model": test_harness_model, "training_data": training_data,
+                               "testing_data": testing_data, "data_and_split_description": data_and_split_description,
+                               "col_to_predict": col_to_predict, "feature_cols_to_use": feature_cols_to_use,
+                               "normalize": normalize, "feature_cols_to_normalize": feature_cols_to_normalize,
+                               "feature_extraction": feature_extraction, "predict_untested_data": predict_untested_data}
+            self._custom_runs_to_execute.append(custom_run_dict)
 
-        cc_leaderboard_name = 'comparable_classification_leaderboard'
-        html_path = os.path.join(self.output_path, "{}.html".format(cc_leaderboard_name))
-        try:
-            cc_leaderboard = pd.read_html(html_path)[0]
-        except (IOError, ValueError):
-            cc_leaderboard = pd.DataFrame(columns=self.class_leaderboard_cols)
-            cc_leaderboard.to_html(
-                html_path,
-                index=False,
-                classes='comparable_classification')
-        self.comparable_classification_leaderboard = cc_leaderboard.copy()
+    def add_leave_one_out_runs(self, test_harness_models, data, data_description, grouping, grouping_description,
+                               cols_to_predict, feature_cols_to_use, normalize=False, feature_cols_to_normalize=None,
+                               feature_extraction=False, predict_untested_data=False):
+        # Adds leave-one-out run(s) to the TestHarness object
+        # Leave-one-out runs require providing:
+        #       - a TestHarnessModel or list of TestHarnessModels
+        #       - a dataset dataframe
+        #       - a grouping dataframe or a list of column names to group by
+        #       - a column to predict or list of columns to predict
+        #       - other arguments
+        test_harness_models = make_list_if_not_list(test_harness_models)
+        cols_to_predict = make_list_if_not_list(cols_to_predict)
+        feature_cols_to_use = make_list_if_not_list(feature_cols_to_use)
+        feature_cols_to_normalize = make_list_if_not_list(feature_cols_to_normalize)
 
-        gc_leaderboard_name = 'general_classification_leaderboard'
-        html_path = os.path.join(self.output_path, "{}.html".format(gc_leaderboard_name))
-        try:
-            gc_leaderboard = pd.read_html(html_path)[0]
-        except (IOError, ValueError):
-            gc_leaderboard = pd.DataFrame(columns=self.class_leaderboard_cols)
-            gc_leaderboard.to_html(
-                html_path,
-                index=False,
-                classes='general_classification')
-        self.general_classification_leaderboard = gc_leaderboard.copy()
+        assert is_list_of_TH_models(
+            test_harness_models), "test_harness_models must be a TestHarnessModel object or a list of TestHarnessModel objects"
+        assert isinstance(data, pd.DataFrame), "data must be a Pandas Dataframe"
+        assert isinstance(data_description, str), "data_description must be a string"
+        assert isinstance(grouping, pd.DataFrame) or is_list_of_strings(
+            grouping), "grouping must be a Pandas Dataframe or a list of column names"
+        assert isinstance(grouping_description, str), "grouping_description must be a string"
+        assert is_list_of_strings(cols_to_predict), "cols_to_predict must be a string or a list of strings"
+        assert is_list_of_strings(feature_cols_to_use), "feature_cols_to_use must be a string or a list of strings"
+        assert isinstance(normalize, bool), "normalize must be True or False"
+        assert (feature_cols_to_normalize is None) or is_list_of_strings(feature_cols_to_normalize), \
+            "feature_cols_to_normalize must be None, a string, or a list of strings"
+        assert isinstance(feature_extraction, bool), "feature_extraction must be True or False"
+        assert (predict_untested_data == False) or (isinstance(predict_untested_data, pd.DataFrame)), \
+            "predict_untested_data must be False or a Pandas Dataframe"
 
-        cr_leaderboard_name = 'comparable_regression_leaderboard'
-        html_path = os.path.join(self.output_path, "{}.html".format(cr_leaderboard_name))
-        try:
-            cr_leaderboard = pd.read_html(html_path)[0]
-        except (IOError, ValueError):
-            cr_leaderboard = pd.DataFrame(columns=self.reg_leaderboard_cols)
-            cr_leaderboard.to_html(
-                html_path,
-                index=False,
-                classes='comparable_regression')
-        self.comparable_regression_leaderboard = cr_leaderboard.copy()
+        for combo in itertools.product(test_harness_models, cols_to_predict):
+            test_harness_model = combo[0]
+            col_to_predict = combo[1]
+            loo_run_dict = {"test_harness_model": test_harness_model, "data": data,
+                            "data_description": data_description, "grouping": grouping,
+                            "grouping_description": grouping_description, "col_to_predict": col_to_predict,
+                            "feature_cols_to_use": feature_cols_to_use, "normalize": normalize,
+                            "feature_cols_to_normalize": feature_cols_to_normalize,
+                            "feature_extraction": feature_extraction, "predict_untested_data": predict_untested_data}
+            self._loo_runs_to_execute.append(loo_run_dict)
 
-        gr_leaderboard_name = 'general_regression_leaderboard'
-        html_path = os.path.join(self.output_path, "{}.html".format(gr_leaderboard_name))
-        try:
-            gr_leaderboard = pd.read_html(html_path)[0]
-        except (IOError, ValueError):
-            gr_leaderboard = pd.DataFrame(columns=self.reg_leaderboard_cols)
-            gr_leaderboard.to_html(
-                html_path,
-                index=False,
-                classes='general_regression')
-        self.general_regression_leaderboard = gr_leaderboard.copy()
+    def view_added_runs(self):
+        print("Custom Runs Added:")
+        print(self._custom_runs_to_execute)
+        print()
+        print("Leave-One-Out Runs Added:")
+        print(self._loo_runs_to_execute)
 
-    def run_models(self):
-        for model_runner in self.model_runners:
-            print()
-            print('Starting model with description: {}'.format(model_runner.model_description))
+    # Executes runs that have been added to self._custom_runs_to_execute and self._loo_runs_to_execute
+    # by using _execute_custom_run and _execute_leave_one_out_run
+    def execute_runs(self):
+        self._execution_id = get_id()
+
+        # TODO: figure out how to prevent simultaneous leaderboard updates from overwriting each other
+        print("Executing {} custom runs".format(len(self._custom_runs_to_execute)))
+        print()
+        for custom_run in self._custom_runs_to_execute:
             start = time.time()
-            print('model started at {}'.format(start))
-            results = model_runner.run_model()
+            print('Starting the following custom run (start time = {}):'.format(start))
+            print(tabulate(custom_run, headers="keys"))
+            self._execute_custom_run(**custom_run)
             end = time.time()
-            print('model finished at {}'.format(end))
-            print('total time elapsed for this model = {}'.format(end - start))
-            print()
-            self._finished_models.append((model_runner, results))
+            print('Custom run finished at {}'.format(end))
+            print('Total run time = {}'.format(end - start))
+            print('Outputting results of custom run...')
+            # TODO: write output code
 
-    def run_model_on_grouping_splits(self, function_that_returns_model_runner, all_data_df, grouping_df, col_to_predict,
-                                     data_set_description, train_test_split_description="leave-one-group-out",
-                                     normalize=False, feature_cols_to_normalize=None, get_pimportances=False,
-                                     performance_output_path=None, features_output_path=None):
+        print()
+
+        print("Executing {} leave-one-out runs".format(len(self._loo_runs_to_execute)))
+        print()
+        for loo_run in self._loo_runs_to_execute:
+            start = time.time()
+            print('Starting the following leave-one-out run (start time = {}):'.format(start))
+            print(tabulate(loo_run, headers="keys"))
+            self._execute_leave_one_out_run(**loo_run)
+            end = time.time()
+            print('Leave-one-out run finished at {}'.format(end))
+            print('Total run time = {}'.format(end - start))
+            print('Outputting results of leave-one-out run...')
+            # TODO: write output code
+
+
+    def _run_model_and_get_results(self, test_harness_model, training_data, testing_data,
+                            col_to_predict, feature_cols_to_use, normalize, feature_cols_to_normalize,
+                            feature_extraction, predict_untested_data):
+        train_df = training_data.copy()
+        test_df = testing_data.copy()
+        if normalize is True:
+            if feature_cols_to_normalize is None:
+                raise ValueError(
+                    "if normalize is True, then feature_cols_to_normalize must be a list of column names")
+            print("Normalizing training and testing splits...")
+            scaler = preprocessing.StandardScaler().fit(train_df[feature_cols_to_normalize])
+            normalized_train = train_df.copy()
+            normalized_train[feature_cols_to_normalize] = scaler.transform(
+                normalized_train[feature_cols_to_normalize])
+            normalized_test = test_df.copy()
+            normalized_test[feature_cols_to_normalize] = scaler.transform(
+                normalized_test[feature_cols_to_normalize])
+            train_df, test_df = normalized_train.copy(), normalized_test.copy()
+        print("Number of samples in train_df split:", train_df.shape)
+        print("Number of samples in test_df split:", test_df.shape)
+        predictions_col = "{}_predictions".format(col_to_predict)
+        residuals_col = "{}_residuals".format(col_to_predict)
+        prob_predictions_col = "{}_prob_predictions".format(col_to_predict)
+        training_start_time = time.time()
+
+        if isinstance(test_harness_model, ClassificationModel):
+            # Training model
+            test_harness_model._fit(train_df[feature_cols_to_use], train_df[col_to_predict])
+            print(("Classifier training time was: {}".format(time.time() - training_start_time)))
+
+            # Testing model
+            testing_start_time = time.time()
+            test_df.loc[:, predictions_col] = test_harness_model._predict(test_df[feature_cols_to_use])
+            print(("Classifier testing time was: {}".format(time.time() - testing_start_time)))
+            test_df.loc[:, prob_predictions_col] = test_harness_model._predict_proba(test_df[feature_cols_to_use])
+
+            # Predicting values for untested dataset if applicable
+            if predict_untested_data is not False:
+                was_untested_data_predicted = True
+                untested_df = predict_untested_data.copy()
+                prediction_start_time = time.time()
+                untested_df.loc[:, predictions_col] = test_harness_model._predict(untested_df[feature_cols_to_use])
+                untested_df.loc[:, prob_predictions_col] = test_harness_model._predict_proba(
+                    untested_df[feature_cols_to_use])
+                print(
+                    ("Classifier prediction time (untested data) was: {}".format(time.time() - prediction_start_time)))
+                untested_df.sort_values(predictions_col, inplace=True, ascending=False)
+            else:
+                was_untested_data_predicted = False
+                untested_df = False
+            results_dict = {"AUC Score": auc}
+
+
+        elif isinstance(test_harness_model, RegressionModel):
+            # Training model
+            test_harness_model._fit(train_df[feature_cols_to_use], train_df[col_to_predict])
+            print(("Regressor training time was: {}".format(time.time() - training_start_time)))
+
+            # Testing model
+            testing_start_time = time.time()
+            test_df.loc[:, predictions_col] = test_harness_model._predict(test_df[feature_cols_to_use])
+            test_df[residuals_col] = test_df[col_to_predict] - test_df[predictions_col]
+            print(("Regressor testing time was: {}".format(time.time() - testing_start_time)))
+
+            # Predicting values for untested dataset if applicable
+            if predict_untested_data is not False:
+                was_untested_data_predicted = True
+                untested_df = predict_untested_data.copy()
+                prediction_start_time = time.time()
+                untested_df.loc[:, predictions_col] = test_harness_model._predict(untested_df[feature_cols_to_use])
+                print(("Regressor prediction time (untested data) was: {}".format(time.time() - prediction_start_time)))
+                untested_df.sort_values(predictions_col, inplace=True, ascending=False)
+            else:
+                was_untested_data_predicted = False
+                untested_df = False
+            results_dict = {""}
+
+        else:
+            raise TypeError("test_harness_model must be a ClassificationModel or RegressionModel object.")
+
+        return results_dict
+
+
+
+    # Executes custom runs
+    def _execute_custom_run(self, test_harness_model, training_data, testing_data, data_and_split_description,
+                            col_to_predict, feature_cols_to_use, normalize, feature_cols_to_normalize,
+                            feature_extraction, predict_untested_data):
+
+
+        # Creating summary row of run results for leaderboard
+        summary_row_for_leaderboard = pd.DataFrame(columns=self.custom_classification_leaderboard_cols)
+        num_features_used = len(feature_cols_to_use)
+        num_features_normalized = len(feature_cols_to_normalize)
+        num_rows = len(test_df)
+        total_equal = sum(test_df[col_to_predict] == test_df[predictions_col])
+        percent_accuracy = float(total_equal) / float(num_rows)
+        auc = roc_auc_score(test_df[col_to_predict], test_df[prob_predictions_col])
+        row_values = {'Execution ID': self._execution_id, 'Run ID': run_id, 'AUC Score': auc,
+                      'Classification Accuracy': percent_accuracy,
+                      'Model Description': test_harness_model.model_description, 'Column Predicted': col_to_predict,
+                      'Number Of Features Used': num_features_used,
+                      'Data and Split Description': data_and_split_description, 'Normalized': normalize,
+                      'Number of Features Normalized': num_features_normalized,
+                      'Feature Extraction': feature_extraction,
+                      "Was Untested Data Predicted": was_untested_data_predicted}
+        summary_row_for_leaderboard = summary_row_for_leaderboard.append(row_values, ignore_index=True)
+
+        # Creating FinishedRunOutputs object to store all the results of this run
+        this_run_results = self.FinishedRunOutputs(run_type="custom", model_type="classification",
+                                                   row_for_leaderboard=summary_row_for_leaderboard,
+                                                   stack_trace=test_harness_model.stack_trace,
+                                                   train_df=train_df.copy(), test_df_with_preds=test_df.copy(),
+                                                   untested_df_with_preds=untested_df)
+
+        # Creating summary row of run results for leaderboard
+        summary_row_for_leaderboard = pd.DataFrame(columns=self.custom_regression_leaderboard_cols)
+        num_features_used = len(feature_cols_to_use)
+        num_features_normalized = len(feature_cols_to_normalize)
+        num_rows = len(test_df)
+        rmse = sqrt(mean_squared_error(test_df[col_to_predict], test_df[predictions_col]))
+        r_squared = r2_score(test_df[col_to_predict], test_df[predictions_col])
+        row_values = {'Execution ID': self._execution_id, 'Run ID': run_id, 'R-Squared': r_squared, 'RMSE': rmse,
+                      'Model Description': test_harness_model.model_description, 'Column Predicted': col_to_predict,
+                      'Number Of Features Used': num_features_used,
+                      'Data and Split Description': data_and_split_description, 'Normalized': normalize,
+                      'Number of Features Normalized': num_features_normalized,
+                      'Feature Extraction': feature_extraction,
+                      "Was Untested Data Predicted": was_untested_data_predicted}
+        summary_row_for_leaderboard = summary_row_for_leaderboard.append(row_values, ignore_index=True)
+
+        # Creating FinishedRunOutputs object to store all the results of this run
+        this_run_results = self.FinishedRunOutputs(run_type="custom", model_type="classification",
+                                                   row_for_leaderboard=summary_row_for_leaderboard,
+                                                   stack_trace=test_harness_model.stack_trace,
+                                                   train_df=train_df.copy(), test_df_with_preds=test_df.copy(),
+                                                   untested_df_with_preds=untested_df)
+
+
+
+    # Executes leave-one-out runs
+    def _execute_leave_one_out_run(self, function_that_returns_model_runner, all_data_df, grouping_df, col_to_predict,
+                                   data_set_description, train_test_split_description="leave-one-group-out",
+                                   normalize=False, feature_cols_to_normalize=None, get_pimportances=False,
+                                   performance_output_path=None, features_output_path=None):
         if not callable(function_that_returns_model_runner):
             raise ValueError('function_that_returns_model_runner must be a function.')
 
@@ -183,60 +459,10 @@ class TestHarness:
         if splits_features is not None and features_output_path is not None:
             splits_features.to_csv(features_output_path, index=False)
 
-    def run_model_general(self, model_runner_instance, train, test, is_this_sequence_cnn=False,
-                          normalize=False, feature_cols_to_normalize=None,
-                          get_pimportances=False, performance_output_path=None, features_output_path=None):
-
-        results = pd.DataFrame()
-        features = None
-        train_split = train.copy()
-        test_split = test.copy()
-        if normalize is True:
-            if feature_cols_to_normalize is None:
-                raise ValueError(
-                    "if normalize is True, then feature_cols_to_normalize must be a list of column names")
-            print("Normalizing training and testing splits...")
-            scaler = preprocessing.StandardScaler().fit(train_split[feature_cols_to_normalize])
-            normalized_train = train_split.copy()
-            normalized_train[feature_cols_to_normalize] = scaler.transform(
-                normalized_train[feature_cols_to_normalize])
-            normalized_test = test_split.copy()
-            normalized_test[feature_cols_to_normalize] = scaler.transform(
-                normalized_test[feature_cols_to_normalize])
-            train_split, test_split = normalized_train.copy(), normalized_test.copy()
-
-        print("Number of samples in train split:", train_split.shape)
-        print("Number of samples in test split:", test_split.shape)
-
-        if is_this_sequence_cnn is True:
-            this_run_results = model_runner_instance.run_model()
-        else:
-            this_run_results = model_runner_instance.run_model(train_split, test_split)
-        this_run_results['num_proteins_in_train_set'] = len(train_split)
-        this_run_results['num_proteins_in_test_set'] = len(test_split)
-        print(this_run_results)
-        results = pd.concat([results, this_run_results])
-
-        if get_pimportances is True:
-            this_run_perms = model_runner_instance.permutation_importances
-            if isinstance(this_run_perms, pd.DataFrame):
-                if features is None:
-                    features = this_run_perms
-                else:
-                    features = pd.merge(features, this_run_perms, on='Feature')
-        print()
-        splits_results = results.sort_values('AUC Score', ascending=False)
-        print(splits_results)
-        print()
-        print(features)
-        if performance_output_path is not None:
-            print(performance_output_path)
-            splits_results.to_csv(performance_output_path, index=False)
-        if features is not None and features_output_path is not None:
-            features.to_csv(features_output_path, index=False)
-
-    def run_test_harness(self):
-        for x in self._finished_models:
+    # Outputs results (leaderboards, model outputs, etc) in a consistent way
+    '''
+    def _output_results(self):
+        for x in self._finished_runs:
             model_runner_instance = x[0]
             model_runner_results = x[1]
             # print model_runner_instance.training_data
@@ -323,3 +549,5 @@ class TestHarness:
                     f.write(' - Path: ' + path + '\n')
                     f.write(' - Line: ' + str(line) + ',  Function: ' + str(func) + '\n')
                     f.write("\n")
+
+    '''

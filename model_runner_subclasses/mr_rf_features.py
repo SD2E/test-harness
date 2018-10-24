@@ -1,9 +1,9 @@
-from test_harness.model_runner_base_classes import RegressionModelRunner
+from test_harness.test_harness_models_abc import RegressionModel
 import pandas as pd
 import rfpimp
 
 
-class RFRegression(RegressionModelRunner):
+class RFRegression(RegressionModel):
     def _fit(self, X, y):
         self.model.fit(X, y)
 

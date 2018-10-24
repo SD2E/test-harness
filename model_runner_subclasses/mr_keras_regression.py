@@ -1,7 +1,7 @@
-from test_harness.model_runner_base_classes import RegressionModelRunner
+from test_harness.test_harness_models_abc import RegressionModel
 
 
-class KerasRegression(RegressionModelRunner):
+class KerasRegression(RegressionModel):
     def __init__(self, model, model_description, training_data=None, testing_data=None,
                  data_set_description=None, train_test_split_description=None, col_to_predict='stabilityscore',
                  feature_cols_to_use=None, id_col='name', topology_col='topology', predict_untested=None, epochs=25, batch_size=1000,

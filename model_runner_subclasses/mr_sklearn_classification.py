@@ -1,7 +1,7 @@
-from test_harness.model_runner_base_classes import ClassificationModelRunner
+from test_harness.test_harness_models_abc import ClassificationModel
 
 
-class SklearnClassification(ClassificationModelRunner):
+class SklearnClassification(ClassificationModel):
     def _fit(self, X, y):
         self.model.fit(X, y)
 
