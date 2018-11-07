@@ -1,7 +1,7 @@
 import time
 import pandas as pd
 from math import sqrt
-from unique_id import get_id
+from test_harness.unique_id import get_id
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score, r2_score
 

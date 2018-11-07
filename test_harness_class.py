@@ -5,14 +5,14 @@ import inspect
 import itertools
 import pandas as pd
 from math import sqrt
-from unique_id import get_id
+from test_harness.unique_id import get_id
 from six import string_types
 from tabulate import tabulate
 from sklearn import preprocessing
 from abc import ABCMeta, abstractmethod
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score, r2_score
-from run_class import ClassificationRun, RegressionRun
+from test_harness.run_class import ClassificationRun, RegressionRun
 # from test_harness.model_factory import ModelFactory, ModelVisitor
 # import BlackBoxAuditing as BBA
 from test_harness.test_harness_models_abc import TestHarnessModel, ClassificationModel, RegressionModel
