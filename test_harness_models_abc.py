@@ -20,7 +20,7 @@ class TestHarnessModel(metaclass=ABCMeta):
 
 class ClassificationModel(TestHarnessModel, metaclass=ABCMeta):
     def __init__(self, model=LogisticRegression(), model_description='Default Sklearn Logistic Classifier'):
-        super(ClassificationModel, self).__init__(model, model_description)
+        super().__init__(model, model_description)
 
     # in subclasses, this method should return probability values for being in the positive (1) class
     @abstractmethod
@@ -30,4 +30,4 @@ class ClassificationModel(TestHarnessModel, metaclass=ABCMeta):
 
 class RegressionModel(TestHarnessModel, metaclass=ABCMeta):
     def __init__(self, model=LinearRegression(), model_description='Default Sklearn Linear Regression'):
-        super(RegressionModel, self).__init__(model, model_description)
+        super().__init__(model, model_description)
