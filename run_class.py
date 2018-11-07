@@ -17,7 +17,7 @@ class Run:
         self.training_data = training_data
         self.testing_data = testing_data
         self.data_and_split_description = data_and_split_description
-        self.col_to_predict = col_to_predict,
+        self.col_to_predict = col_to_predict
         self.feature_cols_to_use = feature_cols_to_use
         self.normalize = normalize
         self.feature_cols_to_normalize = feature_cols_to_normalize

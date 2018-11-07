@@ -15,7 +15,7 @@ from sklearn.metrics import roc_auc_score, r2_score
 from run_class import ClassificationRun, RegressionRun
 # from test_harness.model_factory import ModelFactory, ModelVisitor
 # import BlackBoxAuditing as BBA
-from test_harness_models_abc import TestHarnessModel, ClassificationModel, RegressionModel
+from test_harness.test_harness_models_abc import TestHarnessModel, ClassificationModel, RegressionModel
 
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)
@@ -200,11 +200,11 @@ class TestHarness:
         for custom_run in self._custom_runs_to_execute:
             start = time.time()
             print('Starting the following custom run (start time = {}):'.format(start))
-            print(tabulate(custom_run, headers="keys"))
             self._execute_custom_run(**custom_run)
             end = time.time()
             print('Custom run finished at {}'.format(end))
             print('Total run time = {}'.format(end - start))
+            print()
         print()
 
         print("Executing {} leave-one-out runs".format(len(self._loo_runs_to_execute)))
@@ -212,7 +212,6 @@ class TestHarness:
         for loo_run in self._loo_runs_to_execute:
             start = time.time()
             print('Starting the following leave-one-out run (start time = {}):'.format(start))
-            print(tabulate(loo_run, headers="keys"))
             self._execute_leave_one_out_run(**loo_run)
             end = time.time()
             print('Leave-one-out run finished at {}'.format(end))
@@ -378,6 +377,7 @@ class TestHarness:
         loo_summarized_classification_results = pd.DataFrame(columns=self.loo_summarized_classification_leaderboard_cols)
         loo_summarized_classification_results = pd.DataFrame(columns=self.loo_summarized_regression_leaderboard_cols)
 
+        execution_id_folder_path = os.path.join(self.output_path, 'model_outputs/{}'.format(self._execution_id))
         for fcr in self._finished_custom_runs:
             if isinstance(fcr, ClassificationRun):
                 row_values = {'Execution ID': self._execution_id, 'Run ID': fcr.run_id, 'AUC Score': fcr.auc_score,
@@ -406,7 +406,6 @@ class TestHarness:
             if fcr.was_untested_data_predicted is not False:
                 prediction_data_to_save = fcr.untested_data_predictions.copy()
 
-            execution_id_folder_path = os.path.join(self.output_path, 'model_outputs/{}'.format(self._execution_id))
             run_id_folder_path = '{}/{}'.format(execution_id_folder_path, fcr.run_id)
             os.makedirs(run_id_folder_path, exist_ok=True)
             training_data_to_save.to_csv('{}/{}'.format(run_id_folder_path, 'training_data.csv'), index=False)
@@ -429,13 +428,17 @@ class TestHarness:
 
         custom_classification_results.sort_values('AUC Score', inplace=True, ascending=False)
         custom_classification_results.reset_index(inplace=True, drop=True)
-        html_path = os.path.join(self.output_path, "custom_classification_results.html")
+        html_path = os.path.join(execution_id_folder_path, "custom_classification_results.html")
         custom_classification_results.to_html(html_path, index=False, classes='custom_classification')
 
         custom_regression_results.sort_values('R-Squared', inplace=True, ascending=False)
         custom_regression_results.reset_index(inplace=True, drop=True)
-        html_path = os.path.join(self.output_path, "custom_regression_results.html")
+        html_path = os.path.join(execution_id_folder_path, "custom_regression_results.html")
         custom_regression_results.to_html(html_path, index=False, classes='custom_regression')
 
-        print(custom_classification_results)
-        print(custom_regression_results)
+        if len(custom_classification_results) > 0:
+            print()
+            print(custom_classification_results)
+        if len(custom_regression_results) > 0:
+            print()
+            print(custom_regression_results)

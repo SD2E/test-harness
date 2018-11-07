@@ -9,13 +9,11 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 from test_harness_class import TestHarness
 
-from model_runner_instances.hamed_models.random_forest_regression import rfr_features
 from model_runner_instances.hamed_models.random_forest_classification import random_forest_classification
-from model_runner_instances.jed_models.sequence_cnn import sequence_only_cnn
-from model_runner_instances.jed_models.sequence_cnn_classification import sequence_only_cnn_classification
-from model_runner_instances.hamed_models.rocklin_models import linear_regression_topology_general_all_features as linreg
-from model_runner_instances.hamed_models.rocklin_models import logistic_classifier_topology_general_all_features
-from model_runner_instances.hamed_models.weighted_logistic_classifier import weighted_logistic_classifier
+
+
+
+
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
 # Note that if you clone the `versioned-datasets` repo at the same level as where you cloned the `protein-design` repo,
@@ -64,8 +62,6 @@ def model_runner_by_name(model_runner_path,
 
 
 def main(args):
-    model_list = []
-
     if 'output' in args and args.output is not None:
         output_dir = os.path.join(PWD, args.output)
         if not os.path.exists(output_dir):
@@ -76,17 +72,12 @@ def main(args):
     else:
         output_dir = PARENT
 
-    th = TestHarness(output_path=output_dir)
-
-    combined_data = pd.read_csv(os.path.join(VERSIONED_DATA,
-                                             'protein-design/aggregated_data/all_libs_cleaned.v1.aggregated_data.csv'),
+    combined_data = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/aggregated_data/all_libs_cleaned.v1.aggregated_data.csv'),
                                 comment='#', low_memory=False)
-
     combined_data['dataset_original'] = combined_data['dataset']
     combined_data['dataset'] = combined_data['dataset'].replace({"topology_mining_and_Longxing_chip_1": "t_l_untested",
                                                                  "topology_mining_and_Longxing_chip_2": "t_l_untested",
                                                                  "topology_mining_and_Longxing_chip_3": "t_l_untested"})
-
     # Changing the order of columns in combined_data
     col_order = list(combined_data.columns.values)
     col_order.insert(2, col_order.pop(col_order.index('dataset_original')))
@@ -95,11 +86,6 @@ def main(args):
     combined_data['stabilityscore_calibrated_2classes'] = combined_data['stabilityscore_calibrated'] > 1
     combined_data['stabilityscore_cnn_2classes'] = combined_data['stabilityscore_cnn'] > 1
     combined_data['stabilityscore_cnn_calibrated_2classes'] = combined_data['stabilityscore_cnn_calibrated'] > 1
-
-    # do this later (need AUC multi-class alternative):
-    # combined_data['3_stability_bins'] = pd.cut(combined_data['stabilityscore'], bins=[-100, 0, 1, 100],
-    #                                            labels=["trash", "unstable", "stable"])
-    # print(combined_data[['stabilityscore', '3_stability_bins']])
 
     data_RD_16k = combined_data.loc[combined_data['dataset_original'] == 'Rocklin'].copy()
     data_RD_BL_81k = combined_data.loc[
@@ -113,13 +99,13 @@ def main(args):
             ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
              'topology_mining_and_Longxing_chip_2', 'topology_mining_and_Longxing_chip_3'])].copy()
 
-    # Grouping Data
-    grouping_df = pd.read_csv(
-        os.path.join(VERSIONED_DATA, 'protein-design/metadata/protein_groupings_by_uw.metadata.csv'),
-        comment='#', low_memory=False)
-    grouping_df['dataset'] = grouping_df['dataset'].replace({"longxing_untested": "t_l_untested",
-                                                             "topmining_untested": "t_l_untested"})
-    print(grouping_df)
+    # # Grouping Data
+    # grouping_df = pd.read_csv(
+    #     os.path.join(VERSIONED_DATA, 'protein-design/metadata/protein_groupings_by_uw.metadata.csv'),
+    #     comment='#', low_memory=False)
+    # grouping_df['dataset'] = grouping_df['dataset'].replace({"longxing_untested": "t_l_untested",
+    #                                                          "topmining_untested": "t_l_untested"})
+    # print(grouping_df)
 
     feature_cols_to_normalize = ['AlaCount', 'T1_absq', 'T1_netq', 'Tend_absq', 'Tend_netq', 'Tminus1_absq',
                                  'Tminus1_netq', 'abego_res_profile', 'abego_res_profile_penalty',
@@ -166,143 +152,17 @@ def main(args):
     train7, test7 = train_test_split(data_RD_BL_TA1R1_KJ_114k, test_size=0.2, random_state=5,
                                      stratify=data_RD_BL_TA1R1_KJ_114k[['topology', 'dataset_original']])
 
-    print()
-    print(train1.shape, test1.shape, (train1.shape[0] + test1.shape[0]))
-    print(train2.shape, test2.shape, (train2.shape[0] + test2.shape[0]))
-    print(train3.shape, test3.shape, (train3.shape[0] + test3.shape[0]))
-    print(train4.shape, test4.shape, (train4.shape[0] + test4.shape[0]))
-    print(train5.shape, test5.shape, (train5.shape[0] + test5.shape[0]))
-    print(train6.shape, test6.shape, (train6.shape[0] + test6.shape[0]))
-    print(train7.shape, test7.shape, (train7.shape[0] + test7.shape[0]))
-    print()
 
-    # Change these:
-    # col_to_predict options: "stabilityscore_2classes", "stabilityscore_calibrated_2classes",
-    #                         "stabilityscore_cnn_2classes", "stabilityscore_cnn_calibrated_2classes"
-    my_train = train1.copy()
-    my_test = test1.copy()
-    data_set_description = train_test_split_description = "1"
-    col_to_predict = "stabilityscore_2classes"
+    th = TestHarness(output_path=output_dir)
 
-    # General Classification:
-    mr_rfc = random_forest_classification(my_train, my_test, col_to_predict, data_set_description,
-                                          train_test_split_description)
-    logreg = weighted_logistic_classifier(my_train, my_test, col_to_predict, data_set_description,
-                                          train_test_split_description)
-    cnn = sequence_only_cnn_classification(my_train, my_test, col_to_predict, data_set_description,
-                                           train_test_split_description)
+    rf_classification_model = random_forest_classification()
+    th.add_custom_runs(test_harness_models=rf_classification_model, training_data=train1, testing_data=test1,
+                       data_and_split_description="just testing things out!",
+                       cols_to_predict=['stabilityscore_2classes', 'stabilityscore_calibrated_2classes'],
+                       feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
+                       feature_extraction=False, predict_untested_data=False)
 
-    perf_path = "general_results/weighted_classification_performances_{}-{}-{}.csv".format(data_set_description,
-                                                                                           "logreg",
-                                                                                           col_to_predict)
-    feat_path = "general_results/weighted_classification_features_{}-{}-{}.csv".format(data_set_description, "logreg",
-                                                                                       col_to_predict)
-    print("file name for performance results = {}".format(perf_path))
-    print("file name for features results = {}".format(feat_path))
-    th._execute_custom_run(logreg, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path, feat_path)
-
-    perf_path = "general_results/weighted_classification_performances_{}-{}-{}.csv".format(data_set_description, "RFC",
-                                                                                           col_to_predict)
-    feat_path = "general_results/weighted_classification_features_{}-{}-{}.csv".format(data_set_description, "RFC",
-                                                                                       col_to_predict)
-    print("file name for performance results = {}".format(perf_path))
-    print("file name for features results = {}".format(feat_path))
-    th._execute_custom_run(mr_rfc, my_train, my_test, False, True, feature_cols_to_normalize, False, perf_path, feat_path)
-
-    perf_path = "general_results/weighted_classification_performances_{}-{}-{}.csv".format(data_set_description, "CNN",
-                                                                                           col_to_predict)
-    feat_path = "general_results/weighted_classification_features_{}-{}-{}.csv".format(data_set_description, "CNN",
-                                                                                       col_to_predict)
-    print("file name for performance results = {}".format(perf_path))
-    print("file name for features results = {}".format(feat_path))
-    th._execute_custom_run(cnn, my_train, my_test, True, False, None, False, perf_path, feat_path)
-
-    # Leave one out Classification:
-    '''
-    # Change these values for different models/col_to_predict/data
-    # model options: "RFC", "CNN", "logreg"
-    # col_to_predict options: "stabilityscore_2classes", "stabilityscore_calibrated_2classes",
-    #                           "stabilityscore_cnn_2classes", "stabilityscore_cnn_calibrated_2classes"
-    # data_set_description options: "16k", "81k", "105k", "114k"
-    # --------------
-    model = "CNN"
-    col_to_predict = "stabilityscore_2classes"
-    data_set_description = "16k"
-    # --------------
-
-    if data_set_description == "16k":
-        use_this_data = data_RD_16k
-    elif data_set_description == "81k":
-        use_this_data = data_RD_BL_81k
-    elif data_set_description == "105k":
-        use_this_data = data_RD_BL_TA1R1_105k
-    elif data_set_description == "114k":
-        use_this_data = data_RD_BL_TA1R1_KJ_114k
-    else:
-        raise ValueError("for this temporary analysis script, data_set_description must equal 16k, 81k, 105k, or 114k")
-
-    perf_path = "leave_one_out_results/weighted_classification_performances_{}-{}-{}.csv".format(data_set_description, model,
-                                                                                        col_to_predict)
-    feat_path = "leave_one_out_results/weighted_classification_features_{}-{}-{}.csv".format(data_set_description, model,
-                                                                                    col_to_predict)
-    print("file name for performance results = {}".format(perf_path))
-    print("file name for features results = {}".format(feat_path))
-    print()
-
-    if model == "RFC":
-        th._execute_leave_one_out_run(function_that_returns_model_runner=random_forest_classification,
-                                        all_data_df=use_this_data, grouping_df=grouping_df,
-                                        col_to_predict=col_to_predict, data_set_description=data_set_description,
-                                        train_test_split_description="leave-one-group-out", normalize=True,
-                                        feature_cols_to_normalize=feature_cols_to_normalize, get_pimportances=False,
-                                        performance_output_path=perf_path, features_output_path=feat_path)
-    elif model == "CNN":
-        th._execute_leave_one_out_run(function_that_returns_model_runner=sequence_only_cnn_classification,
-                                        all_data_df=use_this_data, grouping_df=grouping_df,
-                                        col_to_predict=col_to_predict, data_set_description=data_set_description,
-                                        train_test_split_description="leave-one-group-out", normalize=False,
-                                        feature_cols_to_normalize=None, get_pimportances=False,
-                                        performance_output_path=perf_path, features_output_path=feat_path)
-    elif model == "logreg":
-        th._execute_leave_one_out_run(function_that_returns_model_runner=weighted_logistic_classifier,
-                                        all_data_df=use_this_data, grouping_df=grouping_df,
-                                        col_to_predict=col_to_predict, data_set_description=data_set_description,
-                                        train_test_split_description="leave-one-group-out", normalize=True,
-                                        feature_cols_to_normalize=feature_cols_to_normalize, get_pimportances=False,
-                                        performance_output_path=perf_path, features_output_path=feat_path)
-    else:
-        raise ValueError("for this temporary analysis script, model must equal RFR, CNN, or Linreg")
-    '''
-
-    # th._output_results()
-    #
-    # ccl_path = os.path.join(output_dir, 'comparable_classification_leaderboard.html')
-    # crl_path = os.path.join(output_dir, 'comparable_regression_leaderboard.html')
-    # gcl_path = os.path.join(output_dir, 'general_classification_leaderboard.html')
-    # grl_path = os.path.join(output_dir, 'general_regression_leaderboard.html')
-    #
-    # # Build meta-leaderboard with DataTables styling
-    # TEMPLATES = os.path.join(PARENT, 'templates')
-    # index_path = os.path.join(output_dir, 'index.html')
-    #
-    # with open(index_path, 'w') as idx:
-    #     with open(os.path.join(TEMPLATES, 'header.html.j2'), 'r') as hdr:
-    #         for line in hdr:
-    #             idx.write(line)
-    #
-    #     for lb in (ccl_path, crl_path, gcl_path, grl_path):
-    #         fname = os.path.basename(lb)
-    #         classname = fname.replace('_leaderboard.html', '')
-    #         heading = classname.replace('_', ' ').title()
-    #         idx.write('\n<h2>{}</h2>\n'.format(heading))
-    #         with open(lb, 'r') as tbl:
-    #             for line in tbl:
-    #                 idx.write(line)
-    #
-    #     with open(os.path.join(TEMPLATES, 'footer.html.j2'), 'r') as ftr:
-    #         for line in ftr:
-    #             idx.write(line)
-
+    th.execute_runs()
 
 if __name__ == '__main__':
     args = parser.parse_args()
