@@ -2,9 +2,9 @@ import time
 import pandas as pd
 from math import sqrt
 from unique_id import get_id
+from datetime import datetime
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score, r2_score
-
 
 
 class Run:
@@ -29,6 +29,8 @@ class Run:
             self.was_untested_data_predicted = False
         else:
             self.was_untested_data_predicted = True
+        self.date_ran = datetime.now().strftime("%Y-%m-%d")
+        self.time_ran = datetime.now().strftime("%H:%M:%S")
 
     # def normalize_data(self):
     #     scaler = preprocessing.StandardScaler().fit(self.training_data[self.feature_cols_to_normalize])
@@ -50,7 +52,6 @@ class ClassificationRun(Run):
                          feature_extraction, predict_untested_data)
         self.prob_predictions_col = "{}_prob_predictions".format(col_to_predict)
 
-
         # execution_id, run_id, auc, accuracy, model_description, col_to_predict, num_features_used,
         # data_and_split_description, normalize, num_features_normalized, feature_extraction,
         # was_untested_data_predicted, stack_trace, train_df, test_df_with_preds,
@@ -63,13 +64,13 @@ class ClassificationRun(Run):
         # Training model
         training_start_time = time.time()
         self.test_harness_model._fit(train_df[self.feature_cols_to_use], train_df[self.col_to_predict])
-        print(("Classifier training time was: {}".format(time.time() - training_start_time)))
+        print(("Classifier training time was: {0:.2f} seconds".format(time.time() - training_start_time)))
 
         # Testing model
         testing_start_time = time.time()
         test_df.loc[:, self.predictions_col] = self.test_harness_model._predict(test_df[self.feature_cols_to_use])
         test_df.loc[:, self.prob_predictions_col] = self.test_harness_model._predict_proba(test_df[self.feature_cols_to_use])
-        print(("Classifier testing time was: {}".format(time.time() - testing_start_time)))
+        print(("Classifier testing time was: {0:.2f} seconds".format(time.time() - testing_start_time)))
         # Saving predictions for calculating metrics later
         self.testing_data_predictions = test_df.copy()
 
@@ -92,7 +93,8 @@ class ClassificationRun(Run):
         self.num_datapoints = len(self.testing_data_predictions)
         total_equal = sum(self.testing_data_predictions[self.col_to_predict] == self.testing_data_predictions[self.predictions_col])
         self.percent_accuracy = float(total_equal) / float(self.num_datapoints)
-        self.auc_score = roc_auc_score(self.testing_data_predictions[self.col_to_predict], self.testing_data_predictions[self.prob_predictions_col])
+        self.auc_score = roc_auc_score(self.testing_data_predictions[self.col_to_predict],
+                                       self.testing_data_predictions[self.prob_predictions_col])
 
 
 class RegressionRun(Run):
@@ -104,7 +106,6 @@ class RegressionRun(Run):
                          feature_extraction, predict_untested_data)
         self.residuals_col = "{}_residuals".format(col_to_predict)
 
-
     def train_and_test(self):
         train_df = self.training_data.copy()
         test_df = self.testing_data.copy()
@@ -112,13 +113,13 @@ class RegressionRun(Run):
         # Training model
         training_start_time = time.time()
         self.test_harness_model._fit(train_df[self.feature_cols_to_use], train_df[self.col_to_predict])
-        print(("Regressor training time was: {}".format(time.time() - training_start_time)))
+        print(("Regressor training time was: {0:.2f} seconds".format(time.time() - training_start_time)))
 
         # Testing model
         testing_start_time = time.time()
         test_df.loc[:, self.predictions_col] = self.test_harness_model._predict(test_df[self.feature_cols_to_use])
         test_df[self.residuals_col] = test_df[self.col_to_predict] - test_df[self.predictions_col]
-        print(("Regressor testing time was: {}".format(time.time() - testing_start_time)))
+        print(("Regressor testing time was: {0:.2f} seconds".format(time.time() - testing_start_time)))
         # Saving predictions for calculating metrics later
         self.testing_data_predictions = test_df.copy()
 
@@ -138,5 +139,6 @@ class RegressionRun(Run):
         self.num_features_used = len(self.feature_cols_to_use)
         self.num_features_normalized = len(self.feature_cols_to_normalize)
         self.num_datapoints = len(self.testing_data_predictions)
-        self.rmse = sqrt(mean_squared_error(self.testing_data_predictions[self.col_to_predict], self.testing_data_predictions[self.predictions_col]))
+        self.rmse = sqrt(
+            mean_squared_error(self.testing_data_predictions[self.col_to_predict], self.testing_data_predictions[self.predictions_col]))
         self.r_squared = r2_score(self.testing_data_predictions[self.col_to_predict], self.testing_data_predictions[self.predictions_col])

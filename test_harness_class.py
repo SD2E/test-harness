@@ -1,21 +1,14 @@
 import os
 import json
 import time
-import inspect
 import itertools
 import pandas as pd
-from math import sqrt
 from unique_id import get_id
 from six import string_types
-from tabulate import tabulate
+from datetime import datetime
 from sklearn import preprocessing
-from abc import ABCMeta, abstractmethod
-from sklearn.metrics import mean_squared_error
-from sklearn.metrics import roc_auc_score, r2_score
-from run_class import ClassificationRun, RegressionRun
-# from test_harness.model_factory import ModelFactory, ModelVisitor
-# import BlackBoxAuditing as BBA
-from test_harness.test_harness_models_abc import TestHarnessModel, ClassificationModel, RegressionModel
+from run_classes import ClassificationRun, RegressionRun
+from test_harness.test_harness_models_abstract_classes import TestHarnessModel, ClassificationModel, RegressionModel
 
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)
@@ -30,7 +23,7 @@ DEFAULT_DATA_PATH = os.path.join(PWD, 'versioned_data/asap/')
 
 
 # TODO: If model, training_data, and other params are the same, just train once for that call of run_models
-# TODO: add date-ran and ran-by columns to leaderboards
+# TODO: add ran-by (user) column to leaderboards
 # TODO: add md5hashes of data to leaderboard as sorting tool
 # TODO: add cross validation
 # TODO: if test set doesn't include col_to_predict, carry out prediction instead?
@@ -72,27 +65,27 @@ class TestHarness:
         self._finished_loo_runs = []
         self._flag_to_only_allow_one_execution_of_runs_per_TestHarness_object = False
         self.custom_classification_leaderboard_cols = \
-            ['Execution ID', 'Run ID', 'AUC Score', 'Classification Accuracy', 'Model Description', 'Column Predicted',
+            ['Execution ID', 'Run ID', 'Date', 'Time', 'AUC Score', 'Classification Accuracy', 'Model Description', 'Column Predicted',
              'Number Of Features Used', 'Data and Split Description', 'Normalized', 'Number of Features Normalized',
              'Feature Extraction', "Was Untested Data Predicted"]
         self.custom_regression_leaderboard_cols = \
-            ['Execution ID', 'Run ID', 'R-Squared', 'RMSE', 'Model Description', 'Column Predicted',
+            ['Execution ID', 'Run ID', 'Date', 'Time', 'R-Squared', 'RMSE', 'Model Description', 'Column Predicted',
              'Number Of Features Used', 'Data and Split Description', 'Normalized', 'Number of Features Normalized',
              'Feature Extraction', "Was Untested Data Predicted"]
         self.loo_full_classification_leaderboard_cols = \
-            ['Execution ID', 'Leave-One-Out ID', 'Run ID', 'AUC Score', 'Classification Accuracy', 'Model Description',
+            ['Execution ID', 'Leave-One-Out ID', 'Run ID', 'Date', 'Time', 'AUC Score', 'Classification Accuracy', 'Model Description',
              'Column Predicted', 'Number Of Features Used', 'Data and Split Description', 'Normalized',
              'Number of Features Normalized', 'Feature Extraction', "Was Untested Data Predicted"]
         self.loo_full_regression_leaderboard_cols = \
-            ['Execution ID', 'Leave-One-Out ID', 'Run ID', 'R-Squared', 'RMSE', 'Model Description',
+            ['Execution ID', 'Leave-One-Out ID', 'Run ID', 'Date', 'Time', 'R-Squared', 'RMSE', 'Model Description',
              'Column Predicted', 'Number Of Features Used', 'Data and Split Description', 'Normalized',
              'Number of Features Normalized', 'Feature Extraction', "Was Untested Data Predicted"]
         self.loo_summarized_classification_leaderboard_cols = \
-            ['Execution ID', 'Leave-One-Out ID', 'Mean AUC Score', 'Mean Classification Accuracy', 'Model Description',
+            ['Execution ID', 'Leave-One-Out ID', 'Date', 'Time', 'Mean AUC Score', 'Mean Classification Accuracy', 'Model Description',
              'Column Predicted', 'Number Of Features Used', 'Data and Split Description', 'Normalized',
              'Number of Features Normalized', 'Feature Extraction', "Was Untested Data Predicted"]
         self.loo_summarized_regression_leaderboard_cols = \
-            ['Execution ID', 'Leave-One-Out ID', 'Mean R-Squared', 'Mean RMSE', 'Model Description',
+            ['Execution ID', 'Leave-One-Out ID', 'Date', 'Time', 'Mean R-Squared', 'Mean RMSE', 'Model Description',
              'Column Predicted', 'Number Of Features Used', 'Data and Split Description', 'Normalized',
              'Number of Features Normalized', 'Feature Extraction', "Was Untested Data Predicted"]
 
@@ -193,29 +186,37 @@ class TestHarness:
     # by using _execute_custom_run and _execute_leave_one_out_run
     def execute_runs(self):
         self._execution_id = get_id()
+        print("The ID for this Execution of runs is: {}".format(self._execution_id))
+        print()
 
         # TODO: figure out how to prevent simultaneous leaderboard updates from overwriting each other
-        print("Executing {} custom runs".format(len(self._custom_runs_to_execute)))
-        print()
-        for custom_run in self._custom_runs_to_execute:
-            start = time.time()
-            print('Starting the following custom run (start time = {}):'.format(start))
-            self._execute_custom_run(**custom_run)
-            end = time.time()
-            print('Custom run finished at {}'.format(end))
-            print('Total run time = {}'.format(end - start))
+        number_of_custom_runs = len(self._custom_runs_to_execute)
+        if number_of_custom_runs > 0:
+            print("Executing {} custom runs".format(number_of_custom_runs))
             print()
-        print()
+            for counter, custom_run in enumerate(self._custom_runs_to_execute, start=1):
+                start = time.time()
+                print('Starting custom run {}/{} at time {}'.format(counter, number_of_custom_runs,
+                                                                    datetime.now().strftime("%H:%M:%S")))
+                self._execute_custom_run(**custom_run)
+                end = time.time()
+                print('Custom run finished at {}'.format(datetime.now().strftime("%H:%M:%S")))
+                print('Total run time = {0:.2f} seconds'.format(end - start))
+                print()
 
-        print("Executing {} leave-one-out runs".format(len(self._loo_runs_to_execute)))
-        print()
-        for loo_run in self._loo_runs_to_execute:
-            start = time.time()
-            print('Starting the following leave-one-out run (start time = {}):'.format(start))
-            self._execute_leave_one_out_run(**loo_run)
-            end = time.time()
-            print('Leave-one-out run finished at {}'.format(end))
-            print('Total run time = {}'.format(end - start))
+        number_of_loo_runs = len(self._loo_runs_to_execute)
+        if number_of_loo_runs > 0:
+            print("Executing {} leave-one-out runs".format(number_of_loo_runs))
+            print()
+            for counter, loo_run in enumerate(self._loo_runs_to_execute, start=1):
+                start = time.time()
+                print('Starting leave-one-out run {}/{} at time {}'.format(counter, number_of_loo_runs,
+                                                                           datetime.now().strftime("%H:%M:%S")))
+                self._execute_leave_one_out_run(**loo_run)
+                end = time.time()
+                print('Leave-one-out run finished at {}'.format(datetime.now().strftime("%H:%M:%S")))
+                print('Total run time = {0:.2f} seconds'.format(end - start))
+                print()
 
         print("Outputting results from all executed runs...")
         self._output_results()
@@ -370,6 +371,9 @@ class TestHarness:
     # 1. Create execution-specific leaderboard for this execution while saving outputs (including exec-specific leaderboard) to right folder
     # 2. Update main leaderboard to include results in this execution-specific leaderboard
     def _output_results(self):
+        results_folder_path = os.path.join(self.output_path, 'results')
+        execution_id_folder_path = os.path.join(results_folder_path, 'executions/{}'.format(self._execution_id))
+
         custom_classification_results = pd.DataFrame(columns=self.custom_classification_leaderboard_cols)
         custom_regression_results = pd.DataFrame(columns=self.custom_regression_leaderboard_cols)
         loo_full_classification_results = pd.DataFrame(columns=self.loo_full_classification_leaderboard_cols)
@@ -377,11 +381,10 @@ class TestHarness:
         loo_summarized_classification_results = pd.DataFrame(columns=self.loo_summarized_classification_leaderboard_cols)
         loo_summarized_classification_results = pd.DataFrame(columns=self.loo_summarized_regression_leaderboard_cols)
 
-        execution_id_folder_path = os.path.join(self.output_path, 'model_outputs/{}'.format(self._execution_id))
         for fcr in self._finished_custom_runs:
             if isinstance(fcr, ClassificationRun):
-                row_values = {'Execution ID': self._execution_id, 'Run ID': fcr.run_id, 'AUC Score': fcr.auc_score,
-                              'Classification Accuracy': fcr.percent_accuracy,
+                row_values = {'Execution ID': self._execution_id, 'Run ID': fcr.run_id, 'Date': fcr.date_ran, 'Time': fcr.time_ran,
+                              'AUC Score': fcr.auc_score, 'Classification Accuracy': fcr.percent_accuracy,
                               'Model Description': fcr.model_description, 'Column Predicted': fcr.col_to_predict,
                               'Number Of Features Used': fcr.num_features_used,
                               'Data and Split Description': fcr.data_and_split_description, 'Normalized': fcr.normalize,
@@ -390,7 +393,8 @@ class TestHarness:
                               "Was Untested Data Predicted": fcr.was_untested_data_predicted}
                 custom_classification_results = custom_classification_results.append(row_values, ignore_index=True)
             elif isinstance(fcr, RegressionRun):
-                row_values = {'Execution ID': self._execution_id, 'Run ID': fcr.run_id, 'R-Squared': fcr.r_squared, 'RMSE': fcr.rmse,
+                row_values = {'Execution ID': self._execution_id, 'Run ID': fcr.run_id, 'Date': fcr.date_ran, 'Time': fcr.time_ran,
+                              'R-Squared': fcr.r_squared, 'RMSE': fcr.rmse,
                               'Model Description': fcr.model_description, 'Column Predicted': fcr.col_to_predict,
                               'Number Of Features Used': fcr.num_features_used,
                               'Data and Split Description': fcr.data_and_split_description, 'Normalized': fcr.normalize,
@@ -406,7 +410,7 @@ class TestHarness:
             if fcr.was_untested_data_predicted is not False:
                 prediction_data_to_save = fcr.untested_data_predictions.copy()
 
-            run_id_folder_path = '{}/{}'.format(execution_id_folder_path, fcr.run_id)
+            run_id_folder_path = os.path.join(execution_id_folder_path, '{}_{}'.format("run", fcr.run_id))
             os.makedirs(run_id_folder_path, exist_ok=True)
             training_data_to_save.to_csv('{}/{}'.format(run_id_folder_path, 'training_data.csv'), index=False)
             testing_data_to_save.to_csv('{}/{}'.format(run_id_folder_path, 'testing_data.csv'), index=False)
@@ -442,3 +446,23 @@ class TestHarness:
         if len(custom_regression_results) > 0:
             print()
             print(custom_regression_results)
+
+        # Check if leaderboards exist, and create them if they don't
+        # Pandas append docs: "Columns not in this frame are added as new columns" --> don't worry about adding new leaderboard cols
+        cc_leaderboard_name = 'custom_classification_leaderboard'
+        html_path = os.path.join(results_folder_path, "{}.html".format(cc_leaderboard_name))
+        try:
+            cc_leaderboard = pd.read_html(html_path)[0]
+        except (IOError, ValueError):
+            cc_leaderboard = pd.DataFrame(columns=self.custom_classification_leaderboard_cols)
+        cc_leaderboard = cc_leaderboard.append(custom_classification_results)
+        cc_leaderboard.to_html(html_path, index=False, classes='comparable_classification')
+
+        cr_leaderboard_name = 'custom_regression_leaderboard'
+        html_path = os.path.join(results_folder_path, "{}.html".format(cr_leaderboard_name))
+        try:
+            cr_leaderboard = pd.read_html(html_path)[0]
+        except (IOError, ValueError):
+            cr_leaderboard = pd.DataFrame(columns=self.custom_regression_leaderboard_cols)
+        cr_leaderboard = cr_leaderboard.append(custom_regression_results)
+        cr_leaderboard.to_html(html_path, index=False, classes='comparable_regression')
