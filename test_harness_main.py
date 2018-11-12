@@ -71,14 +71,12 @@ def main(args):
     else:
         output_dir = PARENT
     #Mohammed add start
-    df = pd.read_excel("/Users/meslami/Downloads/181106_Ried_Genome_instability_BrCa.xlsx")
+    df = pd.read_excel('data/yeaststates/live_dead_dataframe.csv')
     print("Length of full DF", len(df))
-    input_cols = ["FEATURE_NAMES"]
-    output_cols = ["OUTPUT_NAME"]
-    df=df[input_cols+output_cols]
-    df.dropna(axis=0,inplace=True)
+    input_cols = ['FSC-A','SSC-A','BL1-A','RL1-A','FSC-H','SSC-H','BL1-H','RL1-H','FSC-W','SSC-W','BL1-W','RL1-W']
+    output_cols = ["strain"]
     print("Size of filtered data",len(df))
-    train, test = train_test_split(df, stratify=df['Death'], test_size=0.2, random_state=5)
+    train, test = train_test_split(df, stratify=df['strain'], test_size=0.2, random_state=5)
     th = TestHarness(output_path=output_dir)
 
     rf_classification_model = random_forest_classification(n_estimators=500)
