@@ -520,5 +520,3 @@ class TestHarness:
             lr_leaderboard = pd.DataFrame(columns=self.loo_full_regression_leaderboard_cols)
         lr_leaderboard = lr_leaderboard.append(execution_regression_results)
         lr_leaderboard.to_html(html_path, index=False, classes='loo_regression')
-
-# TODO: add "Test Group" to append lines
