@@ -100,12 +100,12 @@ def main(args):
              'topology_mining_and_Longxing_chip_2', 'topology_mining_and_Longxing_chip_3'])].copy()
 
     # # Grouping Data
-    # grouping_df = pd.read_csv(
-    #     os.path.join(VERSIONED_DATA, 'protein-design/metadata/protein_groupings_by_uw.metadata.csv'),
-    #     comment='#', low_memory=False)
-    # grouping_df['dataset'] = grouping_df['dataset'].replace({"longxing_untested": "t_l_untested",
-    #                                                          "topmining_untested": "t_l_untested"})
-    # print(grouping_df)
+    grouping_df = pd.read_csv(
+        os.path.join(VERSIONED_DATA, 'protein-design/metadata/protein_groupings_by_uw.metadata.csv'),
+        comment='#', low_memory=False)
+    grouping_df['dataset'] = grouping_df['dataset'].replace({"longxing_untested": "t_l_untested",
+                                                             "topmining_untested": "t_l_untested"})
+    print(grouping_df)
 
     feature_cols_to_normalize = ['AlaCount', 'T1_absq', 'T1_netq', 'Tend_absq', 'Tend_netq', 'Tminus1_absq',
                                  'Tminus1_netq', 'abego_res_profile', 'abego_res_profile_penalty',
@@ -156,11 +156,16 @@ def main(args):
     th = TestHarness(output_path=output_dir)
 
     rf_classification_model = random_forest_classification()
-    th.add_custom_runs(test_harness_models=rf_classification_model, training_data=train1, testing_data=test1,
-                       data_and_split_description="just testing things out!",
-                       cols_to_predict=['stabilityscore_2classes', 'stabilityscore_calibrated_2classes'],
-                       feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
-                       feature_extraction=False, predict_untested_data=False)
+    # th.add_custom_runs(test_harness_models=rf_classification_model, training_data=train1, testing_data=test1,
+    #                    data_and_split_description="just testing things out!",
+    #                    cols_to_predict=['stabilityscore_2classes', 'stabilityscore_calibrated_2classes'],
+    #                    feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
+    #                    feature_extraction=False, predict_untested_data=False)
+
+    th.add_leave_one_out_runs(test_harness_models=rf_classification_model, data=data_RD_16k, data_description="data_RD_16k",
+                              grouping=grouping_df, grouping_description="grouping_df", cols_to_predict='stabilityscore_2classes',
+                              feature_cols_to_use=feature_cols_to_normalize, normalize=True,
+                              feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
 
     th.execute_runs()
 
