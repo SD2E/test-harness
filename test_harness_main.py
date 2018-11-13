@@ -6,11 +6,12 @@ import types
 import pandas as pd
 from tabulate import tabulate
 from pathlib import Path
-
 from sklearn.model_selection import train_test_split
-from test_harness.test_harness_class import TestHarness
+from test_harness_class import TestHarness
 
-from test_harness.model_runner_instances.hamed_models.random_forest_classification import random_forest_classification
+from model_runner_instances.hamed_models.random_forest_classification import random_forest_classification
+
+
 
 
 
