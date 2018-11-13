@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.linear_model import LinearRegression, LogisticRegression
-# from test_harness.model_runner_subclasses.mr_sklearn_regression import SklearnRegression
-from test_harness.model_runner_subclasses.mr_sklearn_classification import \
+# from test_harness.th_model_classes.mr_sklearn_regression import SklearnRegression
+from test_harness.th_model_classes.class_sklearn_classification import \
     SklearnClassification
 
 

@@ -2,8 +2,8 @@ import os
 import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from test_harness.model_runner_subclasses.mr_sklearn_classification import SklearnClassification
-from test_harness.model_runner_subclasses.mr_sklearn_regression import SklearnRegression
+from test_harness.th_model_classes.class_sklearn_classification import SklearnClassification
+from test_harness.th_model_classes.class_sklearn_regression import SklearnRegression
 
 rocklins_features = ['avg_all_frags', 'net_atr_net_sol_per_res', 'n_charged', 'buried_np_afilmvwy_per_res',
                      'avg_best_frag', 'fa_atr_per_res', 'exposed_polars', 'unsat_hbond',

@@ -1,9 +1,9 @@
 import os
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
-from test_harness.model_runner_subclasses.mr_sklearn_regression import SklearnRegression
+from test_harness.th_model_classes.class_sklearn_regression import SklearnRegression
 
-from test_harness.model_runner_subclasses.mr_rf_features import RFRegression
+from test_harness.th_model_classes.class_rf_features import RFRegression
 
 
 def rfr_features(training_data, testing_data, col_to_predict, data_set_description, train_test_split_description):

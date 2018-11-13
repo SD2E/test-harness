@@ -1,5 +1,5 @@
 from sklearn.ensemble import RandomForestClassifier
-from test_harness.model_runner_subclasses.mr_sklearn_classification import SklearnClassification
+from test_harness.th_model_classes.class_sklearn_classification import SklearnClassification
 
 
 def random_forest_classification():

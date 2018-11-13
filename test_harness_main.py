@@ -9,7 +9,7 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 from test_harness_class import TestHarness
 
-from model_runner_instances.hamed_models.random_forest_classification import random_forest_classification
+from th_model_instances.hamed_models.random_forest_classification import random_forest_classification
 
 
 
@@ -40,7 +40,7 @@ parser.add_argument('--output', required=False,
 
 
 def model_runner_by_name(model_runner_path,
-                         module_base_path='model_runner_instances'):
+                         module_base_path='th_model_instances'):
     """
     Instantiate an instance of model_runner by path
 
