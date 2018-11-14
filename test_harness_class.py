@@ -304,8 +304,8 @@ class TestHarness:
 
             run_id_folder_path = os.path.join(self.execution_id_folder_path, '{}_{}'.format("run", fcr.run_id))
             os.makedirs(run_id_folder_path, exist_ok=True)
-            training_data_to_save.to_csv('{}/{}'.format(run_id_folder_path, 'training_data.csv'), index=True)
-            testing_data_to_save.to_csv('{}/{}'.format(run_id_folder_path, 'testing_data.csv'), index=True)
+            training_data_to_save.to_csv('{}/{}'.format(run_id_folder_path, 'training_data.csv'), index=False)
+            testing_data_to_save.to_csv('{}/{}'.format(run_id_folder_path, 'testing_data.csv'), index=False)
             if fcr.was_untested_data_predicted is not False:
                 prediction_data_to_save = fcr.untested_data_predictions.copy()
                 prediction_data_to_save.to_csv('{}/{}'.format(run_id_folder_path, 'predicted_data.csv'), index=False)
