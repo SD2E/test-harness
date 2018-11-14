@@ -6,13 +6,14 @@ from test_harness.th_model_classes.class_sklearn_regression import SklearnRegres
 from test_harness.th_model_classes.class_rf_features import RFRegression
 
 
-def rfr_features():
+def rfr_features(bootstrap=False, min_samples_leaf=1, n_estimators=689, min_samples_split=2,
+                                max_features=0.2, max_depth=86, n_jobs=-1):
     # Creating an sklearn random forest regression model:
-    rfr = RandomForestRegressor(bootstrap=False, min_samples_leaf=1, n_estimators=689, min_samples_split=2,
-                                max_features=0.2, max_depth=86, n_jobs=-1)
+    rfr = RandomForestRegressor(bootstrap=bootstrap, min_samples_leaf=min_samples_leaf, n_estimators=n_estimators, min_samples_split=min_samples_split,
+                                max_features=max_features, max_depth=max_depth, n_jobs=n_jobs)
     # Creating an instance of the SklearnRegression Model Runner subclass
     mr_rfr = RFRegression(model=rfr,
-                          model_description="Random Forest Regressor: bootstrap=False, min_samples_leaf=1, n_estimators=689, min_samples_split=2, max_features=0.2, max_depth=86, n_jobs=-1")
+                          model_description="Random Forest Regressor: bootstrap={0}, min_samples_leaf={1}, n_estimators={2}, min_samples_split={3}, max_features={4}, max_depth={5}, n_jobs={6}".format(bootstrap,min_samples_leaf,n_estimators,min_samples_split,max_features,max_depth,n_jobs))
     return mr_rfr
 
 
