@@ -4,7 +4,7 @@ from keras.optimizers import SGD
 from keras.models import Sequential
 from keras.regularizers import l1_l2
 from keras.layers import Dense, Dropout
-from test_harness.model_runner_subclasses.mr_keras_classification import KerasClassification
+from test_harness.th_model_classes.class_keras_classification import KerasClassification
 
 
 def keras_classification_1(train=None, test=None):

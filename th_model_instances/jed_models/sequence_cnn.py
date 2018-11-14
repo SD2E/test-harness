@@ -1,7 +1,7 @@
 from keras.models import Sequential
 from keras.layers import Dense, Dropout
 from keras.regularizers import l2
-from test_harness.model_runner_subclasses.mr_keras_regression import KerasRegression
+from test_harness.th_model_classes.class_keras_regression import KerasRegression
 
 import pandas as pd
 import numpy as np
