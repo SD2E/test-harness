@@ -35,6 +35,19 @@ def main():
     combined_data = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/aggregated_data/all_libs_cleaned.v1.aggregated_data.csv'),
                                 comment='#', low_memory=False)
 
+    # The following lines of code are just modifications to the dataframe that was read in.
+    combined_data['dataset_original'] = combined_data['dataset']
+    combined_data['dataset'] = combined_data['dataset'].replace({"topology_mining_and_Longxing_chip_1": "t_l_untested",
+                                                                 "topology_mining_and_Longxing_chip_2": "t_l_untested",
+                                                                 "topology_mining_and_Longxing_chip_3": "t_l_untested"})
+    col_order = list(combined_data.columns.values)
+    col_order.insert(2, col_order.pop(col_order.index('dataset_original')))
+    combined_data = combined_data[col_order]
+    combined_data['stabilityscore_2classes'] = combined_data['stabilityscore'] > 1
+    combined_data['stabilityscore_calibrated_2classes'] = combined_data['stabilityscore_calibrated'] > 1
+    combined_data['stabilityscore_cnn_2classes'] = combined_data['stabilityscore_cnn'] > 1
+    combined_data['stabilityscore_cnn_calibrated_2classes'] = combined_data['stabilityscore_cnn_calibrated'] > 1
+
     # Using a subset of the data for testing, and making custom train/test splits.
     data_RD_16k = combined_data.loc[combined_data['dataset_original'] == 'Rocklin'].copy()
     train1, test1 = train_test_split(data_RD_16k, test_size=0.2, random_state=5,
