@@ -1,10 +1,13 @@
 import time
+import eli5
+import rfpimp
 import pandas as pd
 from math import sqrt
 from unique_id import get_id
 from datetime import datetime
 from sklearn import preprocessing
 from statistics import mean, pstdev
+from eli5.sklearn import PermutationImportance
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score, r2_score
 
@@ -60,6 +63,36 @@ class BaseCustomRun:
             untested_df[self.feature_cols_to_normalize] = scaler.transform(untested_df[self.feature_cols_to_normalize])
             self.predict_untested_data = untested_df.copy()
 
+    # TODO: add different options for eli5.sklearn.permutation_importance (current usage) and eli5.permutation_importance
+    def feature_extraction_method(self, method="eli5_permutation"):
+        print("Starting Feature Extraction...")
+        start_time = time.time()
+
+        if method == True:
+            method = "eli5_permutation"
+
+        if method == "eli5_permutation":
+            pi_object = PermutationImportance(self.test_harness_model.model)
+            pi_object.fit(self.testing_data[self.feature_cols_to_use], self.testing_data[self.col_to_predict])
+            feature_importances_df = pd.DataFrame()
+            feature_importances_df["Feature"] = self.feature_cols_to_use
+            feature_importances_df["Importance"] = pi_object.feature_importances_
+            feature_importances_df["Importance_Std"] = pi_object.feature_importances_std_
+            feature_importances_df.sort_values(by='Importance', inplace=True, ascending=False)
+            self.feature_importances = feature_importances_df.copy()
+        elif method == "rfpimp_permutation":
+            pis = rfpimp.importances(self.test_harness_model.model, self.testing_data[self.feature_cols_to_use], self.testing_data[self.col_to_predict])
+            pis['Feature'] = pis.index
+            pis.reset_index(inplace=True, drop=True)
+            pis = pis[['Feature', 'Importance']]
+            pis.sort_values(by='Importance', inplace=True, ascending=False)
+            self.feature_importances = pis.copy()
+        elif method == "sklearn_rf_default":
+            pass      # TODO
+
+        print(("Feature Extraction time with method {0} was: {1:.2f} seconds".format(method, time.time() - start_time)))
+
+
 
 class CustomClassificationRun(BaseCustomRun):
     def __init__(self, test_harness_model, training_data, testing_data, data_and_split_description,
@@ -78,6 +111,7 @@ class CustomClassificationRun(BaseCustomRun):
         test_df = self.testing_data.copy()
 
         # Training model
+        print("Starting Classifier training...")
         training_start_time = time.time()
         self.test_harness_model._fit(train_df[self.feature_cols_to_use], train_df[self.col_to_predict])
         print(("Classifier training time was: {0:.2f} seconds".format(time.time() - training_start_time)))
@@ -130,6 +164,7 @@ class CustomRegressionRun(BaseCustomRun):
         test_df = self.testing_data.copy()
 
         # Training model
+        print("Starting Regressor training...")
         training_start_time = time.time()
         self.test_harness_model._fit(train_df[self.feature_cols_to_use], train_df[self.col_to_predict])
         print(("Regressor training time was: {0:.2f} seconds".format(time.time() - training_start_time)))
@@ -226,6 +261,8 @@ class LooClassificationRun(BaseLooRun):
             classification_run.test_group_info = group_info
             print()
             self.custom_run_components.append(classification_run)
+            if self.feature_extraction is not False:
+                classification_run.feature_extraction_method(method=self.feature_extraction)
 
     def calculate_metrics(self):
         self.num_features_used = len(self.feature_cols_to_use)
@@ -279,6 +316,8 @@ class LooRegressionRun(BaseLooRun):
             regression_run.test_group_info = group_info
             print()
             self.custom_run_components.append(regression_run)
+            if self.feature_extraction is not False:
+                regression_run.feature_extraction_method(method=self.feature_extraction)
 
     def calculate_metrics(self):
         self.num_features_used = len(self.feature_cols_to_use)

@@ -96,14 +96,20 @@ def main():
 
     th.add_custom_runs(test_harness_models=rf_classification_model, training_data=train1, testing_data=test1,
                        data_and_split_description="just testing things out!",
-                       cols_to_predict=['stabilityscore_2classes', 'stabilityscore_calibrated_2classes'],
+                       cols_to_predict=['stabilityscore_2classes'],
                        feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
-                       feature_extraction=False, predict_untested_data=False)
+                       feature_extraction="rfpimp_permutation", predict_untested_data=False)
 
-    th.add_leave_one_out_runs(test_harness_models=rf_classification_model, data=data_RD_16k, data_description="data_RD_16k",
-                              grouping=grouping_df, grouping_description="grouping_df", cols_to_predict='stabilityscore_2classes',
-                              feature_cols_to_use=feature_cols_to_normalize, normalize=True,
-                              feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
+    th.add_custom_runs(test_harness_models=rf_classification_model, training_data=train1, testing_data=test1,
+                       data_and_split_description="just testing things out!",
+                       cols_to_predict=['stabilityscore_2classes'],
+                       feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
+                       feature_extraction="eli5_permutation", predict_untested_data=False)
+
+    # th.add_leave_one_out_runs(test_harness_models=rf_classification_model, data=data_RD_16k, data_description="data_RD_16k",
+    #                           grouping=grouping_df, grouping_description="grouping_df", cols_to_predict='stabilityscore_2classes',
+    #                           feature_cols_to_use=feature_cols_to_normalize, normalize=True,
+    #                           feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
 
     th.execute_runs()
 
