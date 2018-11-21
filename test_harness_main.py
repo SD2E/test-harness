@@ -72,7 +72,7 @@ def main(args):
     else:
         output_dir = PARENT
     #Mohammed add start
-    df = pd.read_excel('data/yeaststates/live_dead_dataframe.csv')
+    df = pd.read_csv('data/yeaststates/live_dead_dataframe.csv')
     print("Length of full DF", len(df))
     input_cols = ['FSC-A','SSC-A','BL1-A','RL1-A','FSC-H','SSC-H','BL1-H','RL1-H','FSC-W','SSC-W','BL1-W','RL1-W']
     output_cols = ["strain"]
