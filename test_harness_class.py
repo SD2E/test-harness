@@ -89,6 +89,7 @@ class TestHarness:
             ['Execution ID', 'Leave-One-Out ID', 'Date', 'Time', 'Mean R-Squared', 'Mean RMSE', 'Model Description',
              'Column Predicted', 'Number Of Features Used', 'Data Description', 'Grouping Description', 'Normalized',
              'Number of Features Normalized', 'Feature Extraction']
+        self.valid_feature_extraction_methods = ['eli5_permutation', 'rfpimp_permutation']
 
     # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
     # TODO: make feature_extraction options something like: "BBA", "permutation", and "custom", where custom means that
@@ -120,7 +121,8 @@ class TestHarness:
         assert isinstance(normalize, bool), "normalize must be True or False"
         assert (feature_cols_to_normalize is None) or is_list_of_strings(feature_cols_to_normalize), \
             "feature_cols_to_normalize must be None, a string, or a list of strings"
-        assert isinstance(feature_extraction, bool), "feature_extraction must be True or False"
+        assert isinstance(feature_extraction, bool) or (feature_extraction in self.valid_feature_extraction_methods), \
+            "feature_extraction must be a bool or one of the following strings: {}".format(self.valid_feature_extraction_methods)
         assert (predict_untested_data == False) or (isinstance(predict_untested_data, pd.DataFrame)), \
             "predict_untested_data must be False or a Pandas Dataframe"
 
@@ -161,7 +163,8 @@ class TestHarness:
         assert isinstance(normalize, bool), "normalize must be True or False"
         assert (feature_cols_to_normalize is None) or is_list_of_strings(feature_cols_to_normalize), \
             "feature_cols_to_normalize must be None, a string, or a list of strings"
-        assert isinstance(feature_extraction, bool), "feature_extraction must be True or False"
+        assert isinstance(feature_extraction, bool) or (feature_extraction in self.valid_feature_extraction_methods), \
+            "feature_extraction must be a bool or one of the following strings: {}".format(self.valid_feature_extraction_methods)
 
         for combo in itertools.product(test_harness_models, cols_to_predict):
             test_harness_model = combo[0]
@@ -237,9 +240,12 @@ class TestHarness:
             classification_run = CustomClassificationRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
                                                          feature_cols_to_use, normalize, feature_cols_to_normalize, feature_extraction,
                                                          untested_df)
+            #TODO think about maybe moving the following commands to inside the init of the Run Object? Same for LOO
             classification_run.train_and_test_model()
             classification_run.calculate_metrics()
             self._finished_custom_runs.append(classification_run)
+            if feature_extraction is not False:
+                classification_run.feature_extraction_method(method=feature_extraction)
         elif isinstance(test_harness_model, RegressionModel):
             regression_run = CustomRegressionRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
                                                  feature_cols_to_use, normalize, feature_cols_to_normalize, feature_extraction,
@@ -247,6 +253,8 @@ class TestHarness:
             regression_run.train_and_test_model()
             regression_run.calculate_metrics()
             self._finished_custom_runs.append(regression_run)
+            if feature_extraction is not False:
+                regression_run.feature_extraction_method(method=feature_extraction)
         else:
             raise TypeError("test_harness_model must be a ClassificationModel or RegressionModel object.")
 
@@ -299,16 +307,18 @@ class TestHarness:
             else:
                 raise ValueError()
 
-            training_data_to_save = fcr.training_data.copy()
-            testing_data_to_save = fcr.testing_data_predictions.copy()
 
             run_id_folder_path = os.path.join(self.execution_id_folder_path, '{}_{}'.format("run", fcr.run_id))
             os.makedirs(run_id_folder_path, exist_ok=True)
-            training_data_to_save.to_csv('{}/{}'.format(run_id_folder_path, 'training_data.csv'), index=True)
-            testing_data_to_save.to_csv('{}/{}'.format(run_id_folder_path, 'testing_data.csv'), index=True)
+
+            fcr.training_data.to_csv('{}/{}'.format(run_id_folder_path, 'training_data.csv'), index=False)
+            fcr.testing_data_predictions.to_csv('{}/{}'.format(run_id_folder_path, 'testing_data.csv'), index=False)
             if fcr.was_untested_data_predicted is not False:
                 prediction_data_to_save = fcr.untested_data_predictions.copy()
                 prediction_data_to_save.to_csv('{}/{}'.format(run_id_folder_path, 'predicted_data.csv'), index=False)
+            if fcr.feature_extraction is not False:
+                fcr.feature_importances.to_csv('{}/{}'.format(run_id_folder_path, 'feature_importances.csv'), index=False)
+
             test_file_name = os.path.join(run_id_folder_path, 'model_information.txt')
             with open(test_file_name, "w") as f:
                 f.write("Feature columns used by model: \n")
@@ -414,13 +424,12 @@ class TestHarness:
                     raise TypeError("loo_run must be a LooClassificationRun object or a LooRegressionRun object.")
                 loo_results = loo_results.append(row_values, ignore_index=True)
 
-                training_data_to_save = crc.training_data.copy()
-                testing_data_to_save = crc.testing_data_predictions.copy()
-
                 run_id_folder_path = os.path.join(loo_id_folder_path, '{}_{}'.format("run", crc.run_id))
                 os.makedirs(run_id_folder_path, exist_ok=True)
-                training_data_to_save.to_csv('{}/{}'.format(run_id_folder_path, 'training_data.csv'), index=False)
-                testing_data_to_save.to_csv('{}/{}'.format(run_id_folder_path, 'testing_data.csv'), index=False)
+                crc.training_data.to_csv('{}/{}'.format(run_id_folder_path, 'training_data.csv'), index=False)
+                crc.testing_data_predictions.to_csv('{}/{}'.format(run_id_folder_path, 'testing_data.csv'), index=False)
+                if crc.feature_extraction is not False:
+                    crc.feature_importances.to_csv('{}/{}'.format(run_id_folder_path, 'feature_importances.csv'), index=False)
                 test_file_name = os.path.join(run_id_folder_path, 'model_information.txt')
                 with open(test_file_name, "w") as f:
                     f.write("Feature columns used by model: \n")
