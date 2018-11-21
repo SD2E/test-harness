@@ -85,7 +85,7 @@ def main(args):
                        data_and_split_description="just testing things out!",
                        cols_to_predict=output_cols,
                        feature_cols_to_use=input_cols, normalize=True, feature_cols_to_normalize=input_cols,
-                       feature_extraction=False, predict_untested_data=False)
+                       feature_extraction='rfpimp_permutation', predict_untested_data=False)
     #Mohammed add end
     th.execute_runs()
 
