@@ -7,7 +7,6 @@ import pandas as pd
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 from test_harness_class import TestHarness
-
 from th_model_instances.hamed_models.random_forest_classification import random_forest_classification
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:

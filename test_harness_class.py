@@ -30,6 +30,7 @@ DEFAULT_DATA_PATH = os.path.join(PWD, 'versioned_data/asap/')
 # TODO: add filelock or writing-scheduler so leaderboards are not overwritten at the same time. Might need to use SQL
 # TODO: by having the ability to "add" multiple models to the TestHarness object, you can allow for visualizations or \
 # TODO: summary stats for a certain group of runs by adding arguments to the execute_runs method!
+# TODO: potentially move sparse column code to run_classes.py so LOO can use it as well easily
 
 
 def make_list_if_not_list(obj):
@@ -96,7 +97,7 @@ class TestHarness:
     # TODO: it's not a black box feature tool, but rather a specific one defined inside of the TestHarnessModel object
     def add_custom_runs(self, test_harness_models, training_data, testing_data, data_and_split_description,
                         cols_to_predict, feature_cols_to_use, normalize=False, feature_cols_to_normalize=None,
-                        feature_extraction=False, predict_untested_data=False,sparse_cols_to_use=None):
+                        feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None):
         # Adds custom run(s) to the TestHarness object
         # If you pass a list of models and/or list of columns to predict, a custom run will be added for every
         # combination of models and columns to predict that you provided.
@@ -126,6 +127,8 @@ class TestHarness:
             "feature_extraction must be a bool or one of the following strings: {}".format(self.valid_feature_extraction_methods)
         assert (predict_untested_data == False) or (isinstance(predict_untested_data, pd.DataFrame)), \
             "predict_untested_data must be False or a Pandas Dataframe"
+        assert (sparse_cols_to_use is None) or is_list_of_strings(sparse_cols_to_use), \
+            "sparse_cols_to_use must be None, a string, or a list of strings"
 
         for combo in itertools.product(test_harness_models, cols_to_predict):
             test_harness_model = combo[0]
@@ -135,7 +138,7 @@ class TestHarness:
                                "col_to_predict": col_to_predict, "feature_cols_to_use": feature_cols_to_use,
                                "normalize": normalize, "feature_cols_to_normalize": feature_cols_to_normalize,
                                "feature_extraction": feature_extraction, "predict_untested_data": predict_untested_data,
-                               "sparse_cols_to_use":sparse_cols_to_use}
+                               "sparse_cols_to_use": sparse_cols_to_use}
             self._custom_runs_to_execute.append(custom_run_dict)
 
     def add_leave_one_out_runs(self, test_harness_models, data, data_description, grouping, grouping_description,
@@ -261,9 +264,9 @@ class TestHarness:
             untested_df = predict_untested_data.copy()
         else:
             untested_df = False
-        if sparse_cols_to_use:
-            train_df,feature_cols_to_use = self._make_sparse_cols(train_df,sparse_cols_to_use,feature_cols_to_use)
-            test_df = self._make_sparse_cols(test_df,sparse_cols_to_use)
+        if sparse_cols_to_use is not None:
+            train_df, feature_cols_to_use = self._make_sparse_cols(train_df, sparse_cols_to_use, feature_cols_to_use)
+            test_df = self._make_sparse_cols(test_df, sparse_cols_to_use)
 
         #TODO: Put in a check to never normalize the sparse data category
         if isinstance(test_harness_model, ClassificationModel):
