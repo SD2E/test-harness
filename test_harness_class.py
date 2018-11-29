@@ -106,30 +106,35 @@ class TestHarness:
         #       - a training dataframe and a testing dataframe
         #       - a column to predict or list of columns to predict
         #       - other arguments
-        test_harness_models = make_list_if_not_list(test_harness_models)
-        cols_to_predict = make_list_if_not_list(cols_to_predict)
-        feature_cols_to_use = make_list_if_not_list(feature_cols_to_use)
-        feature_cols_to_normalize = make_list_if_not_list(feature_cols_to_normalize)
-        sparse_cols_to_use = make_list_if_not_list(sparse_cols_to_use)
 
         # Single strings are included in the assert error messages because the make_list_if_not_list function was used
-        assert is_list_of_TH_models(
-            test_harness_models), "test_harness_models must be a TestHarnessModel object or a list of TestHarnessModel objects"
+
         assert isinstance(training_data, pd.DataFrame), "training_data must be a Pandas Dataframe"
         assert isinstance(testing_data, pd.DataFrame), "testing_data must be a Pandas Dataframe"
         assert isinstance(data_and_split_description, str), "data_and_split_description must be a string"
-        assert is_list_of_strings(cols_to_predict), "cols_to_predict must be a string or a list of strings"
-        assert is_list_of_strings(feature_cols_to_use), "feature_cols_to_use must be a string or a list of strings"
+
         assert isinstance(normalize, bool), "normalize must be True or False"
-        assert (feature_cols_to_normalize is None) or is_list_of_strings(feature_cols_to_normalize), \
-            "feature_cols_to_normalize must be None, a string, or a list of strings"
+
         assert isinstance(feature_extraction, bool) or (feature_extraction in self.valid_feature_extraction_methods), \
             "feature_extraction must be a bool or one of the following strings: {}".format(self.valid_feature_extraction_methods)
         assert (predict_untested_data == False) or (isinstance(predict_untested_data, pd.DataFrame)), \
             "predict_untested_data must be False or a Pandas Dataframe"
         assert (sparse_cols_to_use is None) or is_list_of_strings(sparse_cols_to_use), \
             "sparse_cols_to_use must be None, a string, or a list of strings"
+        assert (feature_cols_to_normalize is None) or is_list_of_strings(feature_cols_to_normalize), \
+                            "feature_cols_to_normalize must be None, a string, or a list of strings"
 
+        test_harness_models = make_list_if_not_list(test_harness_models)
+        cols_to_predict = make_list_if_not_list(cols_to_predict)
+        feature_cols_to_use = make_list_if_not_list(feature_cols_to_use)
+        feature_cols_to_normalize = make_list_if_not_list(feature_cols_to_normalize)
+        sparse_cols_to_use = make_list_if_not_list(sparse_cols_to_use)
+
+        assert is_list_of_strings(cols_to_predict), "cols_to_predict must be a string or a list of strings"
+        assert is_list_of_strings(feature_cols_to_use), "feature_cols_to_use must be a string or a list of strings"
+        assert is_list_of_TH_models(
+                    test_harness_models), "test_harness_models must be a TestHarnessModel object or a list of TestHarnessModel objects"
+        
         for combo in itertools.product(test_harness_models, cols_to_predict):
             test_harness_model = combo[0]
             col_to_predict = combo[1]
