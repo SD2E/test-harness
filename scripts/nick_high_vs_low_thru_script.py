@@ -1,26 +1,18 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
 
-
-import argparse
-import datetime as dt
 import os
-import importlib
 from pathlib import Path
 
-import types
+# this is to make matplotlib work in nested dependencies, avoiding x11 errors
+import matplotlib
+matplotlib.use('Agg')
 import pandas as pd
-from pathlib import Path
 from sklearn.model_selection import train_test_split
+
 from test_harness.test_harness_class import TestHarness
-
 from test_harness.th_model_instances.hamed_models.random_forest_classification import random_forest_classification
-
-
-# In[2]:
-
 
 
 PWD = os.getcwd()
