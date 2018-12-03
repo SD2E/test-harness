@@ -176,35 +176,61 @@ feature_cols_to_normalize = ['AlaCount', 'T1_absq', 'T1_netq', 'Tend_absq', 'Ten
 
 
 # In[36]:
+if __name__ == "__main__":
 
+    LOO_FLAG = False
+    HIGH_VS_LOW_SUMMARY_FLAG = False
+    CNN_FLAG = True
 
-# TestHarness usage starts here, all code before this was just data input code.
-th = TestHarness(output_path=RESULTSPATH)
-rf_classification_model = random_forest_classification()
+    # TestHarness usage starts here, all code before this was just data input code.
+    th = TestHarness(output_path=RESULTSPATH)
+    rf_classification_model = random_forest_classification()
 
-th.add_custom_runs(test_harness_models=rf_classification_model, training_data=high_thru_data, testing_data=low_thru_data,
-                   data_and_split_description="train on low thru, test on high thru",
-                   cols_to_predict=['stabilityscore_2classes'],
-                   feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
-                   feature_extraction=False, predict_untested_data=False)
+    if HIGH_VS_LOW_SUMMARY_FLAG:
+        th.add_custom_runs(test_harness_models=rf_classification_model,
+                           training_data=high_thru_data,
+                           testing_data=low_thru_data,
+                           data_and_split_description="train on high thru, test on low thru",
+                           cols_to_predict=['stabilityscore_2classes'],
+                           feature_cols_to_use=feature_cols_to_normalize,
+                           normalize=True,
+                           feature_cols_to_normalize=feature_cols_to_normalize,
+                           feature_extraction=False,
+                           predict_untested_data=False)
 
-# Grouping Dataframe read in for leave-one-out analysis.
-grouping_df = pd.read_csv(os.path.join(VERSIONED_REPO_PATH,
-                                       'protein-design/metadata/protein_groupings_by_uw.metadata.csv'), comment='#',
-                          low_memory=False)
-grouping_df['dataset'] = grouping_df['dataset'].replace({"longxing_untested": "t_l_untested",
-                                                         "topmining_untested": "t_l_untested"})
+        train_lowthru, test_lowthru = train_test_split(low_thru_data,
+                                                       test_size=0.2,
+                                                       random_state=5,
+                                                       stratify=low_thru_data[['topology', 'dataset_original']])
+        th.add_custom_runs(test_harness_models=rf_classification_model,
+                           training_data=train_lowthru,
+                           testing_data=test_lowthru,
+                           data_and_split_description="train and test on low thru",
+                           cols_to_predict=['stabilityscore_2classes'],
+                           feature_cols_to_use=feature_cols_to_normalize,
+                           normalize=True,
+                           feature_cols_to_normalize=feature_cols_to_normalize,
+                           feature_extraction=False,
+                           predict_untested_data=False)
 
+    if LOO_FLAG:
+        # Grouping Dataframe read in for leave-one-out analysis.
+        grouping_df = pd.read_csv(os.path.join(VERSIONED_REPO_PATH,
+                                               'protein-design/metadata/protein_groupings_by_uw.metadata.csv'), comment='#',
+                                  low_memory=False)
+        grouping_df['dataset'] = grouping_df['dataset'].replace({"longxing_untested": "t_l_untested",
+                                                                 "topmining_untested": "t_l_untested"})
 
-rf_classification_model = random_forest_classification()
-th.add_leave_one_out_runs(test_harness_models=rf_classification_model, data=low_thru_data, data_description="low_thru_data",
-                          grouping=grouping_df, grouping_description="grouping_df", cols_to_predict='stabilityscore_2classes',
-                          feature_cols_to_use=feature_cols_to_normalize, normalize=True,
-                          feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
+        rf_classification_model = random_forest_classification()
+        th.add_leave_one_out_runs(test_harness_models=rf_classification_model, data=low_thru_data, data_description="low_thru_data",
+                                  grouping=grouping_df, grouping_description="grouping_df", cols_to_predict='stabilityscore_2classes',
+                                  feature_cols_to_use=feature_cols_to_normalize, normalize=True,
+                                  feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
 
+    if CNN_FLAG:
+        pass
 
-
-th.execute_runs()
+    th.execute_runs()
 
 
 
