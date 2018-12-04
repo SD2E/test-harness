@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 
 from test_harness.test_harness_class import TestHarness
 from test_harness.th_model_instances.hamed_models.random_forest_classification import random_forest_classification
-
+from test_harness.th_model_instances.jed_models.sequence_cnn import KerasRegressionTwoDimensional, sequence_only_cnn
 
 PWD = os.getcwd()
 # HERE = Path().resolve()
@@ -178,6 +178,11 @@ if __name__ == "__main__":
     th = TestHarness(output_path=RESULTSPATH)
     rf_classification_model = random_forest_classification()
 
+    train_lowthru, test_lowthru = train_test_split(low_thru_data,
+                                                   test_size=0.2,
+                                                   random_state=5,
+                                                   stratify=low_thru_data[['topology', 'dataset_original']])
+
     if HIGH_VS_LOW_SUMMARY_FLAG:
         th.add_custom_runs(test_harness_models=rf_classification_model,
                            training_data=high_thru_data,
@@ -190,10 +195,6 @@ if __name__ == "__main__":
                            feature_extraction=False,
                            predict_untested_data=False)
 
-        train_lowthru, test_lowthru = train_test_split(low_thru_data,
-                                                       test_size=0.2,
-                                                       random_state=5,
-                                                       stratify=low_thru_data[['topology', 'dataset_original']])
         th.add_custom_runs(test_harness_models=rf_classification_model,
                            training_data=train_lowthru,
                            testing_data=test_lowthru,
@@ -220,7 +221,22 @@ if __name__ == "__main__":
                                   feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
 
     if CNN_FLAG:
-        pass
+        cnn_model = sequence_only_cnn(training_data=train_lowthru,
+                                      testing_data=test_lowthru,
+                                      col_to_predict='stabilityscore_2classes',
+                                      data_set_description="Low through chips",
+                                      train_test_split_description="80/20")
+
+        th.add_custom_runs(test_harness_models=cnn_model,
+                           training_data=train_lowthru,
+                           testing_data=test_lowthru,
+                           data_and_split_description="train on low thru, test on low thru",
+                           cols_to_predict=['stabilityscore_2classes'],
+                           feature_cols_to_use=feature_cols_to_normalize,
+                           normalize=True,
+                           feature_cols_to_normalize=feature_cols_to_normalize,
+                           feature_extraction=False,
+                           predict_untested_data=False)
 
     th.execute_runs()
 
