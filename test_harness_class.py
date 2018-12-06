@@ -110,7 +110,8 @@ class TestHarness:
         cols_to_predict = make_list_if_not_list(cols_to_predict)
         feature_cols_to_use = make_list_if_not_list(feature_cols_to_use)
         feature_cols_to_normalize = make_list_if_not_list(feature_cols_to_normalize)
-        sparse_cols_to_use = make_list_if_not_list(sparse_cols_to_use)
+        if sparse_cols_to_use is not None:
+            sparse_cols_to_use = make_list_if_not_list(sparse_cols_to_use)
 
         # Single strings are included in the assert error messages because the make_list_if_not_list function was used
         assert is_list_of_TH_models(
@@ -125,7 +126,7 @@ class TestHarness:
             "feature_cols_to_normalize must be None, a string, or a list of strings"
         assert isinstance(feature_extraction, bool) or (feature_extraction in self.valid_feature_extraction_methods), \
             "feature_extraction must be a bool or one of the following strings: {}".format(self.valid_feature_extraction_methods)
-        assert (predict_untested_data == False) or (isinstance(predict_untested_data, pd.DataFrame)), \
+        assert (predict_untested_data is False) or (isinstance(predict_untested_data, pd.DataFrame)), \
             "predict_untested_data must be False or a Pandas Dataframe"
         assert (sparse_cols_to_use is None) or is_list_of_strings(sparse_cols_to_use), \
             "sparse_cols_to_use must be None, a string, or a list of strings"
@@ -231,9 +232,9 @@ class TestHarness:
             print("Outputting results from all leave-one-out runs...")
             self._output_loo_results()
 
-    #If there are categorical columns that need to be made sparse, make them, and update the feature_cols_to_use
-    def _make_sparse_cols(self,df,sparse_col_names,feature_cols_to_use=None):
-        '''
+    # If there are categorical columns that need to be made sparse, make them, and update the feature_cols_to_use
+    def _make_sparse_cols(self, df, sparse_col_names, feature_cols_to_use=None):
+        """
         Take in a dataframe with the name of the columns that require construction of sparse columns.
         Update the feature columns to use list with the new sparse column construction.
         Drop the column that was made sparse from the list of features to use.
@@ -241,7 +242,7 @@ class TestHarness:
         :param sparse_col_names: names of columns that need to be made sparse
         :param feature_cols_to_use: list of all features to use that needs to be updated
         :return: updated dataframe and feature columns to use
-        '''
+        """
         for col, col_data in df.iteritems():
             if str(col) in sparse_col_names:
                 col_data = pd.get_dummies(col_data, prefix=col)
@@ -254,11 +255,10 @@ class TestHarness:
         else:
             return df
 
-
     # Executes custom runs
     def _execute_custom_run(self, test_harness_model, training_data, testing_data, data_and_split_description,
                             col_to_predict, feature_cols_to_use, normalize, feature_cols_to_normalize,
-                            feature_extraction, predict_untested_data,sparse_cols_to_use=None):
+                            feature_extraction, predict_untested_data, sparse_cols_to_use=None):
         train_df, test_df = training_data.copy(), testing_data.copy()
         if predict_untested_data is not False:
             untested_df = predict_untested_data.copy()
@@ -268,12 +268,12 @@ class TestHarness:
             train_df, feature_cols_to_use = self._make_sparse_cols(train_df, sparse_cols_to_use, feature_cols_to_use)
             test_df = self._make_sparse_cols(test_df, sparse_cols_to_use)
 
-        #TODO: Put in a check to never normalize the sparse data category
+        # TODO: Put in a check to never normalize the sparse data category
         if isinstance(test_harness_model, ClassificationModel):
             classification_run = CustomClassificationRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
                                                          feature_cols_to_use, normalize, feature_cols_to_normalize, feature_extraction,
                                                          untested_df)
-            #TODO think about maybe moving the following commands to inside the init of the Run Object? Same for LOO
+            # TODO think about maybe moving the following commands to inside the init of the Run Object? Same for LOO
             classification_run.train_and_test_model()
             classification_run.calculate_metrics()
             self._finished_custom_runs.append(classification_run)
@@ -339,7 +339,6 @@ class TestHarness:
                 custom_regression_results = custom_regression_results.append(row_values, ignore_index=True)
             else:
                 raise ValueError()
-
 
             run_id_folder_path = os.path.join(self.execution_id_folder_path, '{}_{}'.format("run", fcr.run_id))
             os.makedirs(run_id_folder_path, exist_ok=True)
