@@ -8,7 +8,7 @@ from tabulate import tabulate
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 from test_harness_class import TestHarness
-
+from data_wrangling import calculate_max_residues, encode_sequences
 from th_model_instances.hamed_models.random_forest_classification import random_forest_classification
 from th_model_instances.hamed_models.random_forest_regression import random_forest_regression
 from th_model_instances.jed_models.sequence_cnn import sequence_only_cnn
@@ -153,11 +153,6 @@ def main(args):
     # train7, test7 = train_test_split(data_RD_BL_TA1R1_KJ_114k, test_size=0.2, random_state=5,
     #                                  stratify=data_RD_BL_TA1R1_KJ_114k[['topology', 'dataset_original']])
 
-
-
-
-
-
     # Test Harness Use Begins Here:
 
     th = TestHarness(output_path=output_dir)
@@ -168,10 +163,21 @@ def main(args):
     #                    feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
     #                    feature_extraction=False, predict_untested_data=False)
     #
-    th.add_leave_one_out_runs(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, data=data_RD_16k,
-                              data_description="data_RD_16k", grouping=grouping_df, grouping_description="grouping_df",
-                              cols_to_predict='stabilityscore_2classes', feature_cols_to_use=feature_cols_to_normalize, normalize=True,
-                              feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
+    # th.add_leave_one_out_runs(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, data=data_RD_16k,
+    #                           data_description="data_RD_16k", grouping=grouping_df, grouping_description="grouping_df",
+    #                           cols_to_predict='stabilityscore_2classes', feature_cols_to_use=feature_cols_to_normalize, normalize=True,
+    #                           feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
+
+    max_residues = calculate_max_residues([train1, test1])
+    train1_encoded = encode_sequences(train1, max_residues)
+    test1_encoded = encode_sequences(test1, max_residues)
+
+    th.add_custom_runs(function_that_returns_TH_model=sequence_only_cnn,
+                       dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, training_data=train1_encoded,
+                       testing_data=test1_encoded, data_and_split_description="just testing things out!",
+                       cols_to_predict=['stabilityscore_2classes'],
+                       feature_cols_to_use=["encoded_sequence"], normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
+                       feature_extraction=False, predict_untested_data=False)
 
     th.execute_runs()
 

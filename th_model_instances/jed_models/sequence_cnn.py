@@ -45,34 +45,8 @@ class KerasRegressionTwoDimensional(KerasRegression):
         return self.model.predict(np.expand_dims(np.stack([x[0] for x in X.values]), 3))
 
 
-def sequence_only_cnn(training_data, testing_data):
-    amino_dict = dict(zip(
-        ['A', 'R', 'N', 'D', 'C', 'E', 'Q', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V',
-         'X', 'J', 'O'], range(23)))  # 'X' means nothing, 'J' means beginning, 'O' means end
-
-    # training_data = pd.read_csv(training_data_file, sep=',', comment='#')
-    # testing_data = pd.read_csv(testing_data_file, sep=',', comment='#')
-    # untested_data = pd.read_csv(untested_data_file, sep=',', comment='#')
-    training_data = training_data.copy()
-    testing_data = testing_data.copy()
-
-    MAX_RESIDUES = max(training_data.sequence.map(len).max(), testing_data.sequence.map(len).max())
-    PADDING = 14  # derived from model architecture
-
-    def make_code(sequence):
-        sequence = 'X' * PADDING + 'J' + (sequence + 'O').ljust(MAX_RESIDUES + 1 + PADDING, 'X')
-        code = np.zeros((23, len(sequence)))
-        for i in range(len(sequence)):
-            code[amino_dict[sequence[i]], i] = 1.0
-        return code
-
-    training_data['encoded_sequence'] = training_data.sequence.apply(make_code)
-    training_data = training_data.sample(
-        frac=1)  # shuffle data, because validation data are selected from end before shuffling
-    testing_data['encoded_sequence'] = testing_data.sequence.apply(make_code)
-    # untested_data['encoded_sequence'] = untested_data.sequence.apply(make_code)
-
-    inputs = Input(shape=(23, MAX_RESIDUES + 2 + 2 * PADDING, 1))  # 22 amino acids plus null/beginning/end
+def sequence_only_cnn(max_residues, padding):
+    inputs = Input(shape=(23, max_residues + 2 + 2 * padding, 1))  # 22 amino acids plus null/beginning/end
     amino_inputs = Lambda(lambda x: x[:, :23, :, :])(inputs)
 
     amino_model = Conv2D(400, (23, 5), kernel_regularizer=l2(.0), activation='relu')(amino_inputs)
@@ -93,7 +67,6 @@ def sequence_only_cnn(training_data, testing_data):
 
     mr = KerasRegressionTwoDimensional(model=model,
                                        model_description='Sequence CNN 400x5->200x9->100x17->80->40->1',
-                                       feature_cols_to_use=['encoded_sequence'],
                                        batch_size=128,
                                        epochs=25)
     return mr
