@@ -172,13 +172,21 @@ def main(args):
     max_residues = calculate_max_residues([train1, test1])
     train1_encoded = encode_sequences(train1, max_residues)
     test1_encoded = encode_sequences(test1, max_residues)
-
     th.add_custom_runs(function_that_returns_TH_model=sequence_only_cnn,
                        dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, training_data=train1_encoded,
                        testing_data=test1_encoded, data_and_split_description="just testing things out!",
                        cols_to_predict=['stabilityscore_2classes'],
                        feature_cols_to_use=["encoded_sequence"], normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
                        feature_extraction=False, predict_untested_data=False)
+
+
+    max_residues = calculate_max_residues([data_RD_16k])
+    data_RD_16k_encoded = encode_sequences(data_RD_16k, max_residues)
+    th.add_leave_one_out_runs(function_that_returns_TH_model=sequence_only_cnn,
+                              dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, data=data_RD_16k_encoded,
+                              data_description="data_RD_16k_encoded", grouping=grouping_df, grouping_description="grouping_df",
+                              cols_to_predict='stabilityscore_2classes', feature_cols_to_use=feature_cols_to_normalize, normalize=True,
+                              feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
 
     th.execute_runs()
 
