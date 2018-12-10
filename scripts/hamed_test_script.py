@@ -185,7 +185,7 @@ def main(args):
     th.add_leave_one_out_runs(function_that_returns_TH_model=sequence_only_cnn,
                               dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, data=data_RD_16k_encoded,
                               data_description="data_RD_16k_encoded", grouping=grouping_df, grouping_description="grouping_df",
-                              cols_to_predict='stabilityscore_2classes', feature_cols_to_use=feature_cols_to_normalize, normalize=True,
+                              cols_to_predict='stabilityscore_2classes', feature_cols_to_use=["encoded_sequence"], normalize=True,
                               feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
 
     th.execute_runs()
