@@ -11,10 +11,6 @@ from test_harness_class import TestHarness
 
 from th_model_instances.hamed_models.random_forest_classification import random_forest_classification
 
-
-
-
-
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
 # Note that if you clone the `versioned-datasets` repo at the same level as where you cloned the `protein-design` repo,
 # then you can use VERSIONED_DATASETS = os.path.join(Path(__file__).resolve().parents[3], 'versioned-datasets/data')
@@ -90,16 +86,16 @@ def main(args):
     combined_data['stabilityscore_cnn_calibrated_2classes'] = combined_data['stabilityscore_cnn_calibrated'] > 1
 
     data_RD_16k = combined_data.loc[combined_data['dataset_original'] == 'Rocklin'].copy()
-    data_RD_BL_81k = combined_data.loc[
-        combined_data['dataset_original'].isin(['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
-    data_RD_BL_TA1R1_105k = combined_data.loc[
-        combined_data['dataset_original'].isin(
-            ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
-             'topology_mining_and_Longxing_chip_2'])].copy()
-    data_RD_BL_TA1R1_KJ_114k = combined_data.loc[
-        combined_data['dataset_original'].isin(
-            ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
-             'topology_mining_and_Longxing_chip_2', 'topology_mining_and_Longxing_chip_3'])].copy()
+    # data_RD_BL_81k = combined_data.loc[
+    #     combined_data['dataset_original'].isin(['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
+    # data_RD_BL_TA1R1_105k = combined_data.loc[
+    #     combined_data['dataset_original'].isin(
+    #         ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
+    #          'topology_mining_and_Longxing_chip_2'])].copy()
+    # data_RD_BL_TA1R1_KJ_114k = combined_data.loc[
+    #     combined_data['dataset_original'].isin(
+    #         ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
+    #          'topology_mining_and_Longxing_chip_2', 'topology_mining_and_Longxing_chip_3'])].copy()
 
     # # Grouping Data
     grouping_df = pd.read_csv(
@@ -107,7 +103,7 @@ def main(args):
         comment='#', low_memory=False)
     grouping_df['dataset'] = grouping_df['dataset'].replace({"longxing_untested": "t_l_untested",
                                                              "topmining_untested": "t_l_untested"})
-    print(grouping_df)
+    # print(grouping_df)
 
     feature_cols_to_normalize = ['AlaCount', 'T1_absq', 'T1_netq', 'Tend_absq', 'Tend_netq', 'Tminus1_absq',
                                  'Tminus1_netq', 'abego_res_profile', 'abego_res_profile_penalty',
@@ -141,35 +137,36 @@ def main(args):
 
     train1, test1 = train_test_split(data_RD_16k, test_size=0.2, random_state=5,
                                      stratify=data_RD_16k[['topology', 'dataset_original']])
-    train2, test2 = train1.copy(), combined_data.loc[
-        combined_data['dataset_original'].isin(['Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
-    train3, test3 = train_test_split(data_RD_BL_81k, test_size=0.2, random_state=5,
-                                     stratify=data_RD_BL_81k[['topology', 'dataset_original']])
-    train4, test4 = train3.copy(), combined_data.loc[combined_data['dataset_original'].isin(
-        ['topology_mining_and_Longxing_chip_1', 'topology_mining_and_Longxing_chip_2'])].copy()
-    train5, test5 = train_test_split(data_RD_BL_TA1R1_105k, test_size=0.2, random_state=5,
-                                     stratify=data_RD_BL_TA1R1_105k[['topology', 'dataset_original']])
-    train6, test6 = train5.copy(), combined_data.loc[
-        combined_data['dataset_original'].isin(['topology_mining_and_Longxing_chip_3'])].copy()
-    train7, test7 = train_test_split(data_RD_BL_TA1R1_KJ_114k, test_size=0.2, random_state=5,
-                                     stratify=data_RD_BL_TA1R1_KJ_114k[['topology', 'dataset_original']])
+    # train2, test2 = train1.copy(), combined_data.loc[
+    #     combined_data['dataset_original'].isin(['Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
+    # train3, test3 = train_test_split(data_RD_BL_81k, test_size=0.2, random_state=5,
+    #                                  stratify=data_RD_BL_81k[['topology', 'dataset_original']])
+    # train4, test4 = train3.copy(), combined_data.loc[combined_data['dataset_original'].isin(
+    #     ['topology_mining_and_Longxing_chip_1', 'topology_mining_and_Longxing_chip_2'])].copy()
+    # train5, test5 = train_test_split(data_RD_BL_TA1R1_105k, test_size=0.2, random_state=5,
+    #                                  stratify=data_RD_BL_TA1R1_105k[['topology', 'dataset_original']])
+    # train6, test6 = train5.copy(), combined_data.loc[
+    #     combined_data['dataset_original'].isin(['topology_mining_and_Longxing_chip_3'])].copy()
+    # train7, test7 = train_test_split(data_RD_BL_TA1R1_KJ_114k, test_size=0.2, random_state=5,
+    #                                  stratify=data_RD_BL_TA1R1_KJ_114k[['topology', 'dataset_original']])
 
+    # Test Harness Use Begins Here:
 
     th = TestHarness(output_path=output_dir)
 
-    rf_classification_model = random_forest_classification()
-    th.add_custom_runs(test_harness_models=rf_classification_model, training_data=train1, testing_data=test1,
-                       data_and_split_description="just testing things out!",
+    th.add_custom_runs(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train1,
+                       testing_data=test1, data_and_split_description="just testing things out!",
                        cols_to_predict=['stabilityscore_2classes', 'stabilityscore_calibrated_2classes'],
                        feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
                        feature_extraction=False, predict_untested_data=False)
 
-    th.add_leave_one_out_runs(test_harness_models=rf_classification_model, data=data_RD_16k, data_description="data_RD_16k",
-                              grouping=grouping_df, grouping_description="grouping_df", cols_to_predict='stabilityscore_2classes',
-                              feature_cols_to_use=feature_cols_to_normalize, normalize=True,
+    th.add_leave_one_out_runs(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, data=data_RD_16k,
+                              data_description="data_RD_16k", grouping=grouping_df, grouping_description="grouping_df",
+                              cols_to_predict='stabilityscore_2classes', feature_cols_to_use=feature_cols_to_normalize, normalize=True,
                               feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
 
     th.execute_runs()
+
 
 if __name__ == '__main__':
     args = parser.parse_args()

@@ -30,9 +30,7 @@ class KerasClassificationTwoDimensional(KerasClassification):
                  feature_cols_to_use=None, id_col='name', topology_col='topology', predict_untested=False, epochs=25,
                  batch_size=1000, verbose=0, weight_classes=False):
         super(KerasClassificationTwoDimensional, self).__init__(model, model_description, training_data, testing_data,
-                                                                data_set_description, train_test_split_description,
-                                                                col_to_predict, feature_cols_to_use, id_col,
-                                                                topology_col, predict_untested)
+                                                                data_set_description, train_test_split_description)
         self.epochs = epochs
         self.batch_size = batch_size
         self.verbose = verbose
