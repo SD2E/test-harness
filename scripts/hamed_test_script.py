@@ -10,6 +10,9 @@ from sklearn.model_selection import train_test_split
 from test_harness_class import TestHarness
 
 from th_model_instances.hamed_models.random_forest_classification import random_forest_classification
+from th_model_instances.hamed_models.random_forest_regression import random_forest_regression
+from th_model_instances.jed_models.sequence_cnn import sequence_only_cnn
+from th_model_instances.jed_models.sequence_cnn_classification import sequence_only_cnn_classification
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
 # Note that if you clone the `versioned-datasets` repo at the same level as where you cloned the `protein-design` repo,
@@ -150,17 +153,22 @@ def main(args):
     # train7, test7 = train_test_split(data_RD_BL_TA1R1_KJ_114k, test_size=0.2, random_state=5,
     #                                  stratify=data_RD_BL_TA1R1_KJ_114k[['topology', 'dataset_original']])
 
+
+
+
+
+
     # Test Harness Use Begins Here:
 
     th = TestHarness(output_path=output_dir)
 
-    th.add_custom_runs(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train1,
-                       testing_data=test1, data_and_split_description="just testing things out!",
-                       cols_to_predict=['stabilityscore_2classes', 'stabilityscore_calibrated_2classes'],
-                       feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
-                       feature_extraction=False, predict_untested_data=False)
-
-    th.add_leave_one_out_runs(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, data=data_RD_16k,
+    # th.add_custom_runs(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train1,
+    #                    testing_data=test1, data_and_split_description="just testing things out!",
+    #                    cols_to_predict=['stabilityscore_2classes', 'stabilityscore_calibrated_2classes'],
+    #                    feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
+    #                    feature_extraction=False, predict_untested_data=False)
+    #
+    th.add_leave_one_out_runs(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, data=data_RD_16k,
                               data_description="data_RD_16k", grouping=grouping_df, grouping_description="grouping_df",
                               cols_to_predict='stabilityscore_2classes', feature_cols_to_use=feature_cols_to_normalize, normalize=True,
                               feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)

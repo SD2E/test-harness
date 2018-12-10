@@ -25,12 +25,8 @@ from keras import backend as K
 
 
 class KerasRegressionTwoDimensional(KerasRegression):
-    def __init__(self, model, model_description, training_data=None, testing_data=None,
-                 data_set_description=None, train_test_split_description=None, col_to_predict='stabilityscore',
-                 feature_cols_to_use=None, id_col='name', topology_col='topology', predict_untested=False, epochs=25,
-                 batch_size=1000, verbose=0):
-        super(KerasRegressionTwoDimensional, self).__init__(model, model_description, training_data, testing_data,
-                                                            data_set_description)
+    def __init__(self, model, model_description, epochs=25, batch_size=1000, verbose=0):
+        super(KerasRegressionTwoDimensional, self).__init__(model, model_description)
         self.epochs = epochs
         self.batch_size = batch_size
         self.verbose = verbose
@@ -40,12 +36,6 @@ class KerasRegressionTwoDimensional(KerasRegression):
         checkpoint_callback = ModelCheckpoint(checkpoint_filepath, monitor='val_loss', save_best_only=True)
         stopping_callback = EarlyStopping(monitor='val_loss', min_delta=0, patience=3)
         callbacks_list = [checkpoint_callback, stopping_callback]
-        # Jed added this next bit before model.fit to make it fit from scratch if model is being reused
-        # commented that code out for now because it won't be necessary after I move custom_splits to test_harness level
-        # session = K.get_session()
-        # for layer in self.model.layers:
-        #     if hasattr(layer, 'kernel_initializer'):
-        #         layer.kernel.initializer.run(session=session)
         self.model.fit(np.expand_dims(np.stack([x[0] for x in X.values]), 3), y, validation_split=0.1,
                        epochs=self.epochs, batch_size=self.batch_size, verbose=self.verbose, callbacks=callbacks_list)
         self.model.load_weights(checkpoint_filepath)
@@ -55,8 +45,7 @@ class KerasRegressionTwoDimensional(KerasRegression):
         return self.model.predict(np.expand_dims(np.stack([x[0] for x in X.values]), 3))
 
 
-def sequence_only_cnn(training_data, testing_data, col_to_predict, data_set_description="",
-                      train_test_split_description=""):
+def sequence_only_cnn(training_data, testing_data):
     amino_dict = dict(zip(
         ['A', 'R', 'N', 'D', 'C', 'E', 'Q', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V',
          'X', 'J', 'O'], range(23)))  # 'X' means nothing, 'J' means beginning, 'O' means end
@@ -104,13 +93,7 @@ def sequence_only_cnn(training_data, testing_data, col_to_predict, data_set_desc
 
     mr = KerasRegressionTwoDimensional(model=model,
                                        model_description='Sequence CNN 400x5->200x9->100x17->80->40->1',
-                                       col_to_predict=col_to_predict,
                                        feature_cols_to_use=['encoded_sequence'],
-                                       training_data=training_data,
-                                       testing_data=testing_data,
-                                       # predict_untested=untested_data,
                                        batch_size=128,
-                                       epochs=25,
-                                       data_set_description=data_set_description,
-                                       train_test_split_description=train_test_split_description)
+                                       epochs=25)
     return mr
