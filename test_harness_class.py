@@ -3,11 +3,11 @@ import json
 import time
 import itertools
 import pandas as pd
-from unique_id import get_id
+from test_harness.unique_id import get_id
 from six import string_types
 from datetime import datetime
 from statistics import mean, pstdev
-from run_classes import ClassificationRun, RegressionRun
+from test_harness.run_classes import ClassificationRun, RegressionRun
 from test_harness.test_harness_models_abstract_classes import TestHarnessModel, ClassificationModel, RegressionModel
 
 pd.set_option('display.max_columns', 500)

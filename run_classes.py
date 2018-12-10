@@ -3,7 +3,7 @@ import eli5
 import rfpimp
 import pandas as pd
 from math import sqrt
-from unique_id import get_id
+from test_harness.unique_id import get_id
 from datetime import datetime
 from sklearn import preprocessing
 from eli5.sklearn import PermutationImportance

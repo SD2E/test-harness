@@ -1,18 +1,19 @@
 import argparse
 import datetime as dt
 import os
+from os import sys, path
 import importlib
 import types
 import pandas as pd
 from tabulate import tabulate
 from pathlib import Path
 from sklearn.model_selection import train_test_split
-from test_harness_class import TestHarness
-from data_wrangling import calculate_max_residues, encode_sequences
-from th_model_instances.hamed_models.random_forest_classification import random_forest_classification
-from th_model_instances.hamed_models.random_forest_regression import random_forest_regression
-from th_model_instances.jed_models.sequence_cnn import sequence_only_cnn
-from th_model_instances.jed_models.sequence_cnn_classification import sequence_only_cnn_classification
+from test_harness.test_harness_class import TestHarness
+from test_harness.data_wrangling import calculate_max_residues, encode_sequences
+from test_harness.th_model_instances.hamed_models.random_forest_classification import random_forest_classification
+from test_harness.th_model_instances.hamed_models.random_forest_regression import random_forest_regression
+from test_harness.th_model_instances.jed_models.sequence_cnn import sequence_only_cnn
+from test_harness.th_model_instances.jed_models.sequence_cnn_classification import sequence_only_cnn_classification
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
 # Note that if you clone the `versioned-datasets` repo at the same level as where you cloned the `protein-design` repo,
