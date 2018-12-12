@@ -75,7 +75,7 @@ def main(args):
     else:
         output_dir = RESULTSPATH
 
-    combined_data = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/aggregated_data/all_libs_cleaned.v1.aggregated_data.csv'),
+    combined_data = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/aggregated_data/all_libs_cleaned.v2.aggregated_data.csv'),
                                 comment='#', low_memory=False)
     combined_data['dataset_original'] = combined_data['dataset']
     combined_data['dataset'] = combined_data['dataset'].replace({"topology_mining_and_Longxing_chip_1": "t_l_untested",
@@ -169,13 +169,13 @@ def main(args):
     #                    feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
     #                    feature_extraction=False, predict_untested_data=False)
 
-    th.add_leave_one_out_runs(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, data=data_RD_16k,
-                              data_description="data_RD_16k", grouping=grouping_df, grouping_description="grouping_df",
+    th.add_leave_one_out_runs(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, data=data_RD_BL_TA1R1_KJ_114k,
+                              data_description="114k", grouping=grouping_df, grouping_description="grouping_df",
                               cols_to_predict='stabilityscore_2classes', feature_cols_to_use=feature_cols_to_normalize, normalize=True,
                               feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
 
-    th.add_leave_one_out_runs(function_that_returns_TH_model=rocklins_linear_regression, dict_of_function_parameters={}, data=data_RD_16k,
-                              data_description="data_RD_16k", grouping=grouping_df, grouping_description="grouping_df",
+    th.add_leave_one_out_runs(function_that_returns_TH_model=rocklins_linear_regression, dict_of_function_parameters={}, data=data_RD_BL_TA1R1_KJ_114k,
+                              data_description="114k", grouping=grouping_df, grouping_description="grouping_df",
                               cols_to_predict='stabilityscore_2classes', feature_cols_to_use=feature_cols_to_normalize, normalize=True,
                               feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
 
@@ -190,11 +190,11 @@ def main(args):
     #                    feature_extraction=False, predict_untested_data=False)
 
 
-    max_residues = calculate_max_residues([data_RD_16k])
-    data_RD_16k_encoded = encode_sequences(data_RD_16k, max_residues)
+    max_residues = calculate_max_residues([data_RD_BL_TA1R1_KJ_114k])
+    data_RD_BL_TA1R1_KJ_114k_encoded = encode_sequences(data_RD_BL_TA1R1_KJ_114k, max_residues)
     th.add_leave_one_out_runs(function_that_returns_TH_model=sequence_only_cnn,
-                              dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, data=data_RD_16k_encoded,
-                              data_description="data_RD_16k_encoded", grouping=grouping_df, grouping_description="grouping_df",
+                              dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, data=data_RD_BL_TA1R1_KJ_114k_encoded,
+                              data_description="114k", grouping=grouping_df, grouping_description="grouping_df",
                               cols_to_predict='stabilityscore_2classes', feature_cols_to_use=["encoded_sequence"], normalize=True,
                               feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
 
