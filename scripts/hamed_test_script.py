@@ -14,6 +14,7 @@ from test_harness.th_model_instances.hamed_models.random_forest_classification i
 from test_harness.th_model_instances.hamed_models.random_forest_regression import random_forest_regression
 from test_harness.th_model_instances.jed_models.sequence_cnn import sequence_only_cnn
 from test_harness.th_model_instances.jed_models.sequence_cnn_classification import sequence_only_cnn_classification
+from test_harness.th_model_instances.hamed_models.rocklin_models import rocklins_linear_regression
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
 # Note that if you clone the `versioned-datasets` repo at the same level as where you cloned the `protein-design` repo,
@@ -96,10 +97,14 @@ def main(args):
     #     combined_data['dataset_original'].isin(
     #         ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
     #          'topology_mining_and_Longxing_chip_2'])].copy()
-    # data_RD_BL_TA1R1_KJ_114k = combined_data.loc[
-    #     combined_data['dataset_original'].isin(
-    #         ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
-    #          'topology_mining_and_Longxing_chip_2', 'topology_mining_and_Longxing_chip_3'])].copy()
+    data_RD_BL_TA1R1_KJ_114k = combined_data.loc[
+        combined_data['dataset_original'].isin(
+            ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
+             'topology_mining_and_Longxing_chip_2', 'topology_mining_and_Longxing_chip_3'])].copy()
+
+    print(combined_data.shape)
+    print(data_RD_BL_TA1R1_KJ_114k.shape)
+
 
     # # Grouping Data
     grouping_df = pd.read_csv(
@@ -139,8 +144,8 @@ def main(args):
                                  'ss_sc', 'sum_best_frags', 'total_score', 'tryp_cut_sites', 'two_core_each',
                                  'worst6frags', 'worstfrag']
 
-    train1, test1 = train_test_split(data_RD_16k, test_size=0.2, random_state=5,
-                                     stratify=data_RD_16k[['topology', 'dataset_original']])
+    # train1, test1 = train_test_split(data_RD_16k, test_size=0.2, random_state=5,
+    #                                  stratify=data_RD_16k[['topology', 'dataset_original']])
     # train2, test2 = train1.copy(), combined_data.loc[
     #     combined_data['dataset_original'].isin(['Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
     # train3, test3 = train_test_split(data_RD_BL_81k, test_size=0.2, random_state=5,
@@ -163,21 +168,26 @@ def main(args):
     #                    cols_to_predict=['stabilityscore_2classes', 'stabilityscore_calibrated_2classes'],
     #                    feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
     #                    feature_extraction=False, predict_untested_data=False)
-    #
-    # th.add_leave_one_out_runs(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, data=data_RD_16k,
-    #                           data_description="data_RD_16k", grouping=grouping_df, grouping_description="grouping_df",
-    #                           cols_to_predict='stabilityscore_2classes', feature_cols_to_use=feature_cols_to_normalize, normalize=True,
-    #                           feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
 
-    max_residues = calculate_max_residues([train1, test1])
-    train1_encoded = encode_sequences(train1, max_residues)
-    test1_encoded = encode_sequences(test1, max_residues)
-    th.add_custom_runs(function_that_returns_TH_model=sequence_only_cnn,
-                       dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, training_data=train1_encoded,
-                       testing_data=test1_encoded, data_and_split_description="just testing things out!",
-                       cols_to_predict=['stabilityscore_2classes'],
-                       feature_cols_to_use=["encoded_sequence"], normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
-                       feature_extraction=False, predict_untested_data=False)
+    th.add_leave_one_out_runs(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, data=data_RD_16k,
+                              data_description="data_RD_16k", grouping=grouping_df, grouping_description="grouping_df",
+                              cols_to_predict='stabilityscore_2classes', feature_cols_to_use=feature_cols_to_normalize, normalize=True,
+                              feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
+
+    th.add_leave_one_out_runs(function_that_returns_TH_model=rocklins_linear_regression, dict_of_function_parameters={}, data=data_RD_16k,
+                              data_description="data_RD_16k", grouping=grouping_df, grouping_description="grouping_df",
+                              cols_to_predict='stabilityscore_2classes', feature_cols_to_use=feature_cols_to_normalize, normalize=True,
+                              feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
+
+    # max_residues = calculate_max_residues([train1, test1])
+    # train1_encoded = encode_sequences(train1, max_residues)
+    # test1_encoded = encode_sequences(test1, max_residues)
+    # th.add_custom_runs(function_that_returns_TH_model=sequence_only_cnn,
+    #                    dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, training_data=train1_encoded,
+    #                    testing_data=test1_encoded, data_and_split_description="just testing things out!",
+    #                    cols_to_predict=['stabilityscore_2classes'],
+    #                    feature_cols_to_use=["encoded_sequence"], normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
+    #                    feature_extraction=False, predict_untested_data=False)
 
 
     max_residues = calculate_max_residues([data_RD_16k])

@@ -70,3 +70,6 @@ def sequence_only_cnn(max_residues, padding):
                                        batch_size=128,
                                        epochs=25)
     return mr
+
+
+# TODO: make single function that calls the two data_wrangling functions, returns edited dataframe. Move the other two functions here too.

@@ -22,6 +22,10 @@ PARENT = os.path.dirname(HERE)
 DEFAULT_DATA_PATH = os.path.join(PWD, 'versioned_data/asap/')
 
 
+#TODO: think about removing the execution level
+
+
+
 # TODO: If model, training_data, and other params are the same, just train once for that call of run_models
 # TODO: add ran-by (user) column to leaderboards
 # TODO: add md5hashes of data to leaderboard as sorting tool
@@ -288,9 +292,9 @@ class TestHarness:
             finished_run_result = self._output_single_run(run_object, run_id_folder_path)
 
             if isinstance(run_object, ClassificationRun):
-                custom_classification_results = custom_classification_results.append(finished_run_result, ignore_index=True)
+                custom_classification_results = custom_classification_results.append(finished_run_result, ignore_index=True, sort=False)
             elif isinstance(run_object, RegressionRun):
-                custom_regression_results = custom_regression_results.append(finished_run_result, ignore_index=True)
+                custom_regression_results = custom_regression_results.append(finished_run_result, ignore_index=True, sort=False)
             else:
                 raise TypeError("run_object must be a ClassificationRun or RegressionRun object.")
 
@@ -311,17 +315,19 @@ class TestHarness:
                 run_id_folder_path = os.path.join(loo_id_folder_path, '{}_{}'.format("run", run_object.run_id))
                 os.makedirs(run_id_folder_path, exist_ok=True)
                 finished_run_result = self._output_single_run(run_object, run_id_folder_path)
-                this_loo_results = this_loo_results.append(finished_run_result, ignore_index=True)
+                finished_run_result["Leave-One-Out ID"] = run_object.loo_dict["loo_id"]
+                finished_run_result["Test Group"] = run_object.loo_dict["group_info"]
+                this_loo_results = this_loo_results.append(finished_run_result, ignore_index=True, sort=False)
 
             loo_html_path = os.path.join(loo_id_folder_path, "loo_results.html")
             if loo_run_type == "classification":
                 this_loo_results.sort_values('AUC Score', inplace=True, ascending=False)
                 this_loo_results.reset_index(inplace=True, drop=True)
-                loo_classification_results = loo_classification_results.append(this_loo_results)
+                loo_classification_results = loo_classification_results.append(this_loo_results, ignore_index=True, sort=False)
             elif loo_run_type == "regression":
                 this_loo_results.sort_values('R-Squared', inplace=True, ascending=False)
                 this_loo_results.reset_index(inplace=True, drop=True)
-                loo_regression_results = loo_regression_results.append(this_loo_results)
+                loo_regression_results = loo_regression_results.append(this_loo_results, ignore_index=True, sort=False)
 
             this_loo_results.to_html(loo_html_path, index=False)
 
@@ -345,8 +351,8 @@ class TestHarness:
                                   'Normalized': first_run_in_this_loo.normalize,
                                   'Number of Features Normalized': first_run_in_this_loo.num_features_normalized,
                                   'Feature Extraction': first_run_in_this_loo.feature_extraction}
-                this_loo_summary = this_loo_summary.append(summary_values, ignore_index=True)
-                loo_classification_summaries = loo_classification_summaries.append(this_loo_summary, ignore_index=True)
+                this_loo_summary = this_loo_summary.append(summary_values, ignore_index=True, sort=False)
+                loo_classification_summaries = loo_classification_summaries.append(this_loo_summary, ignore_index=True, sort=False)
             elif loo_run_type == "regression":
                 this_loo_summary = pd.DataFrame(columns=self.loo_summarized_regression_leaderboard_cols)
 
@@ -367,8 +373,8 @@ class TestHarness:
                                   'Normalized': first_run_in_this_loo.normalize,
                                   'Number of Features Normalized': first_run_in_this_loo.num_features_normalized,
                                   'Feature Extraction': first_run_in_this_loo.feature_extraction}
-                this_loo_summary = this_loo_summary.append(summary_values, ignore_index=True)
-                loo_regression_summaries = loo_regression_summaries.append(this_loo_summary, ignore_index=True)
+                this_loo_summary = this_loo_summary.append(summary_values, ignore_index=True, sort=False)
+                loo_regression_summaries = loo_regression_summaries.append(this_loo_summary, ignore_index=True, sort=False)
             else:
                 raise TypeError("run_object must be a ClassificationRun or RegressionRun object.")
 
@@ -420,6 +426,8 @@ class TestHarness:
             print("\nLOO Regression Results:")
             print(loo_regression_results)
 
+
+        # TODO make this into for loop
         # Check if leaderboards exist, and create them if they don't
         # Pandas append docs: "Columns not in this frame are added as new columns" --> don't worry about adding new leaderboard cols
         cc_leaderboard_name = 'custom_classification_leaderboard'
@@ -428,8 +436,8 @@ class TestHarness:
             cc_leaderboard = pd.read_html(html_path)[0]
         except (IOError, ValueError):
             cc_leaderboard = pd.DataFrame(columns=self.custom_classification_leaderboard_cols)
-        cc_leaderboard = cc_leaderboard.append(custom_classification_results)
-        cc_leaderboard.to_html(html_path, index=False, classes='comparable_classification')
+        cc_leaderboard = cc_leaderboard.append(custom_classification_results, ignore_index=True, sort=False)
+        cc_leaderboard.to_html(html_path, index=False, classes=cc_leaderboard_name)
 
         cr_leaderboard_name = 'custom_regression_leaderboard'
         html_path = os.path.join(self.results_folder_path, "{}.html".format(cr_leaderboard_name))
@@ -437,8 +445,8 @@ class TestHarness:
             cr_leaderboard = pd.read_html(html_path)[0]
         except (IOError, ValueError):
             cr_leaderboard = pd.DataFrame(columns=self.custom_regression_leaderboard_cols)
-        cr_leaderboard = cr_leaderboard.append(custom_regression_results)
-        cr_leaderboard.to_html(html_path, index=False, classes='comparable_regression')
+        cr_leaderboard = cr_leaderboard.append(custom_regression_results, ignore_index=True, sort=False)
+        cr_leaderboard.to_html(html_path, index=False, classes=cr_leaderboard_name)
 
         lc_leaderboard_name = 'loo_summarized_classification_leaderboard'
         html_path = os.path.join(self.results_folder_path, "{}.html".format(lc_leaderboard_name))
@@ -446,8 +454,8 @@ class TestHarness:
             lc_leaderboard = pd.read_html(html_path)[0]
         except (IOError, ValueError):
             lc_leaderboard = pd.DataFrame(columns=self.loo_summarized_classification_leaderboard_cols)
-        lc_leaderboard = lc_leaderboard.append(loo_classification_summaries)
-        lc_leaderboard.to_html(html_path, index=False, classes='loo_classification')
+        lc_leaderboard = lc_leaderboard.append(loo_classification_summaries, ignore_index=True, sort=False)
+        lc_leaderboard.to_html(html_path, index=False, classes=lc_leaderboard_name)
 
         lr_leaderboard_name = 'loo_summarized_regression_leaderboard'
         html_path = os.path.join(self.results_folder_path, "{}.html".format(lr_leaderboard_name))
@@ -455,8 +463,8 @@ class TestHarness:
             lr_leaderboard = pd.read_html(html_path)[0]
         except (IOError, ValueError):
             lr_leaderboard = pd.DataFrame(columns=self.loo_summarized_regression_leaderboard_cols)
-        lr_leaderboard = lr_leaderboard.append(loo_regression_summaries)
-        lr_leaderboard.to_html(html_path, index=False, classes='loo_regression')
+        lr_leaderboard = lr_leaderboard.append(loo_regression_summaries, ignore_index=True, sort=False)
+        lr_leaderboard.to_html(html_path, index=False, classes=lr_leaderboard_name)
 
         lc_leaderboard_name = 'loo_full_classification_leaderboard'
         html_path = os.path.join(self.results_folder_path, "{}.html".format(lc_leaderboard_name))
@@ -464,8 +472,8 @@ class TestHarness:
             lc_leaderboard = pd.read_html(html_path)[0]
         except (IOError, ValueError):
             lc_leaderboard = pd.DataFrame(columns=self.loo_full_classification_leaderboard_cols)
-        lc_leaderboard = lc_leaderboard.append(loo_classification_results)
-        lc_leaderboard.to_html(html_path, index=False, classes='loo_classification')
+        lc_leaderboard = lc_leaderboard.append(loo_classification_results, ignore_index=True, sort=False)
+        lc_leaderboard.to_html(html_path, index=False, classes=lc_leaderboard_name)
 
         lr_leaderboard_name = 'loo_full_regression_leaderboard'
         html_path = os.path.join(self.results_folder_path, "{}.html".format(lr_leaderboard_name))
@@ -473,8 +481,8 @@ class TestHarness:
             lr_leaderboard = pd.read_html(html_path)[0]
         except (IOError, ValueError):
             lr_leaderboard = pd.DataFrame(columns=self.loo_full_regression_leaderboard_cols)
-        lr_leaderboard = lr_leaderboard.append(loo_regression_results)
-        lr_leaderboard.to_html(html_path, index=False, classes='loo_regression')
+        lr_leaderboard = lr_leaderboard.append(loo_regression_results, ignore_index=True, sort=False)
+        lr_leaderboard.to_html(html_path, index=False, classes=lr_leaderboard_name)
 
     def _output_single_run(self, run_object, output_path):
         if isinstance(run_object, ClassificationRun):
@@ -488,7 +496,7 @@ class TestHarness:
                           'Feature Extraction': run_object.feature_extraction,
                           "Was Untested Data Predicted": run_object.was_untested_data_predicted}
             row_of_results = pd.DataFrame(columns=self.custom_classification_leaderboard_cols)
-            row_of_results = row_of_results.append(row_values, ignore_index=True)
+            row_of_results = row_of_results.append(row_values, ignore_index=True, sort=False)
         elif isinstance(run_object, RegressionRun):
             row_values = {'Execution ID': self._execution_id, 'Run ID': run_object.run_id, 'Date': run_object.date_ran,
                           'Time': run_object.time_ran,
@@ -500,7 +508,7 @@ class TestHarness:
                           'Feature Extraction': run_object.feature_extraction,
                           "Was Untested Data Predicted": run_object.was_untested_data_predicted}
             row_of_results = pd.DataFrame(columns=self.custom_regression_leaderboard_cols)
-            row_of_results = row_of_results.append(row_values, ignore_index=True)
+            row_of_results = row_of_results.append(row_values, ignore_index=True, sort=False)
         else:
             raise ValueError()
 
