@@ -97,14 +97,14 @@ def main(args):
     #     combined_data['dataset_original'].isin(
     #         ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
     #          'topology_mining_and_Longxing_chip_2'])].copy()
-    # data_RD_BL_TA1R1_KJ_114k = combined_data.loc[
-    #     combined_data['dataset_original'].isin(
-    #         ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
-    #          'topology_mining_and_Longxing_chip_2', 'topology_mining_and_Longxing_chip_3'])].copy()
+    data_RD_BL_TA1R1_KJ_114k = combined_data.loc[
+        combined_data['dataset_original'].isin(
+            ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
+             'topology_mining_and_Longxing_chip_2', 'topology_mining_and_Longxing_chip_3'])].copy()
 
     data_119k = combined_data.copy()
 
-    print(combined_data.shape)
+    print(data_RD_BL_TA1R1_KJ_114k.shape)
     print(data_119k.shape)
 
 
@@ -184,21 +184,21 @@ def main(args):
 
     colpred = "stabilityscore"
 
-    th.add_leave_one_out_runs(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, data=data_119k,
-                              data_description="119k", grouping=grouping_df, grouping_description="grouping_df",
+    th.add_leave_one_out_runs(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, data=data_RD_BL_TA1R1_KJ_114k,
+                              data_description="114k", grouping=grouping_df, grouping_description="grouping_df",
                               cols_to_predict=colpred, feature_cols_to_use=feature_cols_to_normalize, normalize=True,
                               feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
 
-    th.add_leave_one_out_runs(function_that_returns_TH_model=rocklins_linear_regression, dict_of_function_parameters={}, data=data_119k,
-                              data_description="119k", grouping=grouping_df, grouping_description="grouping_df",
+    th.add_leave_one_out_runs(function_that_returns_TH_model=rocklins_linear_regression, dict_of_function_parameters={}, data=data_RD_BL_TA1R1_KJ_114k,
+                              data_description="114k", grouping=grouping_df, grouping_description="grouping_df",
                               cols_to_predict=colpred, feature_cols_to_use=feature_cols_to_normalize, normalize=True,
                               feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
 
-    max_residues = calculate_max_residues([data_119k])
-    data_119k_encoded = encode_sequences(data_119k, max_residues)
+    max_residues = calculate_max_residues([data_RD_BL_TA1R1_KJ_114k])
+    data_RD_BL_TA1R1_KJ_114k_encoded = encode_sequences(data_RD_BL_TA1R1_KJ_114k, max_residues)
     th.add_leave_one_out_runs(function_that_returns_TH_model=sequence_only_cnn,
-                              dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, data=data_119k_encoded,
-                              data_description="119k encoded", grouping=grouping_df, grouping_description="grouping_df",
+                              dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, data=data_RD_BL_TA1R1_KJ_114k_encoded,
+                              data_description="114k encoded", grouping=grouping_df, grouping_description="grouping_df",
                               cols_to_predict=colpred, feature_cols_to_use=["encoded_sequence"], normalize=False,
                               feature_cols_to_normalize=None, feature_extraction=False)
 
