@@ -129,7 +129,8 @@ class TestHarness:
         #       - other arguments
         cols_to_predict = make_list_if_not_list(cols_to_predict)
         feature_cols_to_use = make_list_if_not_list(feature_cols_to_use)
-        feature_cols_to_normalize = make_list_if_not_list(feature_cols_to_normalize)
+        if feature_cols_to_normalize:
+            feature_cols_to_normalize = make_list_if_not_list(feature_cols_to_normalize)
 
         assert isinstance(data, pd.DataFrame), "data must be a Pandas Dataframe"
         assert isinstance(data_description, string_types), "data_description must be a string"
