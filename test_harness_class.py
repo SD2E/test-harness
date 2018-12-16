@@ -289,7 +289,7 @@ class TestHarness:
             run_id_folder_path = os.path.join(self.execution_id_folder_path, '{}_{}'.format("run", run_object.run_id))
             os.makedirs(run_id_folder_path, exist_ok=True)
 
-            finished_run_result = self._output_single_run(run_object, run_id_folder_path)
+            finished_run_result = self._output_single_run(run_object, run_id_folder_path, output_data_csvs=True)
 
             if isinstance(run_object, ClassificationRun):
                 custom_classification_results = custom_classification_results.append(finished_run_result, ignore_index=True, sort=False)
@@ -314,7 +314,7 @@ class TestHarness:
             for run_object in runs_in_this_loo:
                 run_id_folder_path = os.path.join(loo_id_folder_path, '{}_{}'.format("run", run_object.run_id))
                 os.makedirs(run_id_folder_path, exist_ok=True)
-                finished_run_result = self._output_single_run(run_object, run_id_folder_path)
+                finished_run_result = self._output_single_run(run_object, run_id_folder_path, output_data_csvs=False)
                 finished_run_result["Leave-One-Out ID"] = run_object.loo_dict["loo_id"]
                 finished_run_result["Test Group"] = run_object.loo_dict["group_info"]
                 this_loo_results = this_loo_results.append(finished_run_result, ignore_index=True, sort=False)
@@ -330,6 +330,12 @@ class TestHarness:
                 loo_regression_results = loo_regression_results.append(this_loo_results, ignore_index=True, sort=False)
 
             this_loo_results.to_html(loo_html_path, index=False)
+
+            # TODO: figure out why csv's aren't being output:
+            first_run_in_this_loo.loo_dict["data"].to_csv("data.csv", index=False)
+            first_run_in_this_loo.loo_dict["grouping"].to_csv("groupings.csv", index=False)
+
+
 
             if loo_run_type == "classification":
                 this_loo_summary = pd.DataFrame(columns=self.loo_summarized_classification_leaderboard_cols)
@@ -484,7 +490,7 @@ class TestHarness:
         lr_leaderboard = lr_leaderboard.append(loo_regression_results, ignore_index=True, sort=False)
         lr_leaderboard.to_html(html_path, index=False, classes=lr_leaderboard_name)
 
-    def _output_single_run(self, run_object, output_path):
+    def _output_single_run(self, run_object, output_path, output_data_csvs=True):
         if isinstance(run_object, ClassificationRun):
             row_values = {'Execution ID': self._execution_id, 'Run ID': run_object.run_id, 'Date': run_object.date_ran,
                           'Time': run_object.time_ran,
@@ -512,11 +518,12 @@ class TestHarness:
         else:
             raise ValueError()
 
-        run_object.training_data.to_csv('{}/{}'.format(output_path, 'training_data.csv'), index=False)
-        run_object.testing_data_predictions.to_csv('{}/{}'.format(output_path, 'testing_data.csv'), index=False)
-        if run_object.was_untested_data_predicted is not False:
-            prediction_data_to_save = run_object.untested_data_predictions.copy()
-            prediction_data_to_save.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
+        if output_data_csvs:
+            run_object.training_data.to_csv('{}/{}'.format(output_path, 'training_data.csv'), index=False)
+            run_object.testing_data_predictions.to_csv('{}/{}'.format(output_path, 'testing_data.csv'), index=False)
+            if run_object.was_untested_data_predicted is not False:
+                prediction_data_to_save = run_object.untested_data_predictions.copy()
+                prediction_data_to_save.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
         if run_object.feature_extraction is not False:
             run_object.feature_importances.to_csv('{}/{}'.format(output_path, 'feature_importances.csv'), index=False)
 
