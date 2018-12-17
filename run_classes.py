@@ -139,7 +139,10 @@ class ClassificationRun(BaseRun):
 
     def calculate_metrics(self):
         self.num_features_used = len(self.feature_cols_to_use)
-        self.num_features_normalized = len(self.feature_cols_to_normalize)
+        if self.feature_cols_to_normalize:
+            self.num_features_normalized = len(self.feature_cols_to_normalize)
+        else:
+            self.num_features_normalized = 0
         self.number_of_test_datapoints = len(self.testing_data_predictions)
         total_equal = sum(self.testing_data_predictions[self.col_to_predict] == self.testing_data_predictions[self.predictions_col])
         self.percent_accuracy = float(total_equal) / float(self.number_of_test_datapoints)
@@ -191,7 +194,10 @@ class RegressionRun(BaseRun):
 
     def calculate_metrics(self):
         self.num_features_used = len(self.feature_cols_to_use)
-        self.num_features_normalized = len(self.feature_cols_to_normalize)
+        if self.feature_cols_to_normalize:
+            self.num_features_normalized = len(self.feature_cols_to_normalize)
+        else:
+            self.num_features_normalized = 0
         self.number_of_test_datapoints = len(self.testing_data_predictions)
         self.rmse = sqrt(
             mean_squared_error(self.testing_data_predictions[self.col_to_predict], self.testing_data_predictions[self.predictions_col]))
