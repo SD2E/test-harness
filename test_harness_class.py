@@ -22,8 +22,7 @@ PARENT = os.path.dirname(HERE)
 DEFAULT_DATA_PATH = os.path.join(PWD, 'versioned_data/asap/')
 
 
-#TODO: think about removing the execution level
-
+# TODO: think about removing the execution level
 
 
 # TODO: If model, training_data, and other params are the same, just train once for that call of run_models
@@ -58,10 +57,7 @@ class TestHarness:
         # Note: loo stands for leave-one-out
         self.output_path = output_path
         self.results_folder_path = os.path.join(self.output_path, 'results')
-        self._runs_to_execute = []
-        self._execution_id = None
-        self._finished_custom_runs = []
-        self._finished_loo_runs = {}
+        self.runs_folder_path = os.path.join(self.results_folder_path, 'runs')
         self._flag_to_only_allow_one_execution_of_runs_per_TestHarness_object = False
         self.custom_classification_leaderboard_cols = \
             ['Execution ID', 'Run ID', 'Date', 'Time', 'AUC Score', 'Classification Accuracy', 'Model Description', 'Column Predicted',
@@ -92,17 +88,26 @@ class TestHarness:
     # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
     # TODO: make feature_extraction options something like: "BBA", "permutation", and "custom", where custom means that
     # TODO: it's not a black box feature tool, but rather a specific one defined inside of the TestHarnessModel object
-    def add_custom_runs(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                        data_and_split_description, cols_to_predict, feature_cols_to_use, normalize=False, feature_cols_to_normalize=None,
-                        feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None):
-        # Adds custom run(s) to the TestHarness object
-        # If you pass a list of models and/or list of columns to predict, a custom run will be added for every
-        # combination of models and columns to predict that you provided.
-        # Custom runs require providing:
-        #       - a function_that_returns_TH_model along with a dict_of_function_parameters for that function
-        #       - a training dataframe and a testing dataframe
-        #       - a column to predict or list of columns to predict
-        #       - other arguments
+    def run_custom(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
+                   data_and_split_description, cols_to_predict, feature_cols_to_use, normalize=False, feature_cols_to_normalize=None,
+                   feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None):
+        """
+        Instantiates and runs a model on a custom train/test split
+        If you pass in a list of columns to predict, a separate run will occur for each string in the list
+        :param function_that_returns_TH_model:
+        :param dict_of_function_parameters:
+        :param training_data:
+        :param testing_data:
+        :param data_and_split_description:
+        :param cols_to_predict:
+        :param feature_cols_to_use:
+        :param normalize:
+        :param feature_cols_to_normalize:
+        :param feature_extraction:
+        :param predict_untested_data:
+        :param sparse_cols_to_use:
+        :return:
+        """
 
         cols_to_predict = make_list_if_not_list(cols_to_predict)
         assert is_list_of_strings(cols_to_predict), "cols_to_predict must be a string or a list of strings"
@@ -113,20 +118,29 @@ class TestHarness:
             sparse_cols_to_use = make_list_if_not_list(sparse_cols_to_use)
 
         for col in cols_to_predict:
-            self._add_run(function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                          data_and_split_description, col, feature_cols_to_use, normalize, feature_cols_to_normalize,
-                          feature_extraction, predict_untested_data, sparse_cols_to_use)
+            self._execute_run(function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
+                              data_and_split_description, col, feature_cols_to_use, normalize, feature_cols_to_normalize,
+                              feature_extraction, predict_untested_data, sparse_cols_to_use)
 
-    def add_leave_one_out_runs(self, function_that_returns_TH_model, dict_of_function_parameters, data, data_description, grouping,
-                               grouping_description, cols_to_predict, feature_cols_to_use, normalize=False, feature_cols_to_normalize=None,
-                               feature_extraction=False):
-        # Adds leave-one-out run(s) to the TestHarness object
-        # Leave-one-out runs require providing:
-        #       - a function_that_returns_TH_model along with a dict_of_function_parameters for that function
-        #       - a dataset dataframe
-        #       - a grouping dataframe or a list of column names to group by
-        #       - a column to predict or list of columns to predict
-        #       - other arguments
+    def run_leave_one_out(self, function_that_returns_TH_model, dict_of_function_parameters, data, data_description, grouping,
+                          grouping_description, cols_to_predict, feature_cols_to_use, normalize=False, feature_cols_to_normalize=None,
+                          feature_extraction=False):
+        """
+        Splits the data into appropriate train/test splits according to the grouping dataframe, and then runs a separate instantiation of
+        the passed-in model on each split.
+        :param function_that_returns_TH_model:
+        :param dict_of_function_parameters:
+        :param data:
+        :param data_description:
+        :param grouping:
+        :param grouping_description:
+        :param cols_to_predict:
+        :param feature_cols_to_use:
+        :param normalize:
+        :param feature_cols_to_normalize:
+        :param feature_extraction:
+        :return:
+        """
         cols_to_predict = make_list_if_not_list(cols_to_predict)
         feature_cols_to_use = make_list_if_not_list(feature_cols_to_use)
         if feature_cols_to_normalize:
@@ -147,7 +161,19 @@ class TestHarness:
 
         for col in cols_to_predict:
             loo_id = get_id()
-            self._finished_loo_runs[loo_id] = []
+            loo_folder_path = os.path.join(self.runs_folder_path, '{}_{}'.format("loo", loo_id))
+            os.makedirs(loo_folder_path, exist_ok=False)
+            data.to_csv(os.path.join(loo_folder_path, "data.csv"), index=False)
+            grouping.to_csv(os.path.join(loo_folder_path, "grouping.csv"), index=False)
+
+            dummy_th_model = function_that_returns_TH_model(**dict_of_function_parameters)
+            if isinstance(dummy_th_model, ClassificationModel):
+                task_type = "Classification"
+            elif isinstance(dummy_th_model, RegressionModel):
+                task_type = "Regression"
+            else:
+                raise ValueError("function_that_returns_TH_model must return a ClassificationModel or a RegressionModel.")
+
             for group in list(set(relevant_groupings['group_index'])):
                 data_and_split_description = "{}. Index of left-out test group = {}".format(data_description, group)
                 train_split = all_data.copy()
@@ -165,18 +191,39 @@ class TestHarness:
                 print("Number of samples in test split:", test_split.shape)
                 print()
 
-                loo_dict = {"loo_id": loo_id, "data": data, "data_description": data_description, "grouping": grouping,
+                loo_dict = {"loo_id": loo_id, "task_type": task_type, "data_description": data_description,
                             "grouping_description": grouping_description, "group_info": group_info}
 
-                self._add_run(function_that_returns_TH_model, dict_of_function_parameters, train_split, test_split,
-                              data_and_split_description, col, feature_cols_to_use, normalize, feature_cols_to_normalize,
-                              feature_extraction, False, None, loo_dict)
+                self._execute_run(function_that_returns_TH_model, dict_of_function_parameters, train_split, test_split,
+                                  data_and_split_description, col, feature_cols_to_use, normalize, feature_cols_to_normalize,
+                                  feature_extraction, False, None, loo_dict)
 
-    def _add_run(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                 data_and_split_description, col_to_predict, feature_cols_to_use, normalize=False, feature_cols_to_normalize=None,
-                 feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None, loo_dict=False):
-        # Instantiates the TestHarnessModel object, Creates a ClassificationRun or RegressionRun object, and updates self._runs_to_execute
-        # with the new object.
+            # TODO: do summary results here
+
+    def _execute_run(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
+                     data_and_split_description, col_to_predict, feature_cols_to_use, normalize=False, feature_cols_to_normalize=None,
+                     feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None, loo_dict=False):
+        """
+        1. Instantiates the TestHarnessModel object
+        2. Creates a ClassificationRun or RegressionRun object and calls their train_and_test_model and calculate_metrics methods
+        3. Calls _output_results(Run Object)
+        4. Calls _delete_run_object() to free up RAM
+
+        :param function_that_returns_TH_model:
+        :param dict_of_function_parameters:
+        :param training_data:
+        :param testing_data:
+        :param data_and_split_description:
+        :param col_to_predict:
+        :param feature_cols_to_use:
+        :param normalize:
+        :param feature_cols_to_normalize:
+        :param feature_extraction:
+        :param predict_untested_data:
+        :param sparse_cols_to_use:
+        :param loo_dict:
+        :return:
+        """
 
         # Single strings are included in the assert error messages because the make_list_if_not_list function was used
         assert callable(function_that_returns_TH_model), \
@@ -206,51 +253,32 @@ class TestHarness:
 
         test_harness_model = function_that_returns_TH_model(**dict_of_function_parameters)
         if isinstance(test_harness_model, ClassificationModel):
-            run = ClassificationRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
-                                    feature_cols_to_use, normalize, feature_cols_to_normalize, feature_extraction, predict_untested_data,
-                                    loo_dict)
+            run_object = ClassificationRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
+                                           feature_cols_to_use, normalize, feature_cols_to_normalize, feature_extraction,
+                                           predict_untested_data,
+                                           loo_dict)
         elif isinstance(test_harness_model, RegressionModel):
-            run = RegressionRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
-                                feature_cols_to_use, normalize, feature_cols_to_normalize, feature_extraction, predict_untested_data,
-                                loo_dict)
+            run_object = RegressionRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
+                                       feature_cols_to_use, normalize, feature_cols_to_normalize, feature_extraction, predict_untested_data,
+                                       loo_dict)
         else:
             raise TypeError("test_harness_model must be a ClassificationModel or a RegressionModel.")
-        self._runs_to_execute.append(run)
 
-    # Executes runs that have been added to self._custom_runs_to_execute and self._loo_runs_to_execute
-    # by using _execute_custom_run and _execute_leave_one_out_run
-    def execute_runs(self):
-        self._execution_id = get_id()
-        self.execution_id_folder_path = os.path.join(self.results_folder_path, 'executions/{}_{}'.format('exec', self._execution_id))
+        # call object methods
+        start = time.time()
+        print('Starting run at time {}'.format(datetime.now().strftime("%H:%M:%S")))
+        run_object.train_and_test_model()
+        run_object.calculate_metrics()
+        if run_object.feature_extraction is not False:
+            run_object.feature_extraction_method(method=run_object.feature_extraction)
+        if run_object.loo_dict is False:
+
+        else:
+            loo_id = run_object.loo_dict['loo_id']
+
+        end = time.time()
+        print('Run finished at {}'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
         print()
-        print("The ID for this Execution of runs is: {}".format(self._execution_id))
-        print()
-
-        # TODO: figure out how to prevent simultaneous leaderboard updates from overwriting each other
-        number_of_runs = len(self._runs_to_execute)
-        if number_of_runs > 0:
-            print("Executing {} runs".format(number_of_runs))
-            print()
-            for counter, run_object in enumerate(self._runs_to_execute, start=1):
-                start = time.time()
-                print('Starting run {}/{} at time {}'.format(counter, number_of_runs, datetime.now().strftime("%H:%M:%S")))
-
-                run_object.train_and_test_model()
-                run_object.calculate_metrics()
-                if run_object.feature_extraction is not False:
-                    run_object.feature_extraction_method(method=run_object.feature_extraction)
-                if run_object.loo_dict is False:
-                    self._finished_custom_runs.append(run_object)
-                else:
-                    loo_id = run_object.loo_dict['loo_id']
-                    self._finished_loo_runs[loo_id].append(run_object)
-
-                end = time.time()
-                print('Run finished at {}'.format(datetime.now().strftime("%H:%M:%S")),
-                      'Total run time = {0:.2f} seconds'.format(end - start))
-                print()
-            print("Outputting results from all runs...")
-            self._output_results()
 
     # If there are categorical columns that need to be made sparse, make them, and update the feature_cols_to_use
     def _make_sparse_cols(self, df, sparse_col_names, feature_cols_to_use=None):
@@ -278,13 +306,6 @@ class TestHarness:
         # TODO: Put in a check to never normalize the sparse data category
 
     def _output_results(self):
-        custom_classification_results = pd.DataFrame(columns=self.custom_classification_leaderboard_cols)
-        custom_regression_results = pd.DataFrame(columns=self.custom_regression_leaderboard_cols)
-
-        loo_classification_results = pd.DataFrame(columns=self.loo_full_classification_leaderboard_cols)
-        loo_regression_results = pd.DataFrame(columns=self.loo_full_regression_leaderboard_cols)
-        loo_classification_summaries = pd.DataFrame(columns=self.loo_summarized_classification_leaderboard_cols)
-        loo_regression_summaries = pd.DataFrame(columns=self.loo_summarized_regression_leaderboard_cols)
 
         for run_object in self._finished_custom_runs:
             run_id_folder_path = os.path.join(self.execution_id_folder_path, '{}_{}'.format("run", run_object.run_id))
@@ -335,8 +356,6 @@ class TestHarness:
             # TODO: figure out why csv's aren't being output:
             first_run_in_this_loo.loo_dict["data"].to_csv("data.csv", index=False)
             first_run_in_this_loo.loo_dict["grouping"].to_csv("groupings.csv", index=False)
-
-
 
             if loo_run_type == "classification":
                 this_loo_summary = pd.DataFrame(columns=self.loo_summarized_classification_leaderboard_cols)
@@ -433,64 +452,6 @@ class TestHarness:
             print("\nLOO Regression Results:")
             print(loo_regression_results)
 
-
-        # TODO make this into for loop
-        # Check if leaderboards exist, and create them if they don't
-        # Pandas append docs: "Columns not in this frame are added as new columns" --> don't worry about adding new leaderboard cols
-        cc_leaderboard_name = 'custom_classification_leaderboard'
-        html_path = os.path.join(self.results_folder_path, "{}.html".format(cc_leaderboard_name))
-        try:
-            cc_leaderboard = pd.read_html(html_path)[0]
-        except (IOError, ValueError):
-            cc_leaderboard = pd.DataFrame(columns=self.custom_classification_leaderboard_cols)
-        cc_leaderboard = cc_leaderboard.append(custom_classification_results, ignore_index=True, sort=False)
-        cc_leaderboard.to_html(html_path, index=False, classes=cc_leaderboard_name)
-
-        cr_leaderboard_name = 'custom_regression_leaderboard'
-        html_path = os.path.join(self.results_folder_path, "{}.html".format(cr_leaderboard_name))
-        try:
-            cr_leaderboard = pd.read_html(html_path)[0]
-        except (IOError, ValueError):
-            cr_leaderboard = pd.DataFrame(columns=self.custom_regression_leaderboard_cols)
-        cr_leaderboard = cr_leaderboard.append(custom_regression_results, ignore_index=True, sort=False)
-        cr_leaderboard.to_html(html_path, index=False, classes=cr_leaderboard_name)
-
-        lc_leaderboard_name = 'loo_summarized_classification_leaderboard'
-        html_path = os.path.join(self.results_folder_path, "{}.html".format(lc_leaderboard_name))
-        try:
-            lc_leaderboard = pd.read_html(html_path)[0]
-        except (IOError, ValueError):
-            lc_leaderboard = pd.DataFrame(columns=self.loo_summarized_classification_leaderboard_cols)
-        lc_leaderboard = lc_leaderboard.append(loo_classification_summaries, ignore_index=True, sort=False)
-        lc_leaderboard.to_html(html_path, index=False, classes=lc_leaderboard_name)
-
-        lr_leaderboard_name = 'loo_summarized_regression_leaderboard'
-        html_path = os.path.join(self.results_folder_path, "{}.html".format(lr_leaderboard_name))
-        try:
-            lr_leaderboard = pd.read_html(html_path)[0]
-        except (IOError, ValueError):
-            lr_leaderboard = pd.DataFrame(columns=self.loo_summarized_regression_leaderboard_cols)
-        lr_leaderboard = lr_leaderboard.append(loo_regression_summaries, ignore_index=True, sort=False)
-        lr_leaderboard.to_html(html_path, index=False, classes=lr_leaderboard_name)
-
-        lc_leaderboard_name = 'loo_full_classification_leaderboard'
-        html_path = os.path.join(self.results_folder_path, "{}.html".format(lc_leaderboard_name))
-        try:
-            lc_leaderboard = pd.read_html(html_path)[0]
-        except (IOError, ValueError):
-            lc_leaderboard = pd.DataFrame(columns=self.loo_full_classification_leaderboard_cols)
-        lc_leaderboard = lc_leaderboard.append(loo_classification_results, ignore_index=True, sort=False)
-        lc_leaderboard.to_html(html_path, index=False, classes=lc_leaderboard_name)
-
-        lr_leaderboard_name = 'loo_full_regression_leaderboard'
-        html_path = os.path.join(self.results_folder_path, "{}.html".format(lr_leaderboard_name))
-        try:
-            lr_leaderboard = pd.read_html(html_path)[0]
-        except (IOError, ValueError):
-            lr_leaderboard = pd.DataFrame(columns=self.loo_full_regression_leaderboard_cols)
-        lr_leaderboard = lr_leaderboard.append(loo_regression_results, ignore_index=True, sort=False)
-        lr_leaderboard.to_html(html_path, index=False, classes=lr_leaderboard_name)
-
     def _output_single_run(self, run_object, output_path, output_data_csvs=True):
         if isinstance(run_object, ClassificationRun):
             row_values = {'Execution ID': self._execution_id, 'Run ID': run_object.run_id, 'Date': run_object.date_ran,
@@ -543,3 +504,27 @@ class TestHarness:
                 f.write("\n")
 
         return row_of_results
+
+    def _update_leaderboard(self, leaderboard_name, row_to_add):
+        pass
+
+    def _initialize_leaderboards(self):
+        # Check if leaderboards exist, and create them if they don't
+        # Pandas append docs: "Columns not in this frame are added as new columns" --> don't worry about adding new leaderboard cols
+        leaderboard_names_dict = {"custom_classification_leaderboard": self.custom_classification_leaderboard_cols,
+                                  "custom_regression_leaderboard": self.custom_regression_leaderboard_cols,
+                                  "loo_summarized_classification_leaderboard": self.loo_summarized_classification_leaderboard_cols,
+                                  "loo_summarized_regression_leaderboard": self.loo_summarized_regression_leaderboard_cols,
+                                  "loo_detailed_classification_leaderboard": self.loo_full_classification_leaderboard_cols,
+                                  "loo_detailed_regression_leaderboard": self.loo_full_regression_leaderboard_cols}
+
+        for leaderboard_name, leaderboard_cols in leaderboard_names_dict.items():
+            html_path = os.path.join(self.results_folder_path, "{}.html".format(leaderboard_name))
+            try:
+                cc_leaderboard = pd.read_html(html_path)[0]
+            except (IOError, ValueError):
+                cc_leaderboard = pd.DataFrame(columns=leaderboard_cols)
+                cc_leaderboard.to_html(html_path, index=False, classes=leaderboard_name)
+
+
+

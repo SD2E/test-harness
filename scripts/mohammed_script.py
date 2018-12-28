@@ -39,11 +39,11 @@ def main():
     th = TestHarness(output_path=RESULTSPATH)
 
     rf_classification_model = random_forest_classification(n_estimators=500)
-    th.add_custom_runs(test_harness_models=rf_classification_model, training_data=train, testing_data=test,
-                       data_and_split_description="yeast_live_dead_dataframe",
-                       cols_to_predict=output_cols,
-                       feature_cols_to_use=input_cols, normalize=True, feature_cols_to_normalize=input_cols,
-                       feature_extraction='rfpimp_permutation', predict_untested_data=False)
+    th.run_custom(test_harness_models=rf_classification_model, training_data=train, testing_data=test,
+                  data_and_split_description="yeast_live_dead_dataframe",
+                  cols_to_predict=output_cols,
+                  feature_cols_to_use=input_cols, normalize=True, feature_cols_to_normalize=input_cols,
+                  feature_extraction='rfpimp_permutation', predict_untested_data=False)
     # Mohammed add end
     th.execute_runs()
 
