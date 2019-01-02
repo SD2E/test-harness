@@ -46,8 +46,7 @@ class KerasRegressionTwoDimensional(KerasRegression):
 
 
 def sequence_only_cnn(max_residues, padding):
-    inputs = Input(shape=(23, max_residues + 2 + 2 * padding, 1))  # 22 amino acids plus null/beginning/end
-    amino_inputs = Lambda(lambda x: x[:, :23, :, :])(inputs)
+    amino_inputs = Input(shape=(23, max_residues + 2 + 2 * padding, 1))  # 22 amino acids plus null/beginning/end
 
     amino_model = Conv2D(400, (23, 5), kernel_regularizer=l2(.0), activation='relu')(amino_inputs)
     amino_model = Dropout(0.3)(amino_model)
@@ -62,7 +61,7 @@ def sequence_only_cnn(max_residues, padding):
     model = Dropout(0.3)(model)
     model = Dense(40, activation='elu', kernel_regularizer=l2(.0))(model)
     model = Dense(1, activation='linear', kernel_regularizer=l2(.0))(model)
-    model = Model(inputs=inputs, outputs=model)
+    model = Model(inputs=amino_inputs, outputs=model)
     model.compile(optimizer='adam', loss='mse')
 
     mr = KerasRegressionTwoDimensional(model=model,

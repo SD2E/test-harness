@@ -92,8 +92,7 @@ def sequence_only_cnn_classification(training_data, testing_data, col_to_predict
     testing_data['encoded_sequence'] = testing_data.sequence.apply(make_code)
     # untested_data['encoded_sequence'] = untested_data.sequence.apply(make_code)
 
-    inputs = Input(shape=(23, MAX_RESIDUES + 2 + 2 * PADDING, 1))  # 22 amino acids plus null/beginning/end
-    amino_inputs = Lambda(lambda x: x[:, :23, :, :])(inputs)
+    amino_inputs = Input(shape=(23, MAX_RESIDUES + 2 + 2 * PADDING, 1))  # 22 amino acids plus null/beginning/end
 
     amino_model = Conv2D(400, (23, 5), kernel_regularizer=l2(.0), activation='relu')(amino_inputs)
     amino_model = Dropout(0.3)(amino_model)
@@ -108,7 +107,7 @@ def sequence_only_cnn_classification(training_data, testing_data, col_to_predict
     model = Dropout(0.3)(model)
     model = Dense(40, activation='elu', kernel_regularizer=l2(.0))(model)
     model = Dense(1, activation='sigmoid', kernel_regularizer=l2(.0))(model)
-    model = Model(inputs=inputs, outputs=model)
+    model = Model(inputs=amino_inputs, outputs=model)
     model.compile(optimizer='adam', loss='mse')
 
     mr = KerasClassificationTwoDimensional(model=model,
