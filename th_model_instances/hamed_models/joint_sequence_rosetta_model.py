@@ -35,7 +35,7 @@ class KerasJointRegression(KerasRegression):
         # os.remove(checkpoint_filepath)
 
     def _predict(self, X):
-        X1 = np.expand_dims(np.stack([x[0] for x in X['encoded_sequence'].values]), 3)
+        X1 = np.expand_dims(np.stack([x[0] for x in X[['encoded_sequence']].values]), 3)
         X2 = X.drop('encoded_sequence', axis=1)
         return self.model.predict([X1, X2])
 
