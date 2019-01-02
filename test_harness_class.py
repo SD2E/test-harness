@@ -58,6 +58,11 @@ class TestHarness:
         self.output_path = output_path
         self.results_folder_path = os.path.join(self.output_path, 'results')
         self.runs_folder_path = os.path.join(self.results_folder_path, 'runs')
+        if not os.path.exists(self.results_folder_path):
+            os.makedirs(self.results_folder_path)
+        if not os.path.exists(self.runs_folder_path):
+            os.makedirs(self.runs_folder_path)
+
         # 'Normalized' should describe normalization method used (or False if no normalization)
         self.custom_classification_leaderboard_cols = \
             ['Run ID', 'Date', 'Time', 'AUC Score', 'Classification Accuracy', 'Model Description', 'Column Predicted',
@@ -90,7 +95,7 @@ class TestHarness:
                                   "loo_detailed_classification_leaderboard": self.loo_full_classification_leaderboard_cols,
                                   "loo_detailed_regression_leaderboard": self.loo_full_regression_leaderboard_cols}
         self.metric_to_sort_classification_results_by = "AUC Score"
-        self.metric_to_sort_regression_results_by = "R Squared"
+        self.metric_to_sort_regression_results_by = "R-Squared"
         self.valid_feature_extraction_methods = ['eli5_permutation', 'rfpimp_permutation']
 
     # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
@@ -245,7 +250,8 @@ class TestHarness:
 
                 # update leaderboard with new entry (row_of_results) and sort it based on run type
                 summary_leaderboard = summary_leaderboard.append(summary_values, ignore_index=True, sort=False)
-                summary_leaderboard.sort_values(self.metric_to_sort_classification_results_by, inplace=True, ascending=False)
+                sort_metric = "Mean " + self.metric_to_sort_classification_results_by
+                summary_leaderboard.sort_values(sort_metric, inplace=True, ascending=False)
                 summary_leaderboard.reset_index(inplace=True, drop=True)
 
                 # overwrite old leaderboard with updated leaderboard
@@ -257,14 +263,14 @@ class TestHarness:
                 detailed_leaderboard = pd.read_html(detailed_leaderboard_path)[0]
                 this_loo_results = detailed_leaderboard.loc[detailed_leaderboard["Leave-One-Out ID"] == loo_id]
 
-                mean_rsquared = mean(this_loo_results['R Squared'])
-                std_rsquared = pstdev(this_loo_results['R Squared'])
+                mean_rsquared = mean(this_loo_results['R-Squared'])
+                std_rsquared = pstdev(this_loo_results['R-Squared'])
                 mean_rmse = mean(this_loo_results['RMSE'])
                 std_rmse = pstdev(this_loo_results['RMSE'])
 
                 summary_values = {'Leave-One-Out ID': loo_id,
                                   'Date': date_loo_ran, 'Time': time_loo_ran, 'Mean R-Squared': mean_rsquared,
-                                  'Mean RMSE': mean_rmse, 'Model Description': dummy_th_model.model_description
+                                  'Mean RMSE': mean_rmse, 'Model Description': dummy_th_model.model_description,
                                   'Column Predicted': col,
                                   'Number Of Features Used': len(feature_cols_to_use),
                                   'Data Description': data_description,
@@ -285,7 +291,8 @@ class TestHarness:
 
                 # update leaderboard with new entry (row_of_results) and sort it based on run type
                 summary_leaderboard = summary_leaderboard.append(summary_values, ignore_index=True, sort=False)
-                summary_leaderboard.sort_values(self.metric_to_sort_regression_results_by, inplace=True, ascending=False)
+                sort_metric = "Mean " + self.metric_to_sort_regression_results_by
+                summary_leaderboard.sort_values(sort_metric, inplace=True, ascending=False)
                 summary_leaderboard.reset_index(inplace=True, drop=True)
 
                 # overwrite old leaderboard with updated leaderboard
@@ -374,12 +381,16 @@ class TestHarness:
         self._update_leaderboard(run_object)
 
         if run_object.loo_dict is False:
-            self._output_run_files(run_object, self.runs_folder_path, output_data_csvs=True)
+            run_id_folder_path = os.path.join(self.runs_folder_path, '{}_{}'.format("run", run_object.run_id))
+            os.makedirs(run_id_folder_path)
+            self._output_run_files(run_object, run_id_folder_path, output_data_csvs=True)
         else:
             loo_id = run_object.loo_dict['loo_id']
             loo_path = os.path.join(self.runs_folder_path, '{}_{}'.format("loo", loo_id))
             os.makedirs(loo_path, exist_ok=True)
-            self._output_run_files(run_object, loo_path, output_data_csvs=False)
+            run_id_folder_path = os.path.join(loo_path, '{}_{}'.format("run", run_object.run_id))
+            os.makedirs(run_id_folder_path)
+            self._output_run_files(run_object, run_id_folder_path, output_data_csvs=True)
 
         end = time.time()
         print('Run finished at {}'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))

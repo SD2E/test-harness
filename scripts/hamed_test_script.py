@@ -146,8 +146,8 @@ def main(args):
                                  'ss_sc', 'sum_best_frags', 'total_score', 'tryp_cut_sites', 'two_core_each',
                                  'worst6frags', 'worstfrag']
 
-    # train1, test1 = train_test_split(data_RD_16k, test_size=0.2, random_state=5,
-    #                                  stratify=data_RD_16k[['topology', 'dataset_original']])
+    train1, test1 = train_test_split(data_RD_16k, test_size=0.2, random_state=5,
+                                     stratify=data_RD_16k[['topology', 'dataset_original']])
     # train2, test2 = train1.copy(), combined_data.loc[
     #     combined_data['dataset_original'].isin(['Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
     # train3, test3 = train_test_split(data_RD_BL_81k, test_size=0.2, random_state=5,
@@ -165,11 +165,11 @@ def main(args):
 
     th = TestHarness(output_path=output_dir)
 
-    # th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train1,
-    #                    testing_data=test1, data_and_split_description="just testing things out!",
-    #                    cols_to_predict=['stabilityscore_2classes', 'stabilityscore_calibrated_2classes'],
-    #                    feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
-    #                    feature_extraction=False, predict_untested_data=False)
+    th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train1,
+                       testing_data=test1, data_and_split_description="just testing things out!",
+                       cols_to_predict=['stabilityscore_2classes', 'stabilityscore_calibrated_2classes'],
+                       feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
+                       feature_extraction=False, predict_untested_data=False)
 
     # max_residues = calculate_max_residues([train1, test1])
     # train1_encoded = encode_sequences(train1, max_residues)
@@ -184,15 +184,15 @@ def main(args):
 
     colpred = "stabilityscore"
 
-    # th.run_leave_one_out(function_that_returns_TH_model=rocklins_linear_regression, dict_of_function_parameters={}, data=data_RD_BL_TA1R1_KJ_114k,
-    #                           data_description="114k", grouping=grouping_df, grouping_description="grouping_df",
-    #                           cols_to_predict=colpred, feature_cols_to_use=feature_cols_to_normalize, normalize=True,
-    #                           feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
+    th.run_leave_one_out(function_that_returns_TH_model=rocklins_linear_regression, dict_of_function_parameters={}, data=data_RD_16k,
+                              data_description="114k", grouping=grouping_df, grouping_description="grouping_df",
+                              cols_to_predict=colpred, feature_cols_to_use=feature_cols_to_normalize, normalize=True,
+                              feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
 
-    th.run_leave_one_out(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, data=data_RD_BL_TA1R1_KJ_114k,
-                         data_description="114k", grouping=grouping_df, grouping_description="grouping_df",
-                         cols_to_predict=colpred, feature_cols_to_use=feature_cols_to_normalize, normalize=True,
-                         feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
+    # th.run_leave_one_out(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, data=data_RD_BL_TA1R1_KJ_114k,
+    #                      data_description="114k", grouping=grouping_df, grouping_description="grouping_df",
+    #                      cols_to_predict=colpred, feature_cols_to_use=feature_cols_to_normalize, normalize=True,
+    #                      feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
     #
     # max_residues = calculate_max_residues([data_RD_BL_TA1R1_KJ_114k])
     # data_RD_BL_TA1R1_KJ_114k_encoded = encode_sequences(data_RD_BL_TA1R1_KJ_114k, max_residues)
@@ -201,8 +201,6 @@ def main(args):
     #                           data_description="114k encoded", grouping=grouping_df, grouping_description="grouping_df",
     #                           cols_to_predict=colpred, feature_cols_to_use=["encoded_sequence"], normalize=False,
     #                           feature_cols_to_normalize=None, feature_extraction=False)
-
-    th.execute_runs()
 
 
 if __name__ == '__main__':
