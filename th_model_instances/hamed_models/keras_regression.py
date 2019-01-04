@@ -105,7 +105,7 @@ def keras_regression_5b():
     return mr_kr
 
 
-def keras_regression_best(train=None, test=None):
+def keras_regression_best():
     # Creating a Keras deep learning regression model:
     kr = Sequential()
     kr.add(Dropout(0.0, input_shape=(110,)))

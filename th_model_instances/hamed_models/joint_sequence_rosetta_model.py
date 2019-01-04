@@ -53,14 +53,13 @@ def joint_network(max_residues, padding):
     sequence_model = Dropout(0.3)(sequence_model)
     sequence_model = Flatten()(sequence_model)
     sequence_model = Dense(80, activation='elu', kernel_regularizer=l2(.0))(sequence_model)
-    # sequence_model = Dropout(0.3)(sequence_model)
-    # sequence_model = Dense(40, activation='elu', kernel_regularizer=l2(.0))(sequence_model)
+    sequence_model = Dropout(0.3)(sequence_model)
+    sequence_model = Dense(40, activation='elu', kernel_regularizer=l2(.0))(sequence_model)
     # sequence_model = Dense(1, activation='linear', kernel_regularizer=l2(.0))(sequence_model)
     # sequence_model = Model(inputs=sequence_inputs, outputs=sequence_model)
 
     # creating rosetta layers
     rosetta_model = Dense(units=113, activation="relu")(rosetta_inputs)
-    rosetta_model = Dropout(0.0)(rosetta_model)
     rosetta_model = Dense(units=80, activation="relu")(rosetta_model)
     rosetta_model = Dropout(0.019414354060286951)(rosetta_model)
     rosetta_model = Dense(units=73, activation="relu")(rosetta_model)
@@ -68,11 +67,12 @@ def joint_network(max_residues, padding):
 
     # creating merged layers
     merged_layer = Concatenate()([sequence_model, rosetta_model])
-    dense_layer = Dense(40, activation='relu')(merged_layer)
-    output_layer = Dense(1, activation='softmax')(dense_layer)
+    # dense_layer = Dense(40, activation='relu')(merged_layer)
+    output_layer = Dense(1, activation='linear', kernel_regularizer=l2(.0))(merged_layer)
 
     # creating merged model
     merged_model = Model(inputs=[sequence_inputs, rosetta_inputs], output=output_layer)
+    print(merged_model.summary())
 
     # do we want to create a custom loss function for R^2? --> probably not because MSE will achieve the same thing because in training
     # we're not trying to compare a metric across different datasets

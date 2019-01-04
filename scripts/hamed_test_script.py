@@ -16,6 +16,7 @@ from test_harness.th_model_instances.jed_models.sequence_cnn import sequence_onl
 from test_harness.th_model_instances.jed_models.sequence_cnn_classification import sequence_only_cnn_classification
 from test_harness.th_model_instances.hamed_models.rocklin_models import rocklins_linear_regression
 from test_harness.th_model_instances.hamed_models.joint_sequence_rosetta_model import joint_network
+from test_harness.th_model_instances.hamed_models.keras_regression import keras_regression_best
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
 # Note that if you clone the `versioned-datasets` repo at the same level as where you cloned the `protein-design` repo,
@@ -92,19 +93,18 @@ def main(args):
     combined_data['stabilityscore_cnn_calibrated_2classes'] = combined_data['stabilityscore_cnn_calibrated'] > 1
 
     data_RD_16k = combined_data.loc[combined_data['dataset_original'] == 'Rocklin'].copy()
-    # data_RD_BL_81k = combined_data.loc[
-    #     combined_data['dataset_original'].isin(['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
-    # data_RD_BL_TA1R1_105k = combined_data.loc[
-    #     combined_data['dataset_original'].isin(
-    #         ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
-    #          'topology_mining_and_Longxing_chip_2'])].copy()
+    data_RD_BL_81k = combined_data.loc[
+        combined_data['dataset_original'].isin(['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
+    data_RD_BL_TA1R1_105k = combined_data.loc[
+        combined_data['dataset_original'].isin(
+            ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
+             'topology_mining_and_Longxing_chip_2'])].copy()
     data_RD_BL_TA1R1_KJ_114k = combined_data.loc[
         combined_data['dataset_original'].isin(
             ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
              'topology_mining_and_Longxing_chip_2', 'topology_mining_and_Longxing_chip_3'])].copy()
 
-    data_119k = combined_data.copy()
-
+    # data_119k = combined_data.copy()
 
     # Grouping Data
     grouping_df = pd.read_csv(
@@ -146,18 +146,18 @@ def main(args):
 
     train1, test1 = train_test_split(data_RD_16k, test_size=0.2, random_state=5,
                                      stratify=data_RD_16k[['topology', 'dataset_original']])
-    # train2, test2 = train1.copy(), combined_data.loc[
-    #     combined_data['dataset_original'].isin(['Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
-    # train3, test3 = train_test_split(data_RD_BL_81k, test_size=0.2, random_state=5,
-    #                                  stratify=data_RD_BL_81k[['topology', 'dataset_original']])
-    # train4, test4 = train3.copy(), combined_data.loc[combined_data['dataset_original'].isin(
-    #     ['topology_mining_and_Longxing_chip_1', 'topology_mining_and_Longxing_chip_2'])].copy()
-    # train5, test5 = train_test_split(data_RD_BL_TA1R1_105k, test_size=0.2, random_state=5,
-    #                                  stratify=data_RD_BL_TA1R1_105k[['topology', 'dataset_original']])
-    # train6, test6 = train5.copy(), combined_data.loc[
-    #     combined_data['dataset_original'].isin(['topology_mining_and_Longxing_chip_3'])].copy()
-    # train7, test7 = train_test_split(data_RD_BL_TA1R1_KJ_114k, test_size=0.2, random_state=5,
-    #                                  stratify=data_RD_BL_TA1R1_KJ_114k[['topology', 'dataset_original']])
+    train2, test2 = train1.copy(), combined_data.loc[
+        combined_data['dataset_original'].isin(['Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
+    train3, test3 = train_test_split(data_RD_BL_81k, test_size=0.2, random_state=5,
+                                     stratify=data_RD_BL_81k[['topology', 'dataset_original']])
+    train4, test4 = train3.copy(), combined_data.loc[combined_data['dataset_original'].isin(
+        ['topology_mining_and_Longxing_chip_1', 'topology_mining_and_Longxing_chip_2'])].copy()
+    train5, test5 = train_test_split(data_RD_BL_TA1R1_105k, test_size=0.2, random_state=5,
+                                     stratify=data_RD_BL_TA1R1_105k[['topology', 'dataset_original']])
+    train6, test6 = train5.copy(), combined_data.loc[
+        combined_data['dataset_original'].isin(['topology_mining_and_Longxing_chip_3'])].copy()
+    train7, test7 = train_test_split(data_RD_BL_TA1R1_KJ_114k, test_size=0.2, random_state=5,
+                                     stratify=data_RD_BL_TA1R1_KJ_114k[['topology', 'dataset_original']])
 
     # Test Harness Use Begins Here:
     th = TestHarness(output_path=output_dir)
@@ -168,26 +168,44 @@ def main(args):
     #                    feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
     #                    feature_extraction=False, predict_untested_data=False)
 
-    max_residues = calculate_max_residues([train1, test1])
-    train1_encoded = encode_sequences(train1, max_residues)
-    test1_encoded = encode_sequences(test1, max_residues)
-    th.run_custom(function_that_returns_TH_model=sequence_only_cnn,
-                       dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, training_data=train1_encoded,
-                       testing_data=test1_encoded, data_and_split_description="just testing things out!",
-                       cols_to_predict=['stabilityscore_2classes'],
-                       feature_cols_to_use=["encoded_sequence"], normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
-                       feature_extraction=False, predict_untested_data=False)
 
-    max_residues = calculate_max_residues([train1, test1])
-    train1_encoded = encode_sequences(train1, max_residues)
-    test1_encoded = encode_sequences(test1, max_residues)
+
+    train_test_dict = {"train1": train1, "test1": test1, "train2": train2, "test2": test2, "train3": train3, "test3": test3,
+                       "train4": train4, "test4": test4, "train5": train5, "test5": test5, "train6": train6, "test6": test6,
+                       "train7": train7, "test7": test7}
+
+    train_name = "train1"
+    test_name = "test1"
+    train_split = train_test_dict[train_name].copy()
+    test_split = train_test_dict[test_name].copy()
+
+    th.run_custom(function_that_returns_TH_model=keras_regression_best, dict_of_function_parameters={}, training_data=train_split.copy(),
+                  testing_data=test_split.copy(), data_and_split_description="{}_{}".format(train_name, test_name),
+                  cols_to_predict=['stabilityscore_2classes'],
+                  feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
+                  feature_extraction=False, predict_untested_data=False
+                  )
+
+    max_residues = calculate_max_residues([train_split, test_split])
+    train1_encoded = encode_sequences(train_split.copy(), max_residues)
+    test1_encoded = encode_sequences(test_split.copy(), max_residues)
+    th.run_custom(function_that_returns_TH_model=sequence_only_cnn,
+                  dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, training_data=train1_encoded,
+                  testing_data=test1_encoded, data_and_split_description="{}_{}".format(train_name, test_name),
+                  cols_to_predict=['stabilityscore_2classes'],
+                  feature_cols_to_use=["encoded_sequence"], normalize=False, feature_cols_to_normalize=None,
+                  feature_extraction=False, predict_untested_data=False)
+
+    max_residues = calculate_max_residues([train_split, test_split])
+    train1_encoded = encode_sequences(train_split.copy(), max_residues)
+    test1_encoded = encode_sequences(test_split.copy(), max_residues)
     joint_features = feature_cols_to_normalize + ["encoded_sequence"]
     th.run_custom(function_that_returns_TH_model=joint_network,
-                       dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, training_data=train1_encoded,
-                       testing_data=test1_encoded, data_and_split_description="just testing things out!",
-                       cols_to_predict=['stabilityscore_2classes'],
-                       feature_cols_to_use=joint_features, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
-                       feature_extraction=False, predict_untested_data=False)
+                  dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, training_data=train1_encoded,
+                  testing_data=test1_encoded, data_and_split_description="{}_{}".format(train_name, test_name),
+                  cols_to_predict=['stabilityscore_2classes'],
+                  feature_cols_to_use=joint_features, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
+                  feature_extraction=False, predict_untested_data=False)
 
     colpred = "stabilityscore"
 
