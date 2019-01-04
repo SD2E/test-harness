@@ -108,7 +108,7 @@ def keras_regression_5b():
 def keras_regression_best():
     # Creating a Keras deep learning regression model:
     kr = Sequential()
-    kr.add(Dropout(0.0, input_shape=(110,)))
+    kr.add(Dropout(0.0, input_shape=(113,)))
     kr.add(Dense(units=80, activation="relu"))
     kr.add(Dropout(0.019414354060286951))
     kr.add(Dense(units=73, activation="relu"))

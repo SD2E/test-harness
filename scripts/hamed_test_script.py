@@ -179,6 +179,7 @@ def main(args):
     train_split = train_test_dict[train_name].copy()
     test_split = train_test_dict[test_name].copy()
 
+    print("\nrunning keras rosetta model:\n")
     th.run_custom(function_that_returns_TH_model=keras_regression_best, dict_of_function_parameters={}, training_data=train_split.copy(),
                   testing_data=test_split.copy(), data_and_split_description="{}_{}".format(train_name, test_name),
                   cols_to_predict=['stabilityscore_2classes'],
@@ -186,6 +187,7 @@ def main(args):
                   feature_extraction=False, predict_untested_data=False
                   )
 
+    print("\nrunning sequence CNN model:\n")
     max_residues = calculate_max_residues([train_split, test_split])
     train1_encoded = encode_sequences(train_split.copy(), max_residues)
     test1_encoded = encode_sequences(test_split.copy(), max_residues)
@@ -196,6 +198,7 @@ def main(args):
                   feature_cols_to_use=["encoded_sequence"], normalize=False, feature_cols_to_normalize=None,
                   feature_extraction=False, predict_untested_data=False)
 
+    print("\nrunning joint model:\n")
     max_residues = calculate_max_residues([train_split, test_split])
     train1_encoded = encode_sequences(train_split.copy(), max_residues)
     test1_encoded = encode_sequences(test_split.copy(), max_residues)
