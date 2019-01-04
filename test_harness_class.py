@@ -121,13 +121,13 @@ class TestHarness:
         :param sparse_cols_to_use:
         :return:
         """
-
         cols_to_predict = make_list_if_not_list(cols_to_predict)
         assert is_list_of_strings(cols_to_predict), "cols_to_predict must be a string or a list of strings"
 
         feature_cols_to_use = make_list_if_not_list(feature_cols_to_use)
-        feature_cols_to_normalize = make_list_if_not_list(feature_cols_to_normalize)
-        if sparse_cols_to_use is not None:
+        if feature_cols_to_normalize:
+            feature_cols_to_normalize = make_list_if_not_list(feature_cols_to_normalize)
+        if sparse_cols_to_use:
             sparse_cols_to_use = make_list_if_not_list(sparse_cols_to_use)
 
         for col in cols_to_predict:
