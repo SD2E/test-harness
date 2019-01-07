@@ -1,0 +1,26 @@
+#!/bin/bash
+#SBATCH -J Parametric          # Job name
+#SBATCH -N 1                   # Total number of nodes (16 cores/node)
+#SBATCH -n 10                 # Total number of tasks
+#SBATCH -p gpu          # Queue name
+#SBATCH -o Parametric.o%j      # Name of stdout output file (%j expands to jobid)
+#SBATCH -t 01:00:00            # Run time (hh:mm:ss)
+#SBATCH -A SD2E-Community
+
+#------------------General Options---------------------
+module load launcher
+export TACC_LAUNCHER_PPN=10
+export EXECUTABLE=$TACC_LAUNCHER_DIR/init_launcher
+export WORKDIR=.
+export CONTROL_FILE=jobfile
+export TACC_LAUNCHER_SCHED=interleaved
+
+
+cd $WORKDIR/
+echo " WORKING DIR:   $WORKDIR/"
+
+$TACC_LAUNCHER_DIR/paramrun SLURM $EXECUTABLE $WORKDIR $CONTROL_FILE $PHI_WORKDIR $PHI_CONTROL_FILE
+
+echo " "
+echo " Parameteric Job Complete"
+echo " "
