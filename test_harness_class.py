@@ -298,7 +298,7 @@ class TestHarness:
                 # overwrite old leaderboard with updated leaderboard
                 summary_leaderboard.to_html(html_path, index=False, classes=summary_leaderboard_name)
             else:
-                raise TypeError("run_object must be a ClassificationRun or RegressionRun object.")
+                raise TypeError("task_type must be 'Classification' or 'Regression'.")
 
 
     # TODO: replace loo_dict with type_dict --> first entry is run type --> this will allow for more types in the future
