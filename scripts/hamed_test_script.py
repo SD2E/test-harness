@@ -37,9 +37,8 @@ print("RESULTSPATH:", RESULTSPATH)
 print()
 
 parser = argparse.ArgumentParser()
-# Default behavior is to write out relative
-# to test_harness. Passing output will cause
-# writes to occur to a path relative to the current working directory
+# Default behavior is to write out relative to test_harness.
+# Passing output will cause writes to occur to a path relative to the current working directory.
 parser.add_argument('--output', required=False, help='Output directory')
 parser.add_argument('--data_split_number', required=True, help='Enter number between 1 and 7')
 
