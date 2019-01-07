@@ -40,8 +40,8 @@ parser = argparse.ArgumentParser()
 # Default behavior is to write out relative
 # to test_harness. Passing output will cause
 # writes to occur to a path relative to the current working directory
-parser.add_argument('--output', required=False,
-                    help='Output directory')
+parser.add_argument('--output', required=False, help='Output directory')
+parser.add_argument('--data_split_number', required=True, help='Enter number between 1 and 7')
 
 
 def model_runner_by_name(model_runner_path,
@@ -168,20 +168,16 @@ def main(args):
     #                    feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
     #                    feature_extraction=False, predict_untested_data=False)
 
+    train_test_dict = {"1": (train1, test1), "2": (train2, test2), "3": (train3, test3), "4": (train4, test4), "5": (train5, test5),
+                       "6": (train6, test6), "7": (train7, test7)}
 
-
-    train_test_dict = {"train1": train1, "test1": test1, "train2": train2, "test2": test2, "train3": train3, "test3": test3,
-                       "train4": train4, "test4": test4, "train5": train5, "test5": test5, "train6": train6, "test6": test6,
-                       "train7": train7, "test7": test7}
-
-    train_name = "train1"
-    test_name = "test1"
-    train_split = train_test_dict[train_name].copy()
-    test_split = train_test_dict[test_name].copy()
+    data_split_number = args.data_split_number
+    train_split = train_test_dict[data_split_number][0].copy()
+    test_split = train_test_dict[data_split_number][1].copy()
 
     print("\nrunning keras rosetta model:\n")
     th.run_custom(function_that_returns_TH_model=keras_regression_best, dict_of_function_parameters={}, training_data=train_split.copy(),
-                  testing_data=test_split.copy(), data_and_split_description="{}_{}".format(train_name, test_name),
+                  testing_data=test_split.copy(), data_and_split_description="{}_{}".format(data_split_number, data_split_number),
                   cols_to_predict=['stabilityscore_2classes'],
                   feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
                   feature_extraction=False, predict_untested_data=False
@@ -193,7 +189,7 @@ def main(args):
     test1_encoded = encode_sequences(test_split.copy(), max_residues)
     th.run_custom(function_that_returns_TH_model=sequence_only_cnn,
                   dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, training_data=train1_encoded,
-                  testing_data=test1_encoded, data_and_split_description="{}_{}".format(train_name, test_name),
+                  testing_data=test1_encoded, data_and_split_description="{}_{}".format(data_split_number, data_split_number),
                   cols_to_predict=['stabilityscore_2classes'],
                   feature_cols_to_use=["encoded_sequence"], normalize=False, feature_cols_to_normalize=None,
                   feature_extraction=False, predict_untested_data=False)
@@ -205,7 +201,7 @@ def main(args):
     joint_features = feature_cols_to_normalize + ["encoded_sequence"]
     th.run_custom(function_that_returns_TH_model=joint_network,
                   dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, training_data=train1_encoded,
-                  testing_data=test1_encoded, data_and_split_description="{}_{}".format(train_name, test_name),
+                  testing_data=test1_encoded, data_and_split_description="{}_{}".format(data_split_number, data_split_number),
                   cols_to_predict=['stabilityscore_2classes'],
                   feature_cols_to_use=joint_features, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
                   feature_extraction=False, predict_untested_data=False)
