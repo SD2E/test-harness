@@ -3,9 +3,8 @@ import argparse
 import pandas as pd
 from pathlib import Path
 from sklearn.model_selection import train_test_split
-from test_harness_class import TestHarness
-from th_model_instances.hamed_models.random_forest_classification import random_forest_classification
-from th_model_instances.hamed_models.random_forest_regression import random_forest_regression
+from test_harness.test_harness_class import TestHarness
+from test_harness.th_model_instances.hamed_models.random_forest_classification import random_forest_classification
 
 # At some point in your script you will need to define your data. For most cases the data will come from the `versioned_datasets` repo,
 # which is why in this example script I am pointing to the data folder in the `versioned-datasets` repo:
@@ -117,7 +116,7 @@ def main():
     # runs, it will create a "test_harness_results" folder inside of output_location and place all results inside the "test_harness_results"
     # folder. If the "test_harness_results" folder already exists, then previous results/leaderboards will be updated.
     # In this example script, the output_location has been set to the "examples" folder to separate example results from other ones.
-    examples_folder_path = os.path.realpath(__file__)
+    examples_folder_path = os.getcwd()
     print("initializing TestHarness object with output_location equal to {}".format(examples_folder_path))
     print()
     th = TestHarness(output_location=examples_folder_path)
