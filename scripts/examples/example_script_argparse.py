@@ -21,7 +21,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--data_split_number', required=True, help='Enter number between 1 and 7')
 
 
-def main():
+def main(args):
     # Reading in data from versioned-datasets repo.
     # Using the versioned-datasets repo is probably what most people want to do, but you can read in your data however you like.
     combined_data = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/aggregated_data/all_libs_cleaned.v3.aggregated_data.csv'),
