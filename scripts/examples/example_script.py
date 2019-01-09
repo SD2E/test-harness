@@ -6,26 +6,20 @@ from test_harness_class import TestHarness
 from th_model_instances.hamed_models.random_forest_classification import random_forest_classification
 from th_model_instances.hamed_models.random_forest_regression import random_forest_regression
 
-# SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
-# Note that if you clone the `versioned-datasets` repo at the same level as where you cloned the `protein-design` repo,
-# then you can use VERSIONED_DATASETS = os.path.join(Path(__file__).resolve().parents[3], 'versioned-datasets/data')
-VERSIONED_DATA = os.path.join(Path(__file__).resolve().parents[3], 'versioned-datasets/data')
+# At some point in your script you will need to define your data. For most cases the data will come from the `versioned_datasets` repo,
+# which is why in this example script I am pointing to the data folder in the `versioned-datasets` repo:
+# Ideally you would clone the `versioned-datasets` repo in the same location where you cloned the `protein-design` repo,
+# but it shouldn't matter as long as you put the correct path here.
+VERSIONED_DATA = os.path.join(Path(__file__).resolve().parents[4], 'versioned-datasets/data')
+assert os.path.isdir(VERSIONED_DATA), "The path you gave for VERSIONED_DATA does not exist."
 print("Path to data folder in the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATA))
-print()
-
-PWD = os.getcwd()
-HERE = os.path.realpath(__file__)
-PARENT = os.path.dirname(HERE)
-RESULTSPATH = os.path.dirname(PARENT)
-print("RESULTSPATH:", RESULTSPATH)
 print()
 
 
 def main():
     # Reading in data from versioned-datasets repo.
-    # This will only work if you have cloned versioned-datasets at the same level as protein-design.
     # Using the versioned-datasets repo is probably what most people want to do, but you can read in your data however you like.
-    combined_data = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/aggregated_data/all_libs_cleaned.v1.aggregated_data.csv'),
+    combined_data = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/aggregated_data/all_libs_cleaned.v3.aggregated_data.csv'),
                                 comment='#', low_memory=False)
 
     # The following lines of code are just modifications to the dataframe that was read in (pre-processing).
@@ -43,12 +37,12 @@ def main():
     train1, test1 = train_test_split(data_RD_16k, test_size=0.2, random_state=5, stratify=data_RD_16k[['topology', 'dataset_original']])
 
     # Grouping Dataframe read in for leave-one-out analysis.
-    grouping_df = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/metadata/protein_groupings_by_uw.metadata.csv'), comment='#',
+    grouping_df = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/metadata/protein_groupings_by_uw.v1.metadata.csv'), comment='#',
                               low_memory=False)
     grouping_df['dataset'] = grouping_df['dataset'].replace({"longxing_untested": "t_l_untested",
                                                              "topmining_untested": "t_l_untested"})
 
-    # list of feature columns to normalize:
+    # list of feature columns to use and/or normalize:
     feature_cols = ['AlaCount', 'T1_absq', 'T1_netq', 'Tend_absq', 'Tend_netq', 'Tminus1_absq',
                     'Tminus1_netq', 'abego_res_profile', 'abego_res_profile_penalty',
                     'avg_all_frags', 'avg_best_frag', 'bb', 'buns_bb_heavy', 'buns_nonheavy',
@@ -80,7 +74,15 @@ def main():
                     'worst6frags', 'worstfrag']
 
     # TestHarness usage starts here, all code before this was just data input and pre-processing.
-    th = TestHarness(output_path=RESULTSPATH)
+
+    # Here I set the path to the directory in which I want my results to go by setting the output_location argument. When the Test Harness
+    # runs, it will create a "test_harness_results" folder inside of output_location and place all results inside the "test_harness_results"
+    # folder. If the "test_harness_results" folder already exists, then previous results/leaderboards will be updated.
+    # In this example script, the output_location has been set to the "examples" folder to separate example results from other ones.
+    examples_folder_path = os.path.realpath(__file__)
+    print("initializing TestHarness object with output_location equal to {}".format(examples_folder_path))
+    print()
+    th = TestHarness(output_location=examples_folder_path)
 
     th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train1,
                   testing_data=test1, data_and_split_description="example custom run on Rocklin data",

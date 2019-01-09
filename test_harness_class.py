@@ -53,10 +53,10 @@ def is_list_of_strings(obj):
 
 # TODO: separate data description from split description
 class TestHarness:
-    def __init__(self, output_path=os.path.dirname(os.path.realpath(__file__))):
+    def __init__(self, output_location=os.path.dirname(os.path.realpath(__file__))):
         # Note: loo stands for leave-one-out
-        self.output_path = output_path
-        self.results_folder_path = os.path.join(self.output_path, 'results')
+        self.output_path = output_location
+        self.results_folder_path = os.path.join(self.output_path, 'test_harness_results')
         self.runs_folder_path = os.path.join(self.results_folder_path, 'runs')
         if not os.path.exists(self.results_folder_path):
             os.makedirs(self.results_folder_path)

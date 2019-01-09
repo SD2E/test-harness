@@ -159,7 +159,7 @@ def main(args):
                                      stratify=data_RD_BL_TA1R1_KJ_114k[['topology', 'dataset_original']])
 
     # Test Harness Use Begins Here:
-    th = TestHarness(output_path=output_dir)
+    th = TestHarness(output_location=output_dir)
 
     # th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train1,
     #                    testing_data=test1, data_and_split_description="just testing things out!",

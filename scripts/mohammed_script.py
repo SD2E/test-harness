@@ -36,7 +36,7 @@ def main():
     output_cols = ["strain"]
     print("Size of filtered data", len(df))
     train, test = train_test_split(df, stratify=df['strain'], test_size=0.2, random_state=5)
-    th = TestHarness(output_path=RESULTSPATH)
+    th = TestHarness(output_location=RESULTSPATH)
 
     rf_classification_model = random_forest_classification(n_estimators=500)
     th.run_custom(test_harness_models=rf_classification_model, training_data=train, testing_data=test,
