@@ -59,9 +59,9 @@ class TestHarness:
         self.results_folder_path = os.path.join(self.output_path, 'test_harness_results')
         self.runs_folder_path = os.path.join(self.results_folder_path, 'runs')
         if not os.path.exists(self.results_folder_path):
-            os.makedirs(self.results_folder_path)
+            os.makedirs(self.results_folder_path, exist_ok=True)
         if not os.path.exists(self.runs_folder_path):
-            os.makedirs(self.runs_folder_path)
+            os.makedirs(self.runs_folder_path, exist_ok=True)
 
         # 'Normalized' should describe normalization method used (or False if no normalization)
         self.custom_classification_leaderboard_cols = \
