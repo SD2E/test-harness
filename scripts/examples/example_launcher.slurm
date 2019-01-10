@@ -9,11 +9,15 @@
 
 #------------------General Options---------------------
 module load launcher
-export TACC_LAUNCHER_PPN=10
+export TACC_LAUNCHER_PPN=1
 export EXECUTABLE=$TACC_LAUNCHER_DIR/init_launcher
 export WORKDIR=.
 export CONTROL_FILE=example_launcher_jobfile
 export TACC_LAUNCHER_SCHED=interleaved
+
+module load tacc-singularity/2.6.0
+#export MYIMG="/work/05260/hamed/singularity_cache/maverick-ml-0.1.simg"
+#export MYCMD="singularity exec --nv ${MYIMG}"
 
 
 cd $WORKDIR/
