@@ -12,7 +12,7 @@ module load launcher
 export TACC_LAUNCHER_PPN=1
 export EXECUTABLE=$TACC_LAUNCHER_DIR/init_launcher
 export WORKDIR=.
-export CONTROL_FILE=example_launcher_jobfile
+export CONTROL_FILE=jobfile_example
 export TACC_LAUNCHER_SCHED=interleaved
 
 module load tacc-singularity/2.6.0
@@ -26,5 +26,5 @@ echo " WORKING DIR:   $WORKDIR/"
 $TACC_LAUNCHER_DIR/paramrun SLURM $EXECUTABLE $WORKDIR $CONTROL_FILE $PHI_WORKDIR $PHI_CONTROL_FILE
 
 echo " "
-echo " Parameteric Job Complete"
+echo " Parametric Job Complete"
 echo " "
