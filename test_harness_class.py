@@ -64,7 +64,8 @@ class TestHarness:
             os.makedirs(self.runs_folder_path, exist_ok=True)
 
         # add metrics here:
-        self.classification_metrics = [Names.ACCURACY, Names.AUC_SCORE, Names.F1_SCORE, Names.PRECISION, Names.RECALL]
+        self.classification_metrics = [Names.ACCURACY, Names.BALANCED_ACCURACY, Names.AUC_SCORE, Names.F1_SCORE, Names.PRECISION,
+                                       Names.RECALL]
         self.mean_classification_metrics = ["Mean " + cm for cm in self.classification_metrics]
         self.regression_metrics = [Names.R_SQUARED, Names.RMSE]
         self.mean_regression_metrics = ["Mean " + rm for rm in self.regression_metrics]

@@ -10,6 +10,7 @@ class Names:
     # classification metrics:
     AUC_SCORE = "AUC Score"
     ACCURACY = "Accuracy"
+    BALANCED_ACCURACY = "Balanced Accuracy"
     F1_SCORE = "F1 Score"
     PRECISION = "Precision"
     RECALL = "Recall"

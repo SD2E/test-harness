@@ -1,12 +1,15 @@
 import time
 import eli5
 import rfpimp
+import warnings
+from sklearn.exceptions import DataConversionWarning
 import pandas as pd
 from math import sqrt
 from datetime import datetime
 from sklearn import preprocessing
 from eli5.sklearn import PermutationImportance
-from sklearn.metrics import mean_squared_error, r2_score, roc_auc_score, accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
+from sklearn.metrics import mean_squared_error, r2_score
 from test_harness.unique_id import get_id
 from test_harness.utils.names import Names
 from test_harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
@@ -48,6 +51,8 @@ class BaseRun:
         self.metrics_dict = {}
 
     def _normalize_dataframes(self):
+        warnings.simplefilter('ignore', DataConversionWarning)
+
         if self.feature_cols_to_normalize is None:
             raise ValueError("feature_cols_to_normalize must be a list of column names if you are trying to normalize the data.")
 
@@ -158,6 +163,8 @@ class BaseRun:
                                                                self.testing_data_predictions[self.prob_predictions_col])
             self.metrics_dict[Names.ACCURACY] = accuracy_score(self.testing_data_predictions[self.col_to_predict],
                                                                self.testing_data_predictions[self.predictions_col])
+            self.metrics_dict[Names.BALANCED_ACCURACY] = balanced_accuracy_score(self.testing_data_predictions[self.col_to_predict],
+                                                                                 self.testing_data_predictions[self.predictions_col])
             self.metrics_dict[Names.F1_SCORE] = f1_score(self.testing_data_predictions[self.col_to_predict],
                                                          self.testing_data_predictions[self.predictions_col])
             self.metrics_dict[Names.PRECISION] = precision_score(self.testing_data_predictions[self.col_to_predict],
