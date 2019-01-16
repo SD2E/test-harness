@@ -1,14 +1,14 @@
 import os
 import json
 import time
-import itertools
 import pandas as pd
 from test_harness.unique_id import get_id
 from six import string_types
 from datetime import datetime
 from statistics import mean, pstdev
-from test_harness.run_classes import ClassificationRun, RegressionRun
-from test_harness.test_harness_models_abstract_classes import TestHarnessModel, ClassificationModel, RegressionModel
+from test_harness.run_classes import BaseRun
+from test_harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
+from test_harness.utils.names import Names
 
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)
@@ -63,40 +63,42 @@ class TestHarness:
         if not os.path.exists(self.runs_folder_path):
             os.makedirs(self.runs_folder_path, exist_ok=True)
 
-        # 'Normalized' should describe normalization method used (or False if no normalization)
-        self.custom_classification_leaderboard_cols = \
-            ['Run ID', 'Date', 'Time', 'AUC Score', 'Classification Accuracy', 'Model Description', 'Column Predicted',
-             'Number Of Features Used', 'Data and Split Description', 'Normalized', 'Number of Features Normalized',
-             'Feature Extraction', "Was Untested Data Predicted"]
-        self.custom_regression_leaderboard_cols = \
-            ['Run ID', 'Date', 'Time', 'R-Squared', 'RMSE', 'Model Description', 'Column Predicted',
-             'Number Of Features Used', 'Data and Split Description', 'Normalized', 'Number of Features Normalized',
-             'Feature Extraction', "Was Untested Data Predicted"]
-        self.loo_full_classification_leaderboard_cols = \
-            ['Leave-One-Out ID', 'Run ID', 'Date', 'Time', 'AUC Score', 'Classification Accuracy', 'Model Description',
-             'Column Predicted', 'Number Of Features Used', 'Test Group', 'Data and Split Description', 'Normalized',
-             'Number of Features Normalized', 'Feature Extraction']
-        self.loo_full_regression_leaderboard_cols = \
-            ['Leave-One-Out ID', 'Run ID', 'Date', 'Time', 'R-Squared', 'RMSE', 'Model Description',
-             'Column Predicted', 'Number Of Features Used', 'Test Group', 'Data and Split Description', 'Normalized',
-             'Number of Features Normalized', 'Feature Extraction']
-        self.loo_summarized_classification_leaderboard_cols = \
-            ['Leave-One-Out ID', 'Date', 'Time', 'Mean AUC Score', 'Mean Classification Accuracy', 'Model Description',
-             'Column Predicted', 'Number Of Features Used', 'Data Description', 'Grouping Description', 'Normalized',
-             'Number of Features Normalized', 'Feature Extraction']
-        self.loo_summarized_regression_leaderboard_cols = \
-            ['Leave-One-Out ID', 'Date', 'Time', 'Mean R-Squared', 'Mean RMSE', 'Model Description',
-             'Column Predicted', 'Number Of Features Used', 'Data Description', 'Grouping Description', 'Normalized',
-             'Number of Features Normalized', 'Feature Extraction']
-        self.leaderboard_names_dict = {"custom_classification_leaderboard": self.custom_classification_leaderboard_cols,
-                                  "custom_regression_leaderboard": self.custom_regression_leaderboard_cols,
-                                  "loo_summarized_classification_leaderboard": self.loo_summarized_classification_leaderboard_cols,
-                                  "loo_summarized_regression_leaderboard": self.loo_summarized_regression_leaderboard_cols,
-                                  "loo_detailed_classification_leaderboard": self.loo_full_classification_leaderboard_cols,
-                                  "loo_detailed_regression_leaderboard": self.loo_full_regression_leaderboard_cols}
-        self.metric_to_sort_classification_results_by = "AUC Score"
-        self.metric_to_sort_regression_results_by = "R-Squared"
-        self.valid_feature_extraction_methods = ['eli5_permutation', 'rfpimp_permutation']
+        # add metrics here:
+        self.classification_metrics = [Names.ACCURACY, Names.AUC_SCORE, Names.F1_SCORE, Names.PRECISION, Names.RECALL]
+        self.mean_classification_metrics = ["Mean " + cm for cm in self.classification_metrics]
+        self.regression_metrics = [Names.R_SQUARED, Names.RMSE]
+        self.mean_regression_metrics = ["Mean " + rm for rm in self.regression_metrics]
+
+        self.metric_to_sort_classification_results_by = Names.AUC_SCORE
+        self.metric_to_sort_regression_results_by = Names.R_SQUARED
+
+        custom_cols_1 = [Names.RUN_ID, Names.DATE, Names.TIME]
+        custom_cols_2 = [Names.MODEL_DESCRIPTION, Names.COLUMN_PREDICTED, Names.NUM_FEATURES_USED, Names.DATA_AND_SPLIT_DESCRIPTION,
+                         Names.NORMALIZED, Names.NUM_FEATURES_NORMALIZED, Names.FEATURE_EXTRACTION, Names.WAS_UNTESTED_PREDICTED]
+        self.custom_classification_leaderboard_cols = custom_cols_1 + self.classification_metrics + custom_cols_2
+        self.custom_regression_leaderboard_cols = custom_cols_1 + self.regression_metrics + custom_cols_2
+
+        loo_cols_1 = [Names.LOO_ID] + custom_cols_1
+        loo_cols_2 = custom_cols_2[:]
+        loo_cols_2.remove(Names.WAS_UNTESTED_PREDICTED)
+        loo_cols_2.insert(3, Names.TEST_GROUP)
+        self.loo_full_classification_leaderboard_cols = loo_cols_1 + self.classification_metrics + loo_cols_2
+        self.loo_full_regression_leaderboard_cols = loo_cols_1 + self.regression_metrics + loo_cols_2
+
+        summarized_cols_1 = loo_cols_1[:]
+        summarized_cols_1.remove(Names.RUN_ID)
+        summarized_cols_2 = [Names.MODEL_DESCRIPTION, Names.COLUMN_PREDICTED, Names.NUM_FEATURES_USED, Names.DATA_DESCRIPTION,
+                             Names.GROUPING_DESCRIPTION, Names.NORMALIZED, Names.NUM_FEATURES_NORMALIZED, Names.FEATURE_EXTRACTION]
+        self.loo_summarized_classification_leaderboard_cols = summarized_cols_1 + self.mean_classification_metrics + summarized_cols_2
+        self.loo_summarized_regression_leaderboard_cols = summarized_cols_1 + self.mean_regression_metrics + summarized_cols_2
+
+        self.leaderboard_names_dict = {Names.CUSTOM_CLASS_LBOARD: self.custom_classification_leaderboard_cols,
+                                       Names.CUSTOM_REG_LBOARD: self.custom_regression_leaderboard_cols,
+                                       Names.LOO_SUMM_CLASS_LBOARD: self.loo_summarized_classification_leaderboard_cols,
+                                       Names.LOO_SUMM_REG_LBOARD: self.loo_summarized_regression_leaderboard_cols,
+                                       Names.LOO_FULL_CLASS_LBOARD: self.loo_full_classification_leaderboard_cols,
+                                       Names.LOO_FULL_REG_LBOARD: self.loo_full_regression_leaderboard_cols}
+        self.valid_feature_extraction_methods = [Names.ELI5_PERMUTATION, Names.RFPIMP_PERMUTATION]
 
     # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
     # TODO: make feature_extraction options something like: "BBA", "permutation", and "custom", where custom means that
@@ -214,32 +216,26 @@ class TestHarness:
                                   data_and_split_description, col, feature_cols_to_use, normalize, feature_cols_to_normalize,
                                   feature_extraction, False, None, loo_dict)
 
-            # TODO: do summary results here, and update summary leaderboard
+            # summary results are calculated here, and summary leaderboards are updated
+            summary_values = {Names.LOO_ID: loo_id, Names.DATE: date_loo_ran, Names.TIME: time_loo_ran,
+                              Names.MODEL_DESCRIPTION: dummy_th_model.model_description, Names.COLUMN_PREDICTED: col,
+                              Names.NUM_FEATURES_USED: len(feature_cols_to_use), Names.DATA_DESCRIPTION: data_description,
+                              Names.GROUPING_DESCRIPTION: grouping_description, Names.NORMALIZED: normalize,
+                              Names.NUM_FEATURES_NORMALIZED: len(feature_cols_to_normalize), Names.FEATURE_EXTRACTION: feature_extraction}
             if task_type == "Classification":
-                detailed_leaderboard_name = "loo_detailed_classification_leaderboard"
+                detailed_leaderboard_name = Names.LOO_FULL_CLASS_LBOARD
                 detailed_leaderboard_path = os.path.join(self.results_folder_path, "{}.html".format(detailed_leaderboard_name))
                 detailed_leaderboard = pd.read_html(detailed_leaderboard_path)[0]
-                this_loo_results = detailed_leaderboard.loc[detailed_leaderboard["Leave-One-Out ID"] == loo_id]
+                this_loo_results = detailed_leaderboard.loc[detailed_leaderboard[Names.LOO_ID] == loo_id]
 
-                mean_auc_score = mean(this_loo_results['AUC Score'])
-                std_auc_score = pstdev(this_loo_results['AUC Score'])
-                mean_accuracy = mean(this_loo_results['Classification Accuracy'])
-                std_accuracy = pstdev(this_loo_results['Classification Accuracy'])
-
-                summary_values = {'Leave-One-Out ID': loo_id,
-                                  'Date': date_loo_ran, 'Time': time_loo_ran, 'Mean AUC Score': mean_auc_score,
-                                  'Mean Classification Accuracy': mean_accuracy,
-                                  'Model Description': dummy_th_model.model_description,
-                                  'Column Predicted': col,
-                                  'Number Of Features Used': len(feature_cols_to_use),
-                                  'Data Description': data_description,
-                                  'Grouping Description': grouping_description,
-                                  'Normalized': normalize,
-                                  'Number of Features Normalized': len(feature_cols_to_normalize),
-                                  'Feature Extraction': feature_extraction}
+                summary_metrics = {}
+                for metric, mean_metric in zip(self.classification_metrics, self.mean_classification_metrics):
+                    summary_metrics[mean_metric] = mean(this_loo_results[metric])
+                    # TODO: add standard deviation with pstdev
+                summary_values.update(summary_metrics)
 
                 # Update summary leaderboard
-                summary_leaderboard_name = "loo_summarized_classification_leaderboard"
+                summary_leaderboard_name = Names.LOO_SUMM_CLASS_LBOARD
                 summary_leaderboard_cols = self.loo_summarized_classification_leaderboard_cols
                 # first check if leaderboard exists and create empty leaderboard if it doesn't
                 html_path = os.path.join(self.results_folder_path, "{}.html".format(summary_leaderboard_name))
@@ -258,29 +254,19 @@ class TestHarness:
                 summary_leaderboard.to_html(html_path, index=False, classes=summary_leaderboard_name)
 
             elif task_type == "Regression":
-                detailed_leaderboard_name = "loo_detailed_regression_leaderboard"
+                detailed_leaderboard_name = Names.LOO_FULL_REG_LBOARD
                 detailed_leaderboard_path = os.path.join(self.results_folder_path, "{}.html".format(detailed_leaderboard_name))
                 detailed_leaderboard = pd.read_html(detailed_leaderboard_path)[0]
-                this_loo_results = detailed_leaderboard.loc[detailed_leaderboard["Leave-One-Out ID"] == loo_id]
+                this_loo_results = detailed_leaderboard.loc[detailed_leaderboard[Names.LOO_ID] == loo_id]
 
-                mean_rsquared = mean(this_loo_results['R-Squared'])
-                std_rsquared = pstdev(this_loo_results['R-Squared'])
-                mean_rmse = mean(this_loo_results['RMSE'])
-                std_rmse = pstdev(this_loo_results['RMSE'])
-
-                summary_values = {'Leave-One-Out ID': loo_id,
-                                  'Date': date_loo_ran, 'Time': time_loo_ran, 'Mean R-Squared': mean_rsquared,
-                                  'Mean RMSE': mean_rmse, 'Model Description': dummy_th_model.model_description,
-                                  'Column Predicted': col,
-                                  'Number Of Features Used': len(feature_cols_to_use),
-                                  'Data Description': data_description,
-                                  'Grouping Description': grouping_description,
-                                  'Normalized': normalize,
-                                  'Number of Features Normalized': len(feature_cols_to_normalize),
-                                  'Feature Extraction': feature_extraction}
+                summary_metrics = {}
+                for metric, mean_metric in zip(self.regression_metrics, self.mean_regression_metrics):
+                    summary_metrics[mean_metric] = mean(this_loo_results[metric])
+                    # TODO: add standard deviation with pstdev
+                summary_values.update(summary_metrics)
 
                 # Update summary leaderboard
-                summary_leaderboard_name = "loo_summarized_regression_leaderboard"
+                summary_leaderboard_name = Names.LOO_SUMM_REG_LBOARD
                 summary_leaderboard_cols = self.loo_summarized_regression_leaderboard_cols
                 # first check if leaderboard exists and create empty leaderboard if it doesn't
                 html_path = os.path.join(self.results_folder_path, "{}.html".format(summary_leaderboard_name))
@@ -292,14 +278,15 @@ class TestHarness:
                 # update leaderboard with new entry (row_of_results) and sort it based on run type
                 summary_leaderboard = summary_leaderboard.append(summary_values, ignore_index=True, sort=False)
                 sort_metric = "Mean " + self.metric_to_sort_regression_results_by
+                print(summary_leaderboard)
                 summary_leaderboard.sort_values(sort_metric, inplace=True, ascending=False)
                 summary_leaderboard.reset_index(inplace=True, drop=True)
 
                 # overwrite old leaderboard with updated leaderboard
                 summary_leaderboard.to_html(html_path, index=False, classes=summary_leaderboard_name)
+
             else:
                 raise TypeError("task_type must be 'Classification' or 'Regression'.")
-
 
     # TODO: replace loo_dict with type_dict --> first entry is run type --> this will allow for more types in the future
     def _execute_run(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
@@ -307,9 +294,8 @@ class TestHarness:
                      feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None, loo_dict=False):
         """
         1. Instantiates the TestHarnessModel object
-        2. Creates a ClassificationRun or RegressionRun object and calls their train_and_test_model and calculate_metrics methods
+        2. Creates a BaseRun object and calls their train_and_test_model and calculate_metrics methods
         3. Calls _output_results(Run Object)
-        4. Calls _delete_run_object() to free up RAM
 
         :param function_that_returns_TH_model:
         :param dict_of_function_parameters:
@@ -354,16 +340,9 @@ class TestHarness:
             test_df = self._make_sparse_cols(test_df, sparse_cols_to_use)
 
         test_harness_model = function_that_returns_TH_model(**dict_of_function_parameters)
-        if isinstance(test_harness_model, ClassificationModel):
-            run_object = ClassificationRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
-                                           feature_cols_to_use, normalize, feature_cols_to_normalize, feature_extraction,
-                                           predict_untested_data, loo_dict)
-        elif isinstance(test_harness_model, RegressionModel):
-            run_object = RegressionRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
-                                       feature_cols_to_use, normalize, feature_cols_to_normalize, feature_extraction, predict_untested_data,
-                                       loo_dict)
-        else:
-            raise TypeError("test_harness_model must be a ClassificationModel or a RegressionModel.")
+        run_object = BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
+                             feature_cols_to_use, normalize, feature_cols_to_normalize, feature_extraction,
+                             predict_untested_data, loo_dict)
 
         # call run object methods
         start = time.time()
@@ -374,7 +353,6 @@ class TestHarness:
             run_object.feature_extraction_method(method=run_object.feature_extraction)
 
         # output results of run object by updating the appropriate leaderboard(s) and writing files to disk
-
 
         # Pandas append docs: "Columns not in this frame are added as new columns" --> don't worry about adding new leaderboard cols
 
@@ -399,21 +377,20 @@ class TestHarness:
     def _update_leaderboard(self, run_object):
         # find appropriate leaderboard to update based on run_object characteristics
         if run_object.loo_dict is False:
-            # TODO: Hamed look up data structures tree unit and see if it's a good way to connect leaderboards to run objs
-            if isinstance(run_object, ClassificationRun):
-                leaderboard_name = "custom_classification_leaderboard"
-            elif isinstance(run_object, RegressionRun):
-                leaderboard_name = "custom_regression_leaderboard"
+            if run_object.run_type == Names.CLASSIFICATION:
+                leaderboard_name = Names.CUSTOM_CLASS_LBOARD
+            elif run_object.run_type == Names.REGRESSION:
+                leaderboard_name = Names.CUSTOM_REG_LBOARD
             else:
-                raise TypeError("run_object must be a ClassificationRun or a RegressionRun")
+                raise TypeError("run_object.run_type must equal '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
         else:
-            if isinstance(run_object, ClassificationRun):
-                leaderboard_name = "loo_detailed_classification_leaderboard"
-            elif isinstance(run_object, RegressionRun):
-                leaderboard_name = "loo_detailed_regression_leaderboard"
+            if run_object.run_type == Names.CLASSIFICATION:
+                leaderboard_name = Names.LOO_FULL_CLASS_LBOARD
+            elif run_object.run_type == Names.REGRESSION:
+                leaderboard_name = Names.LOO_FULL_REG_LBOARD
             else:
-                raise TypeError("run_object must be a ClassificationRun or a RegressionRun")
-        assert  leaderboard_name in self.leaderboard_names_dict.keys(), "passed-in leaderboard_name is not valid."
+                raise TypeError("run_object.run_type must equal '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
+        assert leaderboard_name in self.leaderboard_names_dict.keys(), "passed-in leaderboard_name is not valid."
         leaderboard_cols = self.leaderboard_names_dict[leaderboard_name]
 
         # first check if leaderboard exists and create empty leaderboard if it doesn't
@@ -426,54 +403,50 @@ class TestHarness:
         # create leaderboard entry for this run and add two LOO-specific columns if loo_dict exists
         row_of_results = self._create_row_entry(run_object)
         if run_object.loo_dict is not False:
-            row_of_results["Leave-One-Out ID"] = run_object.loo_dict["loo_id"]
-            row_of_results["Test Group"] = run_object.loo_dict["group_info"]
+            row_of_results[Names.LOO_ID] = run_object.loo_dict["loo_id"]
+            row_of_results[Names.TEST_GROUP] = run_object.loo_dict["group_info"]
         print()
         print(row_of_results)
         print()
 
         # update leaderboard with new entry (row_of_results) and sort it based on run type
         leaderboard = leaderboard.append(row_of_results, ignore_index=True, sort=False)
-        if isinstance(run_object, ClassificationRun):
+        if run_object.run_type == Names.CLASSIFICATION:
             leaderboard.sort_values(self.metric_to_sort_classification_results_by, inplace=True, ascending=False)
-        elif isinstance(run_object, RegressionRun):
+        elif run_object.run_type == Names.REGRESSION:
+            # print(leaderboard[self.metric_to_sort_regression_results_by].value_counts(dropna=False))
             leaderboard.sort_values(self.metric_to_sort_regression_results_by, inplace=True, ascending=False)
         else:
-            raise TypeError("run_object must be a ClassificationRun or RegressionRun object.")
+            raise TypeError("run_object.run_type must equal '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
         leaderboard.reset_index(inplace=True, drop=True)
 
         # overwrite old leaderboard with updated leaderboard
         leaderboard.to_html(html_path, index=False, classes=leaderboard_name)
 
     def _create_row_entry(self, run_object):
-        if isinstance(run_object, ClassificationRun):
-            row_values = {'Run ID': run_object.run_id, 'Date': run_object.date_ran,
-                          'Time': run_object.time_ran,
-                          'AUC Score': run_object.auc_score, 'Classification Accuracy': run_object.percent_accuracy,
-                          'Model Description': run_object.model_description, 'Column Predicted': run_object.col_to_predict,
-                          'Number Of Features Used': run_object.num_features_used,
-                          'Data and Split Description': run_object.data_and_split_description, 'Normalized': run_object.normalize,
-                          'Number of Features Normalized': run_object.num_features_normalized,
-                          'Feature Extraction': run_object.feature_extraction,
-                          "Was Untested Data Predicted": run_object.was_untested_data_predicted}
+        print(run_object.run_id)
+        row_values = {Names.RUN_ID: run_object.run_id, Names.DATE: run_object.date_ran, Names.TIME: run_object.time_ran,
+                      Names.MODEL_DESCRIPTION: run_object.model_description, Names.COLUMN_PREDICTED: run_object.col_to_predict,
+                      Names.NUM_FEATURES_USED: run_object.metrics_dict[Names.NUM_FEATURES_USED],
+                      Names.DATA_AND_SPLIT_DESCRIPTION: run_object.data_and_split_description, Names.NORMALIZED: run_object.normalize,
+                      Names.NUM_FEATURES_NORMALIZED: run_object.metrics_dict[Names.NUM_FEATURES_NORMALIZED],
+                      Names.FEATURE_EXTRACTION: run_object.feature_extraction,
+                      Names.WAS_UNTESTED_PREDICTED: run_object.was_untested_data_predicted}
+        if run_object.run_type == Names.CLASSIFICATION:
+            # extract relevant metrics from run_object.metrics_dict and round to 3rd decimal place:
+            metric_results = {metric: round(run_object.metrics_dict[metric], 3) for metric in self.classification_metrics}
+            row_values.update(metric_results)
             row_of_results = pd.DataFrame(columns=self.custom_classification_leaderboard_cols)
             row_of_results = row_of_results.append(row_values, ignore_index=True, sort=False)
-        elif isinstance(run_object, RegressionRun):
-            row_values = {'Run ID': run_object.run_id, 'Date': run_object.date_ran,
-                          'Time': run_object.time_ran,
-                          'R-Squared': run_object.r_squared, 'RMSE': run_object.rmse,
-                          'Model Description': run_object.model_description, 'Column Predicted': run_object.col_to_predict,
-                          'Number Of Features Used': run_object.num_features_used,
-                          'Data and Split Description': run_object.data_and_split_description, 'Normalized': run_object.normalize,
-                          'Number of Features Normalized': run_object.num_features_normalized,
-                          'Feature Extraction': run_object.feature_extraction,
-                          "Was Untested Data Predicted": run_object.was_untested_data_predicted}
+        elif run_object.run_type == Names.REGRESSION:
+            # extract relevant metrics from run_object.metrics_dict and round to 3rd decimal place:
+            metric_results = {metric: round(run_object.metrics_dict[metric], 3) for metric in self.regression_metrics}
+            row_values.update(metric_results)
             row_of_results = pd.DataFrame(columns=self.custom_regression_leaderboard_cols)
             row_of_results = row_of_results.append(row_values, ignore_index=True, sort=False)
         else:
             raise ValueError()
         return row_of_results
-
 
     def _output_run_files(self, run_object, output_path, output_data_csvs=True):
         if output_data_csvs:
@@ -499,10 +472,8 @@ class TestHarness:
                 f.write(' - Line: ' + str(line) + ',  Function: ' + str(func) + '\n')
                 f.write("\n")
 
-
     def print_leaderboards(self):
         pass
-
 
     # If there are categorical columns that need to be made sparse, make them, and update the feature_cols_to_use
     def _make_sparse_cols(self, df, sparse_col_names, feature_cols_to_use=None):
@@ -528,6 +499,3 @@ class TestHarness:
             return df
 
         # TODO: Put in a check to never normalize the sparse data category
-
-
-
