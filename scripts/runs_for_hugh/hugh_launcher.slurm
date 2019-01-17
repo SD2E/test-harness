@@ -12,7 +12,7 @@ module load launcher
 export TACC_LAUNCHER_PPN=1
 export EXECUTABLE=$TACC_LAUNCHER_DIR/init_launcher
 export WORKDIR=.
-export CONTROL_FILE=jobfile_example
+export CONTROL_FILE=hugh_jobfile
 export TACC_LAUNCHER_SCHED=interleaved
 
 module load tacc-singularity/2.6.0
