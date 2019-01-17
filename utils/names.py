@@ -5,7 +5,8 @@ class Names:
     # general metrics:
     NUM_FEATURES_USED = "Num Features Used"
     NUM_FEATURES_NORMALIZED = "Num Features Normalized"
-    NUM_SAMPLES_IN_TEST = "Num Samples In Test Set"
+    SAMPLES_IN_TRAIN = "Samples In Train"
+    SAMPLES_IN_TEST = "Samples In Test"
 
     # classification metrics:
     AUC_SCORE = "AUC Score"

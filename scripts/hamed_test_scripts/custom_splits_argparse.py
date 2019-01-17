@@ -1,11 +1,8 @@
 import argparse
-import datetime as dt
 import os
-from os import sys, path
 import importlib
 import types
 import pandas as pd
-from tabulate import tabulate
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 from test_harness.test_harness_class import TestHarness
@@ -19,9 +16,7 @@ from test_harness.th_model_instances.hamed_models.joint_sequence_rosetta_model i
 from test_harness.th_model_instances.hamed_models.keras_regression import keras_regression_best
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
-# Note that if you clone the `versioned-datasets` repo at the same level as where you cloned the `protein-design` repo,
-# then you can use VERSIONED_DATASETS = os.path.join(Path(__file__).resolve().parents[3], 'versioned-datasets/data')
-VERSIONED_DATA = os.path.join(Path(__file__).resolve().parents[3], 'versioned-datasets/data')
+VERSIONED_DATA = os.path.join(Path(__file__).resolve().parents[4], 'versioned-datasets/data')
 print("Path to data folder in the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATA))
 print()
 
@@ -41,28 +36,6 @@ parser = argparse.ArgumentParser()
 # Passing output will cause writes to occur to a path relative to the current working directory.
 parser.add_argument('--output', required=False, help='Output directory')
 parser.add_argument('--data_split_number', required=True, help='Enter number between 1 and 7')
-
-
-def model_runner_by_name(model_runner_path,
-                         module_base_path='th_model_instances'):
-    """
-    Instantiate an instance of model_runner by path
-
-    Returns: TestHarnessModel
-    Raises: Exception
-    """
-    try:
-        path_parts = model_runner_path.split('.')
-        func_name = path_parts[-1]
-        func_module_parent_path = module_base_path + '.' + '.'.join(path_parts[:-1])
-        func_module = importlib.import_module(func_module_parent_path)
-        named_meth = getattr(func_module, func_name)
-        if callable(named_meth) and isinstance(named_meth, types.FunctionType):
-            model_runner_instance = named_meth()
-            return model_runner_instance
-    # TODO: More granular Exception handling
-    except Exception:
-        raise
 
 
 def main(args):

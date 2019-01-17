@@ -156,7 +156,8 @@ class BaseRun:
             self.metrics_dict[Names.NUM_FEATURES_NORMALIZED] = len(self.feature_cols_to_normalize)
         else:
             self.metrics_dict[Names.NUM_FEATURES_NORMALIZED] = 0
-        self.metrics_dict[Names.NUM_SAMPLES_IN_TEST] = len(self.testing_data_predictions)
+        self.metrics_dict[Names.SAMPLES_IN_TRAIN] = len(self.training_data)
+        self.metrics_dict[Names.SAMPLES_IN_TEST] = len(self.testing_data_predictions)
 
         if self.run_type == Names.CLASSIFICATION:
             self.metrics_dict[Names.AUC_SCORE] = roc_auc_score(self.testing_data_predictions[self.col_to_predict],

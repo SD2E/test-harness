@@ -74,15 +74,16 @@ class TestHarness:
         self.metric_to_sort_regression_results_by = Names.R_SQUARED
 
         custom_cols_1 = [Names.RUN_ID, Names.DATE, Names.TIME]
-        custom_cols_2 = [Names.MODEL_DESCRIPTION, Names.COLUMN_PREDICTED, Names.NUM_FEATURES_USED, Names.DATA_AND_SPLIT_DESCRIPTION,
-                         Names.NORMALIZED, Names.NUM_FEATURES_NORMALIZED, Names.FEATURE_EXTRACTION, Names.WAS_UNTESTED_PREDICTED]
+        custom_cols_2 = [Names.SAMPLES_IN_TRAIN, Names.SAMPLES_IN_TEST, Names.MODEL_DESCRIPTION, Names.COLUMN_PREDICTED,
+                         Names.NUM_FEATURES_USED, Names.DATA_AND_SPLIT_DESCRIPTION, Names.NORMALIZED, Names.NUM_FEATURES_NORMALIZED,
+                         Names.FEATURE_EXTRACTION, Names.WAS_UNTESTED_PREDICTED]
         self.custom_classification_leaderboard_cols = custom_cols_1 + self.classification_metrics + custom_cols_2
         self.custom_regression_leaderboard_cols = custom_cols_1 + self.regression_metrics + custom_cols_2
 
         loo_cols_1 = [Names.LOO_ID] + custom_cols_1
         loo_cols_2 = custom_cols_2[:]
         loo_cols_2.remove(Names.WAS_UNTESTED_PREDICTED)
-        loo_cols_2.insert(3, Names.TEST_GROUP)
+        loo_cols_2.insert(5, Names.TEST_GROUP)
         self.loo_full_classification_leaderboard_cols = loo_cols_1 + self.classification_metrics + loo_cols_2
         self.loo_full_regression_leaderboard_cols = loo_cols_1 + self.regression_metrics + loo_cols_2
 
@@ -427,6 +428,8 @@ class TestHarness:
     def _create_row_entry(self, run_object):
         print(run_object.run_id)
         row_values = {Names.RUN_ID: run_object.run_id, Names.DATE: run_object.date_ran, Names.TIME: run_object.time_ran,
+                      Names.SAMPLES_IN_TRAIN: run_object.metrics_dict[Names.SAMPLES_IN_TRAIN],
+                      Names.SAMPLES_IN_TEST: run_object.metrics_dict[Names.SAMPLES_IN_TEST],
                       Names.MODEL_DESCRIPTION: run_object.model_description, Names.COLUMN_PREDICTED: run_object.col_to_predict,
                       Names.NUM_FEATURES_USED: run_object.metrics_dict[Names.NUM_FEATURES_USED],
                       Names.DATA_AND_SPLIT_DESCRIPTION: run_object.data_and_split_description, Names.NORMALIZED: run_object.normalize,

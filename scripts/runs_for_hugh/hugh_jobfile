@@ -1,0 +1,8 @@
+singularity exec --nv /work/05260/hamed/singularity_cache/maverick-ml-0.1.simg python3 hugh_loo_script.py --dataset "Rocklin" --col_to_pred "stabilityscore_2classes" >> output_${TACC_LAUNCHER_TSK_ID}.out 2>&1
+singularity exec --nv /work/05260/hamed/singularity_cache/maverick-ml-0.1.simg python3 hugh_loo_script.py --dataset "SD2-1" --col_to_pred "stabilityscore_2classes" >> output_${TACC_LAUNCHER_TSK_ID}.out 2>&1
+singularity exec --nv /work/05260/hamed/singularity_cache/maverick-ml-0.1.simg python3 hugh_loo_script.py --dataset "SD2-2" --col_to_pred "stabilityscore_2classes" >> output_${TACC_LAUNCHER_TSK_ID}.out 2>&1
+singularity exec --nv /work/05260/hamed/singularity_cache/maverick-ml-0.1.simg python3 hugh_loo_script.py --dataset "SD2-3" --col_to_pred "stabilityscore_2classes" >> output_${TACC_LAUNCHER_TSK_ID}.out 2>&1
+singularity exec --nv /work/05260/hamed/singularity_cache/maverick-ml-0.1.simg python3 hugh_loo_script.py --dataset "Rocklin" --col_to_pred "stabilityscore_cnn_calibrated_2classes" >> output_${TACC_LAUNCHER_TSK_ID}.out 2>&1
+singularity exec --nv /work/05260/hamed/singularity_cache/maverick-ml-0.1.simg python3 hugh_loo_script.py --dataset "SD2-1" --col_to_pred "stabilityscore_cnn_calibrated_2classes" >> output_${TACC_LAUNCHER_TSK_ID}.out 2>&1
+singularity exec --nv /work/05260/hamed/singularity_cache/maverick-ml-0.1.simg python3 hugh_loo_script.py --dataset "SD2-2" --col_to_pred "stabilityscore_cnn_calibrated_2classes" >> output_${TACC_LAUNCHER_TSK_ID}.out 2>&1
+singularity exec --nv /work/05260/hamed/singularity_cache/maverick-ml-0.1.simg python3 hugh_loo_script.py --dataset "SD2-3" --col_to_pred "stabilityscore_cnn_calibrated_2classes" >> output_${TACC_LAUNCHER_TSK_ID}.out 2>&1
