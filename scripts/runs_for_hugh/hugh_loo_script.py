@@ -123,10 +123,11 @@ def main(args):
     # max_residues = calculate_max_residues([dataset])
     # dataset_encoded = encode_sequences(dataset, max_residues)
     # th.run_leave_one_out(function_that_returns_TH_model=sequence_only_cnn_classification,
-    #                      dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, data=dataset_encoded,
-    #                      data_description=dataset_key, grouping=grouping_df, grouping_description="protein_groupings_by_uw.v1",
-    #                      cols_to_predict=colpred, feature_cols_to_use=["encoded_sequence"], normalize=False,
-    #                      feature_cols_to_normalize=None, feature_extraction=False)
+    #                      dict_of_function_parameters={"max_residues": max_residues, "padding": 14, "assign_class_weights": False},
+    #                      data=dataset_encoded, data_description=dataset_key, grouping=grouping_df,
+    #                      grouping_description="protein_groupings_by_uw.v1", cols_to_predict=colpred,
+    #                      feature_cols_to_use=["encoded_sequence"], normalize=False, feature_cols_to_normalize=None,
+    #                      feature_extraction=False)
 
 
 if __name__ == '__main__':

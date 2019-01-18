@@ -1,27 +1,14 @@
-from keras.models import Sequential
-from keras.layers import Dense, Dropout
-from keras.regularizers import l2
 from test_harness.th_model_classes.class_keras_regression import KerasRegression
 
-import pandas as pd
 import numpy as np
-
 from keras.models import Model
-from keras.layers import Dense, Input, Lambda, concatenate, BatchNormalization
+from keras.layers import Dense, Input
 from keras.layers.core import Dropout, Flatten
 from keras.layers.convolutional import Conv2D
 from keras.regularizers import l2
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from random import randint
 import os
-from keras import backend as K
-
-
-# import tensorflow as tf
-# from keras.backend.tensorflow_backend import set_session
-# config = tf.ConfigProto()
-# config.gpu_options.per_process_gpu_memory_fraction = 0.3
-# set_session(tf.Session(config=config))
 
 
 class KerasRegressionTwoDimensional(KerasRegression):
@@ -64,11 +51,6 @@ def sequence_only_cnn(max_residues, padding):
     model = Model(inputs=amino_inputs, outputs=model)
     model.compile(optimizer='adam', loss='mse')
 
-    mr = KerasRegressionTwoDimensional(model=model,
-                                       model_description='Sequence CNN 400x5->200x9->100x17->80->40->1',
-                                       batch_size=128,
-                                       epochs=25)
+    mr = KerasRegressionTwoDimensional(model=model, model_description='Sequence CNN regressor: 400x5->200x9->100x17->80->40->1',
+                                       batch_size=128, epochs=25)
     return mr
-
-
-# TODO: make single function that calls the two data_wrangling functions, returns edited dataframe. Move the other two functions here too.
