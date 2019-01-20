@@ -10,7 +10,7 @@
 module load tacc-singularity/2.6.0
 module load remora
 
-MYIMG="/work/05260/hamed/singularity_cache/maverick-ml-0.1.simg"
+MYIMG="/work/05260/hamed/singularity_cache/test-harness-3.2.simg"
 MYCMD="singularity exec --nv ${MYIMG}"
 
 remora ${MYCMD} python3 /work/05260/hamed/maverick/protein-design/test_harness/scripts/hamed_test_scripts/loo_memory_test.py
