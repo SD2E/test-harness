@@ -1,38 +1,19 @@
-import argparse
 import os
 import pandas as pd
 from pathlib import Path
-from sklearn.model_selection import train_test_split
 from test_harness.test_harness_class import TestHarness
 from test_harness.data_wrangling import calculate_max_residues, encode_sequences
-from test_harness.th_model_instances.hamed_models.random_forest_classification import random_forest_classification
 from test_harness.th_model_instances.hamed_models.random_forest_regression import random_forest_regression
 from test_harness.th_model_instances.jed_models.sequence_cnn import sequence_only_cnn
-from test_harness.th_model_instances.jed_models.sequence_cnn_classification import sequence_only_cnn_classification
 from test_harness.th_model_instances.hamed_models.rocklin_models import rocklins_linear_regression
-from test_harness.th_model_instances.hamed_models.joint_sequence_rosetta_model import joint_network
-from test_harness.th_model_instances.hamed_models.keras_regression import keras_regression_best
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
 VERSIONED_DATA = os.path.join(Path(__file__).resolve().parents[4], 'versioned-datasets/data')
 print("Path to data folder in the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATA))
 print()
 
-PWD = os.getcwd()
-HERE = os.path.realpath(__file__)
-PARENT = os.path.dirname(HERE)
-RESULTSPATH = os.path.dirname(PARENT)
-
-print("PWD:", PWD)
-print("HERE:", HERE)
-print("PARENT:", PARENT)
-print("RESULTSPATH:", RESULTSPATH)
-print()
-
 
 def main():
-    output_dir = RESULTSPATH
-
     combined_data = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/aggregated_data/all_libs_cleaned.v3.aggregated_data.csv'),
                                 comment='#', low_memory=False)
     combined_data['dataset_original'] = combined_data['dataset']
@@ -101,17 +82,21 @@ def main():
                                  'worst6frags', 'worstfrag']
 
     # Test Harness Use Begins Here:
-    th = TestHarness(output_location=output_dir)
-
+    current_folder_path = os.getcwd()
+    print("initializing TestHarness object with output_location equal to {}".format(current_folder_path))
+    print()
+    th = TestHarness(output_location=current_folder_path)
 
     colpred = "stabilityscore"
 
-    th.run_leave_one_out(function_that_returns_TH_model=rocklins_linear_regression, dict_of_function_parameters={}, data=data_RD_BL_TA1R1_KJ_114k,
-                              data_description="114k", grouping=grouping_df, grouping_description="grouping_df",
-                              cols_to_predict=colpred, feature_cols_to_use=feature_cols_to_normalize, normalize=True,
-                              feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
+    th.run_leave_one_out(function_that_returns_TH_model=rocklins_linear_regression, dict_of_function_parameters={},
+                         data=data_RD_BL_TA1R1_KJ_114k,
+                         data_description="114k", grouping=grouping_df, grouping_description="grouping_df",
+                         cols_to_predict=colpred, feature_cols_to_use=feature_cols_to_normalize, normalize=True,
+                         feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
 
-    th.run_leave_one_out(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, data=data_RD_BL_TA1R1_KJ_114k,
+    th.run_leave_one_out(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={},
+                         data=data_RD_BL_TA1R1_KJ_114k,
                          data_description="114k", grouping=grouping_df, grouping_description="grouping_df",
                          cols_to_predict=colpred, feature_cols_to_use=feature_cols_to_normalize, normalize=True,
                          feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
@@ -119,10 +104,10 @@ def main():
     max_residues = calculate_max_residues([data_RD_BL_TA1R1_KJ_114k])
     data_RD_BL_TA1R1_KJ_114k_encoded = encode_sequences(data_RD_BL_TA1R1_KJ_114k, max_residues)
     th.run_leave_one_out(function_that_returns_TH_model=sequence_only_cnn,
-                              dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, data=data_RD_BL_TA1R1_KJ_114k_encoded,
-                              data_description="114k encoded", grouping=grouping_df, grouping_description="grouping_df",
-                              cols_to_predict=colpred, feature_cols_to_use=["encoded_sequence"], normalize=False,
-                              feature_cols_to_normalize=None, feature_extraction=False)
+                         dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, data=data_RD_BL_TA1R1_KJ_114k_encoded,
+                         data_description="114k encoded", grouping=grouping_df, grouping_description="grouping_df",
+                         cols_to_predict=colpred, feature_cols_to_use=["encoded_sequence"], normalize=False,
+                         feature_cols_to_normalize=None, feature_extraction=False)
 
 
 if __name__ == '__main__':
