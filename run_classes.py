@@ -4,6 +4,7 @@ import rfpimp
 import warnings
 from sklearn.exceptions import DataConversionWarning
 import pandas as pd
+import numpy as np
 from math import sqrt
 from datetime import datetime
 from sklearn import preprocessing
@@ -160,8 +161,11 @@ class BaseRun:
         self.metrics_dict[Names.SAMPLES_IN_TEST] = len(self.testing_data_predictions)
 
         if self.run_type == Names.CLASSIFICATION:
-            self.metrics_dict[Names.AUC_SCORE] = roc_auc_score(self.testing_data_predictions[self.col_to_predict],
-                                                               self.testing_data_predictions[self.prob_predictions_col])
+            try:
+                self.metrics_dict[Names.AUC_SCORE] = roc_auc_score(self.testing_data_predictions[self.col_to_predict],
+                                                                   self.testing_data_predictions[self.prob_predictions_col])
+            except ValueError:
+                self.metrics_dict[Names.AUC_SCORE] = np.NaN
             self.metrics_dict[Names.ACCURACY] = accuracy_score(self.testing_data_predictions[self.col_to_predict],
                                                                self.testing_data_predictions[self.predictions_col])
             self.metrics_dict[Names.BALANCED_ACCURACY] = balanced_accuracy_score(self.testing_data_predictions[self.col_to_predict],

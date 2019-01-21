@@ -195,7 +195,7 @@ class TestHarness:
                 raise ValueError("function_that_returns_TH_model must return a ClassificationModel or a RegressionModel.")
 
             for group in list(set(relevant_groupings['group_index'])):
-                data_and_split_description = "{}. Index of left-out test group = {}".format(data_description, group)
+                data_and_split_description = "{}".format(data_description)
                 train_split = all_data.copy()
                 test_split = all_data.copy()
                 print("Creating test split based on group {}:".format(group))
