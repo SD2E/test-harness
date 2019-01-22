@@ -39,10 +39,10 @@ class KerasClassificationTwoDimensional(KerasClassification):
         os.remove(checkpoint_filepath)
 
     def _predict(self, X):
-        return self.model.predict(np.expand_dims(np.stack([x[0] for x in X.values]), 3))
+        return self.model.predict(np.expand_dims(np.stack([x[0] for x in X.values]), 3)).argmax(axis=-1)
 
     def _predict_proba(self, X):
-        return self._predict(X)
+        return self.model.predict(np.expand_dims(np.stack([x[0] for x in X.values]), 3))
 
 
 def sequence_only_cnn_classification(max_residues, padding, assign_class_weights=False):
