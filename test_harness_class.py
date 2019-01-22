@@ -165,6 +165,9 @@ class TestHarness:
         feature_cols_to_use = make_list_if_not_list(feature_cols_to_use)
         if feature_cols_to_normalize:
             feature_cols_to_normalize = make_list_if_not_list(feature_cols_to_normalize)
+            num_features_normalized = len(feature_cols_to_normalize)
+        else:
+            num_features_normalized = 0
 
         assert isinstance(data, pd.DataFrame), "data must be a Pandas Dataframe"
         assert isinstance(data_description, string_types), "data_description must be a string"
@@ -223,7 +226,7 @@ class TestHarness:
                               Names.MODEL_DESCRIPTION: dummy_th_model.model_description, Names.COLUMN_PREDICTED: col,
                               Names.NUM_FEATURES_USED: len(feature_cols_to_use), Names.DATA_DESCRIPTION: data_description,
                               Names.GROUPING_DESCRIPTION: grouping_description, Names.NORMALIZED: normalize,
-                              Names.NUM_FEATURES_NORMALIZED: len(feature_cols_to_normalize), Names.FEATURE_EXTRACTION: feature_extraction}
+                              Names.NUM_FEATURES_NORMALIZED: num_features_normalized, Names.FEATURE_EXTRACTION: feature_extraction}
             if task_type == "Classification":
                 detailed_leaderboard_name = Names.LOO_FULL_CLASS_LBOARD
                 detailed_leaderboard_path = os.path.join(self.results_folder_path, "{}.html".format(detailed_leaderboard_name))
