@@ -13,7 +13,7 @@ from sklearn.utils.class_weight import compute_class_weight
 
 
 class KerasClassificationTwoDimensional(KerasClassification):
-    def __init__(self, model, model_description, epochs=25, batch_size=1000, verbose=0, assign_class_weights=False):
+    def __init__(self, model, model_description, epochs=25, batch_size=128, verbose=0, assign_class_weights=False):
         super(KerasClassificationTwoDimensional, self).__init__(model, model_description)
         self.epochs = epochs
         self.batch_size = batch_size
