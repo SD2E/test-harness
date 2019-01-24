@@ -12,7 +12,7 @@ import os
 
 
 class KerasRegressionTwoDimensional(KerasRegression):
-    def __init__(self, model, model_description, epochs=25, batch_size=1000, verbose=0):
+    def __init__(self, model, model_description, epochs=25, batch_size=128, verbose=0):
         super(KerasRegressionTwoDimensional, self).__init__(model, model_description)
         self.epochs = epochs
         self.batch_size = batch_size
