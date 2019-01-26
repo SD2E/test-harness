@@ -30,7 +30,7 @@ def main():
     # Mohammed add start
     data_dir = '/work/projects/SD2E-Community/prod/data/uploads/'
     print("Building Live/Dead Control Dataframe...")
-    df = pipeline.get_dataframe_for_live_dead_classifier(data_dir)
+    df = pipeline.get_dataframe_for_live_dead_classifier(data_dir,fraction=0.1)
     print(df.columns)
     print("Length of full DF", len(df))
     input_cols = ['FSC-A', 'SSC-A', 'BL1-A', 'RL1-A', 'FSC-H', 'SSC-H', 'BL1-H', 'RL1-H', 'FSC-W', 'SSC-W', 'BL1-W', 'RL1-W']
