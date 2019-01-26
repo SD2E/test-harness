@@ -64,6 +64,6 @@ def sequence_only_cnn_classification(max_residues, padding, assign_class_weights
     model = Model(inputs=amino_inputs, outputs=model)
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['binary_crossentropy'])
 
-    mr = KerasClassificationTwoDimensional(model=model, model_description='Sequence CNN classifier v1',
-                                           batch_size=128, epochs=25, assign_class_weights=assign_class_weights)
+    mr = KerasClassificationTwoDimensional(model=model, model_description='Sequence CNN classifier v1, assign_class_weights = {}'.format(
+        assign_class_weights), batch_size=128, epochs=25, assign_class_weights=assign_class_weights)
     return mr

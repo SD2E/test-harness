@@ -160,7 +160,7 @@ def main(args):
     train1_encoded = encode_sequences(train_split.copy(), max_residues)
     test1_encoded = encode_sequences(test_split.copy(), max_residues)
     th.run_custom(function_that_returns_TH_model=sequence_only_cnn_classification,
-                  dict_of_function_parameters={"max_residues": max_residues, "padding": 14},
+                  dict_of_function_parameters={"max_residues": max_residues, "padding": 14, "assign_class_weights": True},
                   training_data=train1_encoded, testing_data=test1_encoded,
                   data_and_split_description=data_split_number, cols_to_predict=colpred,
                   feature_cols_to_use=["encoded_sequence"])
