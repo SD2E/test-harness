@@ -5,6 +5,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from test_harness.th_model_classes.class_sklearn_classification import SklearnClassification
 from test_harness.th_model_classes.class_sklearn_regression import SklearnRegression
 
+"""
 rocklins_features = ['avg_all_frags', 'net_atr_net_sol_per_res', 'n_charged', 'buried_np_afilmvwy_per_res',
                      'avg_best_frag', 'fa_atr_per_res', 'exposed_polars', 'unsat_hbond',
                      'mismatch_probability', 'hbond_lr_bb', 'exposed_np_afilmvwy', 'fa_rep_per_res',
@@ -17,12 +18,12 @@ rocklins_EHEE_features = rocklins_features + ['abd50_mean', 'abd50_min', 'dsc50_
                                               'ssc50_mean', 'ssc50_min']
 rocklins_cols_to_use_per_topology_dict = {'HHH': rocklins_features, 'EHEE': rocklins_EHEE_features,
                                           'HEEH': rocklins_features, 'EEHEE': rocklins_features}
-
+"""
 
 def rocklins_logistic_classifier():
-    rocklins_logistic_model = LogisticRegression(penalty='l1', C=0.1)
+    rocklins_logistic_model = LogisticRegression(penalty='l1', C=0.1, n_jobs=-1)
     th_model = SklearnClassification(model=rocklins_logistic_model,
-                                     model_description="Rocklin LogisticRegression: penalty='l1' and C=0.1")
+                                     model_description="Rocklin Logistic: penalty='l1' and C=0.1")
     return th_model
 
 

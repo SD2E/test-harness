@@ -178,26 +178,6 @@ def main(args):
                   feature_cols_to_use=joint_features, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
                   feature_extraction=False, predict_untested_data=False)
 
-    colpred = "stabilityscore"
-
-    # th.run_leave_one_out(function_that_returns_TH_model=rocklins_linear_regression, dict_of_function_parameters={}, data=data_RD_16k,
-    #                           data_description="114k", grouping=grouping_df, grouping_description="grouping_df",
-    #                           cols_to_predict=colpred, feature_cols_to_use=feature_cols_to_normalize, normalize=True,
-    #                           feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
-
-    # th.run_leave_one_out(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, data=data_RD_BL_TA1R1_KJ_114k,
-    #                      data_description="114k", grouping=grouping_df, grouping_description="grouping_df",
-    #                      cols_to_predict=colpred, feature_cols_to_use=feature_cols_to_normalize, normalize=True,
-    #                      feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
-    #
-    # max_residues = calculate_max_residues([data_RD_BL_TA1R1_KJ_114k])
-    # data_RD_BL_TA1R1_KJ_114k_encoded = encode_sequences(data_RD_BL_TA1R1_KJ_114k, max_residues)
-    # th.run_leave_one_out(function_that_returns_TH_model=sequence_only_cnn,
-    #                           dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, data=data_RD_BL_TA1R1_KJ_114k_encoded,
-    #                           data_description="114k encoded", grouping=grouping_df, grouping_description="grouping_df",
-    #                           cols_to_predict=colpred, feature_cols_to_use=["encoded_sequence"], normalize=False,
-    #                           feature_cols_to_normalize=None, feature_extraction=False)
-
 
 if __name__ == '__main__':
     args = parser.parse_args()
