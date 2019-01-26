@@ -45,11 +45,38 @@ def main():
     print()
     th = TestHarness(output_location=examples_folder_path)
 
-    th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train,
+    th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={'n_estimators':50,'min_samples_leaf':50},
+                  training_data=train,
                   testing_data=test, data_and_split_description="live/dead classification on Transcriptic data",
                   cols_to_predict="class_label",
                   feature_cols_to_use=input_cols, normalize=True, feature_cols_to_normalize=input_cols,
                   feature_extraction=False, predict_untested_data=False)
+
+    th.run_custom(function_that_returns_TH_model=random_forest_classification,
+                  dict_of_function_parameters={'n_estimators': 100, 'min_samples_leaf': 150},
+                  training_data=train,
+                  testing_data=test, data_and_split_description="live/dead classification on Transcriptic data",
+                  cols_to_predict="class_label",
+                  feature_cols_to_use=input_cols, normalize=True, feature_cols_to_normalize=input_cols,
+                  feature_extraction=False, predict_untested_data=False)
+
+    th.run_custom(function_that_returns_TH_model=random_forest_classification,
+                  dict_of_function_parameters={'n_estimators': 200, 'min_samples_leaf': 15},
+                  training_data=train,
+                  testing_data=test, data_and_split_description="live/dead classification on Transcriptic data",
+                  cols_to_predict="class_label",
+                  feature_cols_to_use=input_cols, normalize=True, feature_cols_to_normalize=input_cols,
+                  feature_extraction=False, predict_untested_data=False)
+
+    th.run_custom(function_that_returns_TH_model=random_forest_classification,
+                  dict_of_function_parameters={'n_estimators': 500, 'min_samples_leaf': 15},
+                  training_data=train,
+                  testing_data=test, data_and_split_description="live/dead classification on Transcriptic data",
+                  cols_to_predict="class_label",
+                  feature_cols_to_use=input_cols, normalize=True, feature_cols_to_normalize=input_cols,
+                  feature_extraction=False, predict_untested_data=False)
+
+
 
 
 if __name__ == '__main__':
