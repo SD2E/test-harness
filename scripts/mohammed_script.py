@@ -33,6 +33,7 @@ def main():
     df = pipeline.get_dataframe_for_live_dead_classifier(data_dir,fraction=0.1)
     print(df.columns)
     print(df['class_label'].value_counts(dropna=False))
+    print(df.dtypes)
     print("Length of full DF", len(df))
     input_cols = ['FSC-A', 'SSC-A', 'BL1-A', 'RL1-A', 'FSC-H', 'SSC-H', 'BL1-H', 'RL1-H', 'FSC-W', 'SSC-W', 'BL1-W', 'RL1-W']
     output_cols = ["class_label"]
