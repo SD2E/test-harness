@@ -9,6 +9,7 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 from test_harness_class import TestHarness
 from th_model_instances.hamed_models.random_forest_classification import random_forest_classification
+from pysd2cat.data import pipeline
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
 # Note that if you clone the `versioned-datasets` repo at the same level as where you cloned the `protein-design` repo,
@@ -30,22 +31,25 @@ print()
 
 def main():
     # Mohammed add start
-    df = pd.read_csv('data/yeaststates/live_dead_dataframe.csv')
+    data_dir = '/work/projects/SD2E-Community/prod/data/uploads/'
+    print("Building Live/Dead Control Dataframe...")
+    df = pipeline.get_dataframe_for_live_dead_classifier(data_dir)
+
     print("Length of full DF", len(df))
     input_cols = ['FSC-A', 'SSC-A', 'BL1-A', 'RL1-A', 'FSC-H', 'SSC-H', 'BL1-H', 'RL1-H', 'FSC-W', 'SSC-W', 'BL1-W', 'RL1-W']
     output_cols = ["strain"]
     print("Size of filtered data", len(df))
     train, test = train_test_split(df, stratify=df['strain'], test_size=0.2, random_state=5)
-    th = TestHarness(output_location=RESULTSPATH)
+    examples_folder_path = os.getcwd()
+    print("initializing TestHarness object with output_location equal to {}".format(examples_folder_path))
+    print()
+    th = TestHarness(output_location=examples_folder_path)
 
-    rf_classification_model = random_forest_classification(n_estimators=500)
-    th.run_custom(test_harness_models=rf_classification_model, training_data=train, testing_data=test,
-                  data_and_split_description="yeast_live_dead_dataframe",
-                  cols_to_predict=output_cols,
+    th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train,
+                  testing_data=test, data_and_split_description="example custom run on Rocklin data",
+                  cols_to_predict='strain',
                   feature_cols_to_use=input_cols, normalize=True, feature_cols_to_normalize=input_cols,
-                  feature_extraction='rfpimp_permutation', predict_untested_data=False)
-    # Mohammed add end
-    th.execute_runs()
+                  feature_extraction=False, predict_untested_data=False)
 
 
 if __name__ == '__main__':
