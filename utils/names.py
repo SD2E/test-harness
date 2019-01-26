@@ -15,6 +15,7 @@ class Names:
     F1_SCORE = "F1 Score"
     PRECISION = "Precision"
     RECALL = "Recall"
+    AVERAGE_PRECISION = "Average Precision"
 
     # regression metrics:
     RMSE = "RMSE"
