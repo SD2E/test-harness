@@ -32,6 +32,7 @@ def main():
     print("Building Live/Dead Control Dataframe...")
     df = pipeline.get_dataframe_for_live_dead_classifier(data_dir,fraction=0.1)
     print(df.columns)
+    print(df['class_label'].value_counts(dropna=False))
     print("Length of full DF", len(df))
     input_cols = ['FSC-A', 'SSC-A', 'BL1-A', 'RL1-A', 'FSC-H', 'SSC-H', 'BL1-H', 'RL1-H', 'FSC-W', 'SSC-W', 'BL1-W', 'RL1-W']
     output_cols = ["class_label"]
@@ -43,7 +44,7 @@ def main():
     th = TestHarness(output_location=examples_folder_path)
 
     th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train,
-                  testing_data=test, data_and_split_description="example custom run on Rocklin data",
+                  testing_data=test, data_and_split_description="live/dead classification on Transcriptic data",
                   cols_to_predict="class_label",
                   feature_cols_to_use=input_cols, normalize=True, feature_cols_to_normalize=input_cols,
                   feature_extraction=False, predict_untested_data=False)
