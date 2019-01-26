@@ -32,6 +32,7 @@ def main():
     print("Building Live/Dead Control Dataframe...")
     df = pipeline.get_dataframe_for_live_dead_classifier(data_dir,fraction=0.1)
     print(df.columns)
+    df['class_label'] = df['class_label'].astype(int)
     print(df['class_label'].value_counts(dropna=False))
     print(df.dtypes)
     print("Length of full DF", len(df))
