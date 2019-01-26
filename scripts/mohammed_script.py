@@ -1,11 +1,12 @@
 import os
 import pandas as pd
 from pathlib import Path
+from pysd2cat.data import pipeline
 from sklearn.model_selection import train_test_split
 from test_harness.test_harness_class import TestHarness
 from test_harness.th_model_instances.hamed_models.random_forest_classification import random_forest_classification
 from test_harness.th_model_instances.hamed_models.random_forest_regression import random_forest_regression
-from pysd2cat.data import pipeline
+
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
 # Note that if you clone the `versioned-datasets` repo at the same level as where you cloned the `protein-design` repo,
@@ -30,7 +31,7 @@ def main():
     data_dir = '/work/projects/SD2E-Community/prod/data/uploads/'
     print("Building Live/Dead Control Dataframe...")
     df = pipeline.get_dataframe_for_live_dead_classifier(data_dir)
-
+    print(df.columns)
     print("Length of full DF", len(df))
     input_cols = ['FSC-A', 'SSC-A', 'BL1-A', 'RL1-A', 'FSC-H', 'SSC-H', 'BL1-H', 'RL1-H', 'FSC-W', 'SSC-W', 'BL1-W', 'RL1-W']
     output_cols = ["class_label"]
