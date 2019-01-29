@@ -12,7 +12,7 @@ from test_harness.th_model_instances.hamed_models.random_forest_regression impor
 from test_harness.th_model_instances.jed_models.sequence_cnn_regression import sequence_only_cnn
 from test_harness.th_model_instances.jed_models.sequence_cnn_classification import sequence_only_cnn_classification
 from test_harness.th_model_instances.hamed_models.rocklin_models import rocklins_linear_regression
-from test_harness.th_model_instances.hamed_models.joint_sequence_rosetta_model import joint_network
+from test_harness.th_model_instances.hamed_models.joint_regression_model import joint_network
 from test_harness.th_model_instances.hamed_models.keras_regression import keras_regression_best
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
