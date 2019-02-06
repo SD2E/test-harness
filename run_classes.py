@@ -10,6 +10,7 @@ from datetime import datetime
 from sklearn import preprocessing
 from eli5.sklearn import PermutationImportance
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
+from sklearn.metrics import average_precision_score
 from sklearn.metrics import mean_squared_error, r2_score
 from test_harness.unique_id import get_id
 from test_harness.utils.names import Names
@@ -166,6 +167,14 @@ class BaseRun:
                                                                    self.testing_data_predictions[self.prob_predictions_col])
             except ValueError:
                 self.metrics_dict[Names.AUC_SCORE] = np.NaN
+
+            try:
+                self.metrics_dict[Names.AVERAGE_PRECISION] = \
+                    average_precision_score(self.testing_data_predictions[self.col_to_predict],
+                                            self.testing_data_predictions[self.prob_predictions_col])
+            except ValueError:
+                self.metrics_dict[Names.AVERAGE_PRECISION] = np.NaN
+
             self.metrics_dict[Names.ACCURACY] = accuracy_score(self.testing_data_predictions[self.col_to_predict],
                                                                self.testing_data_predictions[self.predictions_col])
             self.metrics_dict[Names.BALANCED_ACCURACY] = balanced_accuracy_score(self.testing_data_predictions[self.col_to_predict],

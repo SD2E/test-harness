@@ -62,8 +62,8 @@ def sequence_only_cnn_classification(max_residues, padding, assign_class_weights
     model = Dense(40, activation='elu', kernel_regularizer=l2(.0))(model)
     model = Dense(1, activation='sigmoid', kernel_regularizer=l2(.0))(model)
     model = Model(inputs=amino_inputs, outputs=model)
-    model.compile(optimizer='adam', loss='mse')
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['binary_crossentropy'])
 
-    mr = KerasClassificationTwoDimensional(model=model, model_description='Sequence CNN classifier: 400x5->200x9->100x17->80->40->1',
-                                           batch_size=128, epochs=25, assign_class_weights=assign_class_weights)
+    mr = KerasClassificationTwoDimensional(model=model, model_description='Sequence CNN classifier v1, assign_class_weights = {}'.format(
+        assign_class_weights), batch_size=128, epochs=25, assign_class_weights=assign_class_weights)
     return mr

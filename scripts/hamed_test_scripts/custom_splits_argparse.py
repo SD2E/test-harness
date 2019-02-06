@@ -9,10 +9,10 @@ from test_harness.test_harness_class import TestHarness
 from test_harness.data_wrangling import calculate_max_residues, encode_sequences
 from test_harness.th_model_instances.hamed_models.random_forest_classification import random_forest_classification
 from test_harness.th_model_instances.hamed_models.random_forest_regression import random_forest_regression
-from test_harness.th_model_instances.jed_models.sequence_cnn import sequence_only_cnn
+from test_harness.th_model_instances.jed_models.sequence_cnn_regression import sequence_only_cnn
 from test_harness.th_model_instances.jed_models.sequence_cnn_classification import sequence_only_cnn_classification
 from test_harness.th_model_instances.hamed_models.rocklin_models import rocklins_linear_regression
-from test_harness.th_model_instances.hamed_models.joint_sequence_rosetta_model import joint_network
+from test_harness.th_model_instances.hamed_models.joint_regression_model import joint_network
 from test_harness.th_model_instances.hamed_models.keras_regression import keras_regression_best
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
@@ -177,26 +177,6 @@ def main(args):
                   cols_to_predict=['stabilityscore_2classes'],
                   feature_cols_to_use=joint_features, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
                   feature_extraction=False, predict_untested_data=False)
-
-    colpred = "stabilityscore"
-
-    # th.run_leave_one_out(function_that_returns_TH_model=rocklins_linear_regression, dict_of_function_parameters={}, data=data_RD_16k,
-    #                           data_description="114k", grouping=grouping_df, grouping_description="grouping_df",
-    #                           cols_to_predict=colpred, feature_cols_to_use=feature_cols_to_normalize, normalize=True,
-    #                           feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
-
-    # th.run_leave_one_out(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, data=data_RD_BL_TA1R1_KJ_114k,
-    #                      data_description="114k", grouping=grouping_df, grouping_description="grouping_df",
-    #                      cols_to_predict=colpred, feature_cols_to_use=feature_cols_to_normalize, normalize=True,
-    #                      feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
-    #
-    # max_residues = calculate_max_residues([data_RD_BL_TA1R1_KJ_114k])
-    # data_RD_BL_TA1R1_KJ_114k_encoded = encode_sequences(data_RD_BL_TA1R1_KJ_114k, max_residues)
-    # th.run_leave_one_out(function_that_returns_TH_model=sequence_only_cnn,
-    #                           dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, data=data_RD_BL_TA1R1_KJ_114k_encoded,
-    #                           data_description="114k encoded", grouping=grouping_df, grouping_description="grouping_df",
-    #                           cols_to_predict=colpred, feature_cols_to_use=["encoded_sequence"], normalize=False,
-    #                           feature_cols_to_normalize=None, feature_extraction=False)
 
 
 if __name__ == '__main__':

@@ -1,19 +1,12 @@
-from keras.models import Sequential
-from keras.layers import Dense, Dropout
-from keras.regularizers import l2
 from test_harness.th_model_classes.class_keras_regression import KerasRegression
 
-import pandas as pd
 import numpy as np
 
 from keras.models import Model
-from keras.layers import Dense, Input, Lambda, Concatenate
+from keras.layers import Dense, Input, Concatenate
 from keras.layers.core import Dropout, Flatten
 from keras.layers.convolutional import Conv2D
 from keras.regularizers import l2
-from keras.callbacks import EarlyStopping, ModelCheckpoint
-from random import randint
-import os
 
 
 class KerasJointRegression(KerasRegression):
@@ -80,5 +73,3 @@ def joint_network(max_residues, padding):
 
     th_model = KerasJointRegression(model=merged_model, model_description='Joint Model', batch_size=128, epochs=25)
     return th_model
-
-# TODO: make single function that calls the two data_wrangling functions, returns edited dataframe. Move the other two functions here too.
