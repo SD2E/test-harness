@@ -1,24 +1,22 @@
 import argparse
-import datetime as dt
 import os
 import importlib
 import types
 import pandas as pd
-from tabulate import tabulate
 from pathlib import Path
 from sklearn.model_selection import train_test_split
-from test_harness_class import TestHarness
-
-from th_model_instances.hamed_models.random_forest_classification import random_forest_classification
-
-
-
-
+from test_harness.test_harness_class import TestHarness
+from test_harness.data_wrangling import calculate_max_residues, encode_sequences
+from test_harness.th_model_instances.hamed_models.random_forest_classification import random_forest_classification
+from test_harness.th_model_instances.hamed_models.random_forest_regression import random_forest_regression
+from test_harness.th_model_instances.jed_models.sequence_cnn_regression import sequence_only_cnn
+from test_harness.th_model_instances.jed_models.sequence_cnn_classification import sequence_only_cnn_classification
+from test_harness.th_model_instances.hamed_models.rocklin_models import rocklins_linear_regression
+from test_harness.th_model_instances.hamed_models.joint_regression_model import joint_network
+from test_harness.th_model_instances.hamed_models.keras_regression import keras_regression_best
 
 # SET PATH TO DATA FOLDER IN LOCALLY CLONED `versioned-datasets` REPO HERE:
-# Note that if you clone the `versioned-datasets` repo at the same level as where you cloned the `protein-design` repo,
-# then you can use VERSIONED_DATASETS = os.path.join(Path(__file__).resolve().parents[3], 'versioned-datasets/data')
-VERSIONED_DATA = os.path.join(Path(__file__).resolve().parents[3], 'versioned-datasets/data')
+VERSIONED_DATA = os.path.join(Path(__file__).resolve().parents[4], 'versioned-datasets/data')
 print("Path to data folder in the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATA))
 print()
 
@@ -34,33 +32,10 @@ print("RESULTSPATH:", RESULTSPATH)
 print()
 
 parser = argparse.ArgumentParser()
-# Default behavior is to write out relative
-# to test_harness. Passing output will cause
-# writes to occur to a path relative to the current working directory
-parser.add_argument('--output', required=False,
-                    help='Output directory')
-
-
-def model_runner_by_name(model_runner_path,
-                         module_base_path='th_model_instances'):
-    """
-    Instantiate an instance of model_runner by path
-
-    Returns: TestHarnessModel
-    Raises: Exception
-    """
-    try:
-        path_parts = model_runner_path.split('.')
-        func_name = path_parts[-1]
-        func_module_parent_path = module_base_path + '.' + '.'.join(path_parts[:-1])
-        func_module = importlib.import_module(func_module_parent_path)
-        named_meth = getattr(func_module, func_name)
-        if callable(named_meth) and isinstance(named_meth, types.FunctionType):
-            model_runner_instance = named_meth()
-            return model_runner_instance
-    # TODO: More granular Exception handling
-    except Exception:
-        raise
+# Default behavior is to write out relative to test_harness.
+# Passing output will cause writes to occur to a path relative to the current working directory.
+parser.add_argument('--output', required=False, help='Output directory')
+parser.add_argument('--data_split_number', required=True, help='Enter number between 1 and 7')
 
 
 def main(args):
@@ -74,7 +49,7 @@ def main(args):
     else:
         output_dir = RESULTSPATH
 
-    combined_data = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/aggregated_data/all_libs_cleaned.v1.aggregated_data.csv'),
+    combined_data = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/aggregated_data/all_libs_cleaned.v3.aggregated_data.csv'),
                                 comment='#', low_memory=False)
     combined_data['dataset_original'] = combined_data['dataset']
     combined_data['dataset'] = combined_data['dataset'].replace({"topology_mining_and_Longxing_chip_1": "t_l_untested",
@@ -101,13 +76,15 @@ def main(args):
             ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
              'topology_mining_and_Longxing_chip_2', 'topology_mining_and_Longxing_chip_3'])].copy()
 
-    # # Grouping Data
+    # data_119k = combined_data.copy()
+
+    # Grouping Data
     grouping_df = pd.read_csv(
-        os.path.join(VERSIONED_DATA, 'protein-design/metadata/protein_groupings_by_uw.metadata.csv'),
+        os.path.join(VERSIONED_DATA, 'protein-design/metadata/protein_groupings_by_uw.v1.metadata.csv'),
         comment='#', low_memory=False)
     grouping_df['dataset'] = grouping_df['dataset'].replace({"longxing_untested": "t_l_untested",
                                                              "topmining_untested": "t_l_untested"})
-    print(grouping_df)
+    # print(grouping_df)
 
     feature_cols_to_normalize = ['AlaCount', 'T1_absq', 'T1_netq', 'Tend_absq', 'Tend_netq', 'Tminus1_absq',
                                  'Tminus1_netq', 'abego_res_profile', 'abego_res_profile_penalty',
@@ -154,22 +131,53 @@ def main(args):
     train7, test7 = train_test_split(data_RD_BL_TA1R1_KJ_114k, test_size=0.2, random_state=5,
                                      stratify=data_RD_BL_TA1R1_KJ_114k[['topology', 'dataset_original']])
 
+    # Test Harness Use Begins Here:
+    th = TestHarness(output_location=output_dir)
 
-    th = TestHarness(output_path=output_dir)
+    # th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train1,
+    #                    testing_data=test1, data_and_split_description="just testing things out!",
+    #                    cols_to_predict=['stabilityscore_2classes', 'stabilityscore_calibrated_2classes'],
+    #                    feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
+    #                    feature_extraction=False, predict_untested_data=False)
 
-    rf_classification_model = random_forest_classification()
-    th.add_custom_runs(test_harness_models=rf_classification_model, training_data=train1, testing_data=test1,
-                       data_and_split_description="just testing things out!",
-                       cols_to_predict=['stabilityscore_2classes', 'stabilityscore_calibrated_2classes'],
-                       feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
-                       feature_extraction=False, predict_untested_data=False)
+    train_test_dict = {"1": (train1, test1), "2": (train2, test2), "3": (train3, test3), "4": (train4, test4), "5": (train5, test5),
+                       "6": (train6, test6), "7": (train7, test7)}
 
-    th.add_leave_one_out_runs(test_harness_models=rf_classification_model, data=data_RD_16k, data_description="data_RD_16k",
-                              grouping=grouping_df, grouping_description="grouping_df", cols_to_predict='stabilityscore_2classes',
-                              feature_cols_to_use=feature_cols_to_normalize, normalize=True,
-                              feature_cols_to_normalize=feature_cols_to_normalize, feature_extraction=False)
+    data_split_number = args.data_split_number
+    train_split = train_test_dict[data_split_number][0].copy()
+    test_split = train_test_dict[data_split_number][1].copy()
 
-    th.execute_runs()
+    print("\nrunning keras rosetta model:\n")
+    th.run_custom(function_that_returns_TH_model=keras_regression_best, dict_of_function_parameters={}, training_data=train_split.copy(),
+                  testing_data=test_split.copy(), data_and_split_description="{}_{}".format(data_split_number, data_split_number),
+                  cols_to_predict=['stabilityscore_2classes'],
+                  feature_cols_to_use=feature_cols_to_normalize, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
+                  feature_extraction=False, predict_untested_data=False
+                  )
+
+    print("\nrunning sequence CNN model:\n")
+    max_residues = calculate_max_residues([train_split, test_split])
+    train1_encoded = encode_sequences(train_split.copy(), max_residues)
+    test1_encoded = encode_sequences(test_split.copy(), max_residues)
+    th.run_custom(function_that_returns_TH_model=sequence_only_cnn,
+                  dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, training_data=train1_encoded,
+                  testing_data=test1_encoded, data_and_split_description="{}_{}".format(data_split_number, data_split_number),
+                  cols_to_predict=['stabilityscore_2classes'],
+                  feature_cols_to_use=["encoded_sequence"], normalize=False, feature_cols_to_normalize=None,
+                  feature_extraction=False, predict_untested_data=False)
+
+    print("\nrunning joint model:\n")
+    max_residues = calculate_max_residues([train_split, test_split])
+    train1_encoded = encode_sequences(train_split.copy(), max_residues)
+    test1_encoded = encode_sequences(test_split.copy(), max_residues)
+    joint_features = feature_cols_to_normalize + ["encoded_sequence"]
+    th.run_custom(function_that_returns_TH_model=joint_network,
+                  dict_of_function_parameters={"max_residues": max_residues, "padding": 14}, training_data=train1_encoded,
+                  testing_data=test1_encoded, data_and_split_description="{}_{}".format(data_split_number, data_split_number),
+                  cols_to_predict=['stabilityscore_2classes'],
+                  feature_cols_to_use=joint_features, normalize=True, feature_cols_to_normalize=feature_cols_to_normalize,
+                  feature_extraction=False, predict_untested_data=False)
+
 
 if __name__ == '__main__':
     args = parser.parse_args()
