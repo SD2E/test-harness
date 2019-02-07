@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from utils_tensor_factorization import TensorProducer
+from protstab_test_harness_and_leaderboard.model_runner_instances.seungwon_models.utils_tensor_factorization import TensorProducer
 
 #### function to count trainable parameters in computational graph
 def count_trainable_var():
@@ -14,40 +14,27 @@ def count_trainable_var():
 
 
 #### function to generate metrics of performance (eval, loss, accuracy)
-def mtl_model_output_functions(models, y_batches, num_tasks, classification=False):
+def mtl_model_output_functions(models, y_batch, num_tasks, classification=False):
     if classification:
         with tf.name_scope('Model_Eval'):
-            train_eval = [tf.nn.softmax(models[0][x][-1]) for x in range(num_tasks)]
-            valid_eval = [tf.nn.softmax(models[1][x][-1]) for x in range(num_tasks)]
-            test_eval = [tf.nn.softmax(models[2][x][-1]) for x in range(num_tasks)]
-
-            train_output_label = [tf.argmax(models[0][x][-1], 1) for x in range(num_tasks)]
-            valid_output_label = [tf.argmax(models[1][x][-1], 1) for x in range(num_tasks)]
-            test_output_label = [tf.argmax(models[2][x][-1], 1) for x in range(num_tasks)]
+            eval = [tf.nn.softmax(models[x][-1]) for x in range(num_tasks)]
+            output_label = [tf.argmax(models[x][-1], 1) for x in range(num_tasks)]
 
         with tf.name_scope('Model_Loss'):
-            train_loss = [tf.nn.sparse_softmax_cross_entropy_with_logits(labels=tf.cast(y_batches[0][x], tf.int32), logits=models[0][x][-1]) for x in range(num_tasks)]
-            valid_loss = [tf.nn.sparse_softmax_cross_entropy_with_logits(labels=tf.cast(y_batches[1][x], tf.int32), logits=models[1][x][-1]) for x in range(num_tasks)]
-            test_loss = [tf.nn.sparse_softmax_cross_entropy_with_logits(labels=tf.cast(y_batches[2][x], tf.int32), logits=models[2][x][-1]) for x in range(num_tasks)]
+            loss = [tf.nn.sparse_softmax_cross_entropy_with_logits(labels=tf.cast(y_batch[x], tf.int32), logits=models[x][-1]) for x in range(num_tasks)]
 
         with tf.name_scope('Model_Accuracy'):
-            train_accuracy = [tf.reduce_sum(tf.cast(tf.equal(tf.argmax(models[0][x][-1], 1), tf.cast(y_batches[0][x], tf.int64)), tf.float32)) for x in range(num_tasks)]
-            valid_accuracy = [tf.reduce_sum(tf.cast(tf.equal(tf.argmax(models[1][x][-1], 1), tf.cast(y_batches[1][x], tf.int64)), tf.float32)) for x in range(num_tasks)]
-            test_accuracy = [tf.reduce_sum(tf.cast(tf.equal(tf.argmax(models[2][x][-1], 1), tf.cast(y_batches[2][x], tf.int64)), tf.float32)) for x in range(num_tasks)]
+            accuracy = [tf.reduce_sum(tf.cast(tf.equal(tf.argmax(models[x][-1], 1), tf.cast(y_batch[x], tf.int64)), tf.float32)) for x in range(num_tasks)]
     else:
         with tf.name_scope('Model_Eval'):
-            train_eval = [models[0][x][-1] for x in range(num_tasks)]
-            valid_eval = [models[1][x][-1] for x in range(num_tasks)]
-            test_eval = [models[2][x][-1] for x in range(num_tasks)]
+            eval = [models[x][-1] for x in range(num_tasks)]
 
         with tf.name_scope('Model_Loss'):
-            train_loss = [2.0* tf.nn.l2_loss(train_eval[x]-y_batches[0][x]) for x in range(num_tasks)]
-            valid_loss = [2.0* tf.nn.l2_loss(valid_eval[x]-y_batches[1][x]) for x in range(num_tasks)]
-            test_loss = [2.0* tf.nn.l2_loss(test_eval[x]-y_batches[2][x]) for x in range(num_tasks)]
+            # sum of squares
+            loss = [2.0* tf.nn.l2_loss(eval[x]-y_batch[x]) for x in range(num_tasks)]
 
-        train_accuracy, valid_accuracy, test_accuracy = None, None, None
-        train_output_label, valid_output_label, test_output_label = None, None, None
-    return (train_eval, valid_eval, test_eval, train_loss, valid_loss, test_loss, train_accuracy, valid_accuracy, test_accuracy, train_output_label, valid_output_label, test_output_label)
+        accuracy, output_label = None, None
+    return (eval, loss, accuracy, output_label)
 
 
 ###############################################
