@@ -8,24 +8,26 @@ README Last Updated by Hamed on 2/8/19
 1. Consistent results and outputs, both in terms of format and in terms of ensuring results are valid and without bugs
 2. Collaboration and awareness of peer analytics through leaderboard summaries and access to model code
 3. Automated calculation of various model performance metrics
-4. Automated submission of top/most-interesting proteins for experimentally-untested proteins. I.e. the work we did in May will be automated.
+4. Automated selection of future experiments to run (coming soon for protein design and perovskites)
 
 ## Using the Test Harness
 You can use the Test Harness locally or with TACC resources such as Maverick.
 
+Python 3 should be used when using the Test Harness.
 
-### Requirements
-1. Python 3
-2. Installing packages in requirements.txt (automatic if you install setup.py)
+### Installation
+1. Clone this repository into the environment of your choice
+2. Using command-line, navigate to the directory in which you cloned this repo.
+3. Run `pip install -e test-harness` , this will install the `test-harness` package and make
+it visible to all other repositories/projects you have in the current environment.
+(The `-e` makes it possible for pip to install a local package not available on pypi.)
 
 
-### Quick Start Guide
-1. Clone this repo (ideally in the same location that you cloned the [versioned datasets](https://gitlab.sd2e.org/sd2program/versioned-datasets) repo).
-2. Create your own branch or checkout your branch
-3. Install setup.py by running `python3 setup.py install`. Note you might have to add `--user` to the end of this command if you're on TACC nodes. setup.py is located at the highest level of the protein-design repo. This step might not be necessary if you're using an IDE like Pycharm.
-4. Enter the `test_harness` folder.
-5. Create and run a script file in the `scripts` folder. Examples are provided in `scripts/examples`. Feel free to look at other script files as well. 
-6. Results will be output in a `test_harness_results` folder whose location depends on the path you give to `output_location` when initializing your TestHarness object.
+### Running The Test Harness
+1. Create a script in your environment.
+2. Import modules from the `test-harness` package you installed earlier. For example,
+`from harness.test_harness_class import TestHarness`
+3. Results will be output in a `test_harness_results` folder whose location depends on the path you give to `output_location` when initializing your TestHarness object.
 
 
 ### Executing Runs:
