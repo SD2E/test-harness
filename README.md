@@ -1,20 +1,8 @@
-Last Updated by Hamed on 1/9/19
-
-
-# protein-design
-#### A repo for protein design data analytics. This repo should be used for the following tasks:
-1. Submission of prediction model code (classification, regression, etc)
-2. Use of the Test Harness and Leaderboards (locally and/or SD2-wide)
-3. Learning from and getting ideas from models created by others; collaboration
-4. Any other analytics on protein design data. E.g. extraction of most important features
-
-#### Useful links:
-1. Versioned Datasets Repo: https://gitlab.sd2e.org/sd2program/versioned-datasets
-2. Jenkins Project: http://jenkins.sd2e.org/job/protein-design/
+README Last Updated by Hamed on 2/8/19
 
 
 # Test Harness
-### Current Version: 3.2
+###### Current Version: 3.2
 
 ## Why use the Test Harness?
 1. Consistent results and outputs, both in terms of format and in terms of ensuring results are valid and without bugs

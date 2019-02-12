@@ -1,5 +1,5 @@
 from sklearn.ensemble import RandomForestClassifier
-from test_harness.th_model_classes.class_sklearn_classification import SklearnClassification
+from harness.th_model_classes.class_sklearn_classification import SklearnClassification
 
 
 def random_forest_classification(n_estimators=361, max_features='auto', criterion='entropy', min_samples_leaf=13,

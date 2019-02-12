@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from protstab_test_harness_and_leaderboard.model_runner_instances.seungwon_models.utils_tensor_factorization import TensorProducer
+from harness.model_runner_instances.seungwon_models.utils_tensor_factorization import TensorProducer
 
 #### function to count trainable parameters in computational graph
 def count_trainable_var():

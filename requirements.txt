@@ -11,3 +11,4 @@ BlackBoxAuditing
 html5lib
 eli5
 hyperas
+seaborn
