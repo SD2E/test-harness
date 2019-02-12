@@ -18,7 +18,7 @@ setup(
     long_description=LONG_DESCRIPTION,
     author=MAINTAINER,
     author_email=MAINTAINER_EMAIL,
-    packages=['test_harness'] + ['test_harness/' + s for s in find_packages('test_harness')],
+    packages=['harness'] + ['harness/' + s for s in find_packages('harness')],
     include_package_data=True,
     install_requires=requirements
 )
