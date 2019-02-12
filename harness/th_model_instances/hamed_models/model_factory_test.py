@@ -1,20 +1,14 @@
 import pandas as pd
 from sklearn.linear_model import LinearRegression, LogisticRegression
 # from test_harness.th_model_classes.mr_sklearn_regression import SklearnRegression
-from test_harness.th_model_classes.class_sklearn_classification import \
-    SklearnClassification
+from harness.th_model_classes.class_sklearn_classification import SklearnClassification
 
 
 def logreg(training_data, testing_data):
     rocklins_logistic_model = LogisticRegression(penalty='l1', C=0.1)
 
     mr = SklearnClassification(model=rocklins_logistic_model,
-                               model_description="Rocklin Logistic: sklearn LogisticRegression with penalty='l1' and C=0.1",
-                               training_data=training_data, testing_data=testing_data, data_set_description='15k',
-                               train_test_split_description='12k-3k', col_to_predict='stable?',
-                               predict_untested=False)
-
-    print(mr.run_model())
+                               model_description="Rocklin Logistic: sklearn LogisticRegression with penalty='l1' and C=0.1")
     # return mr
 
 

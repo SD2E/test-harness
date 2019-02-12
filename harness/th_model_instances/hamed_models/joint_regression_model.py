@@ -1,4 +1,4 @@
-from test_harness.th_model_classes.class_keras_regression import KerasRegression
+from harness.th_model_classes.class_keras_regression import KerasRegression
 
 import numpy as np
 

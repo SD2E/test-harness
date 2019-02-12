@@ -2,7 +2,7 @@ from keras import backend as K
 from keras.models import Sequential
 from keras.layers import Dense, Dropout
 from keras.regularizers import l2
-from test_harness.th_model_classes.class_keras_regression import KerasRegression
+from harness.th_model_classes.class_keras_regression import KerasRegression
 
 
 def root_mean_squared_error(y_true, y_pred):

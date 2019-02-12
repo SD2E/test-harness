@@ -1,9 +1,9 @@
 import os
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
-from test_harness.th_model_classes.class_sklearn_regression import SklearnRegression
+from harness.th_model_classes.class_sklearn_regression import SklearnRegression
 
-from test_harness.th_model_classes.class_rf_features import RFRegression
+from harness.th_model_classes.class_rf_features import RFRegression
 
 
 def random_forest_regression(bootstrap=False, min_samples_leaf=1, n_estimators=689, min_samples_split=2,

@@ -1,4 +1,4 @@
-from test_harness.test_harness_models_abstract_classes import ClassificationModel
+from harness.test_harness_models_abstract_classes import ClassificationModel
 
 
 class SklearnClassification(ClassificationModel):

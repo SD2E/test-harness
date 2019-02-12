@@ -4,7 +4,7 @@ from keras.optimizers import SGD
 from keras.models import Sequential
 from keras.regularizers import l1_l2
 from keras.layers import Dense, Dropout
-from test_harness.th_model_classes.class_keras_classification import KerasClassification
+from harness.th_model_classes.class_keras_classification import KerasClassification
 
 
 def keras_classification_1(train=None, test=None):
@@ -26,11 +26,7 @@ def keras_classification_1(train=None, test=None):
     # Creating an instance of the KerasClassification Model Runner subclass
     mr_kc = KerasClassification(model=model,
                                 model_description='Keras: 2 hidden layers (85 and 49 nodes), weighted, dropout=0.308',
-                                col_to_predict='stable?', feature_cols_to_use=None, class_weight=class_weights,
-                                training_data=train, testing_data=test, data_set_description='15k',
-                                train_test_split_description='12k-3k',
-                                predict_untested=False
-                                )
+                                class_weight=class_weights)
     return mr_kc
 
 
@@ -63,9 +59,7 @@ def keras_classification_1_diff_train_test():
     # Creating an instance of the KerasClassification Model Runner subclass
     mr_kc = KerasClassification(model=model,
                                 model_description='Keras: 2 hidden layers (85 and 49 nodes), weighted, dropout=0.308',
-                                col_to_predict='stable?', feature_cols_to_use=None, class_weight=class_weights, training_data=train,
-                                testing_data=test, data_set_description='85k data',
-                                train_test_split_description="train = Rocklin 15k, test = 70k")
+                                class_weight=class_weights)
     return mr_kc
 
 
@@ -84,7 +78,7 @@ def keras_classification_2():
 
     mr_kc = KerasClassification(model=model,
                                 model_description='Keras: 1 hidden layer (7 nodes), weighted 5.984, dropout=0.699, lr=0.2, l2=0',
-                                col_to_predict='stable?', feature_cols_to_use=None, class_weight=class_weights)
+                                class_weight=class_weights)
     return mr_kc
 
 
@@ -103,7 +97,7 @@ def keras_classification_3():
 
     mr_kc = KerasClassification(model=model,
                                 model_description='Keras: 1 hidden layer (23 nodes), weighted 5.984, dropout_in=0.453, dropout=0, lr=0.2, l2=0',
-                                col_to_predict='stable?', feature_cols_to_use=None, class_weight=class_weights)
+                                class_weight=class_weights)
     return mr_kc
 
 
@@ -126,5 +120,5 @@ def keras_classification_4():
     # Creating an instance of the KerasClassification Model Runner subclass
     mr_kc = KerasClassification(model=model,
                                 model_description='Keras: 2 hidden layers (64 and 55 nodes), weighted 5.984, dropout_in=0.128, dropout=0.35, lr=0.18, l2=0.0018',
-                                col_to_predict='stable?', feature_cols_to_use=None, class_weight=class_weights)
+                                class_weight=class_weights)
     return mr_kc

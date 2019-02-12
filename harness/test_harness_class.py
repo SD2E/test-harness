@@ -2,13 +2,13 @@ import os
 import json
 import time
 import pandas as pd
-from test_harness.unique_id import get_id
+from harness.unique_id import get_id
 from six import string_types
 from datetime import datetime
 from statistics import mean, pstdev
-from test_harness.run_classes import BaseRun
-from test_harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
-from test_harness.utils.names import Names
+from harness.run_classes import BaseRun
+from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
+from harness.utils.names import Names
 
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)

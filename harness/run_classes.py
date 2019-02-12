@@ -12,9 +12,9 @@ from eli5.sklearn import PermutationImportance
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
 from sklearn.metrics import average_precision_score
 from sklearn.metrics import mean_squared_error, r2_score
-from test_harness.unique_id import get_id
-from test_harness.utils.names import Names
-from test_harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
+from harness.unique_id import get_id
+from harness.utils.names import Names
+from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
 
 
 class BaseRun:

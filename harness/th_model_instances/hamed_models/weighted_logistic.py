@@ -1,5 +1,5 @@
 from sklearn.linear_model import LogisticRegression
-from test_harness.th_model_classes.class_sklearn_classification import SklearnClassification
+from harness.th_model_classes.class_sklearn_classification import SklearnClassification
 
 
 def weighted_logistic_classifier():

@@ -1,4 +1,4 @@
-from test_harness.test_harness_models_abstract_classes import RegressionModel
+from harness.test_harness_models_abstract_classes import RegressionModel
 
 
 class SklearnRegression(RegressionModel):
