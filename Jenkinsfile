@@ -25,7 +25,7 @@ pipeline {
                 sh 'echo "running test harness script"'
                 sh 'pip install -r requirements.txt --user'
                 sh "sbatch  ${WORKSPACE}/scripts/slurm_runner.slurm"
-                sh 'echo "finished running test harness hello"'
+                sh 'echo "finished running test harness hello 2"'
             }
         }
     }
