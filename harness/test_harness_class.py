@@ -100,7 +100,10 @@ class TestHarness:
                                        Names.LOO_SUMM_REG_LBOARD: self.loo_summarized_regression_leaderboard_cols,
                                        Names.LOO_FULL_CLASS_LBOARD: self.loo_full_classification_leaderboard_cols,
                                        Names.LOO_FULL_REG_LBOARD: self.loo_full_regression_leaderboard_cols}
-        self.valid_feature_extraction_methods = [Names.ELI5_PERMUTATION, Names.RFPIMP_PERMUTATION]
+        self.valid_feature_extraction_methods = [Names.ELI5_PERMUTATION,
+                                                 Names.RFPIMP_PERMUTATION,
+                                                 Names.BBA_AUDIT,
+                                                 Names.SHAP_AUDIT]
 
     # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
     # TODO: make feature_extraction options something like: "BBA", "permutation", and "custom", where custom means that

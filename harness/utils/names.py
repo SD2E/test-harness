@@ -48,3 +48,5 @@ class Names:
     # feature extraction types
     ELI5_PERMUTATION = "eli5_permutation"
     RFPIMP_PERMUTATION = "rfpimp_permutation"
+    SHAP_AUDIT = "shap_audit"
+    BBA_AUDIT = "bba_audit"
