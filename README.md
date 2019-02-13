@@ -1,4 +1,4 @@
-README Last Updated by Hamed on 2/8/19
+README Last Updated by Hamed on 2/13/19
 
 
 # Test Harness
@@ -16,40 +16,46 @@ You can use the Test Harness locally or with TACC resources such as Maverick.
 Python 3 should be used when using the Test Harness.
 
 ### Installation
-1. Clone this repository into the environment of your choice
-2. Using command-line, navigate to the directory in which you cloned this repo.
-3. Run `pip install -e test-harness` , this will install the `test-harness` package and make
-it visible to all other repositories/projects you have in the current environment.
-(The `-e` makes it possible for pip to install a local package not available on pypi.)
+1. Clone this repository into the environment of your choice (directory, conda env, virtualenv, etc)
+2. Using command-line, navigate to the directory in which you cloned this repo (not inside the repo itself).
+3. Run `pip install test-harness` or `pip install -e test-harness` .
+This will install the `test-harness` package and make it visible to all other repositories/projects
+you have in the current environment. The `-e` option stands for "editable". This will install the package
+in a way where any local changes to the package will automatically be reflected in your environment.
+See [this link](https://stackoverflow.com/questions/41535915/python-pip-install-from-local-dir/41536128)
+for more details.
 
 
 ### Running The Test Harness
-1. Create a script in your environment.
-2. Import modules from the `test-harness` package you installed earlier. For example,
-`from harness.test_harness_class import TestHarness`
-3. Results will be output in a `test_harness_results` folder whose location depends on the path you give to `output_location` when initializing your TestHarness object.
+
+First create a script file in your environment
+(see the `example_scripts` folder for examples), then:
+1. In your script, import modules from the `test-harness` package you installed earlier.
+For example, `from harness.test_harness_class import TestHarness`
+2. Create a TestHarness object with `output_location` path
+3. Use the `run_custom` or `run_leave_one_out` methods
+4. Results will be output in a `test_harness_results` folder whose location depends
+on the path you give to `output_location` when initializing your TestHarness object.
 
 
-### Executing Runs:
-In your script file (see `example_script.py` for an example), the steps are as follows:
-1. Create a TestHarness object with output path
-2. Use the `run_custom` or `run_leave_one_out` methods
-3. View results in the `results` folder
-
-### Run Options
+#### Run Options
 There are 2 types of runs currently supported in the Test Harness: Custom Runs and Leave-One-Out Runs
 More details coming soon (probably in pydoc format)
+
 
 #### Feature Extraction Options
 Feature Extraction is controlled with the `feature_extraction` option. Valid values are:
 1. False --> Feature Extraction is not carried out
 2. True --> The `eli5_permutation` method is used
 3. "eli5_permutation" --> Uses the [eli5 package's implementation of permutation importance for SkLearn Models](https://eli5.readthedocs.io/en/latest/autodocs/sklearn.html#eli5.sklearn.permutation_importance.PermutationImportance).
-A more general version that isn't specific to sklearn models will be added soon.
+A more general version that isn't specific to sklearn models will be added in the future.
 4. "rfpimp_permutation" --> Uses the [rfpimp package's implementation of permutation importance for Random Forest Models only](https://github.com/parrt/random-forest-importances).
+5. "shap_audit" --> [SHapley Additive exPlanations](https://github.com/slundberg/shap)
+6. "bba_audit" --> [Black Box Auditing by Haverford Team](https://github.com/algofairness/BlackBoxAuditing)
 
 Feature Extraction results are saved in the file `feature_importances.csv` in the appropriate subfolder within the `results` folder.
-Note: In a test that I ran, I got significantly different results from the two different implementations of permutation importance: this needs to be investigated.
+
+**Note**: In a test that I ran, I got significantly different results from the two different implementations of permutation importance: this needs to be investigated.
 
 
 ### Maverick Instructions:
@@ -72,16 +78,13 @@ Note: In a test that I ran, I got significantly different results from the two d
 3. `singularity shell --nv /work/05260/hamed/singularity_cache/test-harness-3.2.simg` --> path is different for each user!
     1. The path is the one that was printed when you first pulled the docker container
     2. This starts an interactive singularity shell and places you within it
-4. `python3 setup.py install --user`
-    1. You will need to rerun this anytime there are major changes to code or file structure. Usually if you change code within a script file you won't need to rerun this.
-5. `python3 [name_of_my_script_file]` after navigating to the `scripts` folder/subfolders. e.g. `python3 example_script.py` from within `test_harness/scripts/examples`.
 
-Note: if you try to install things within the singularity container, you probably will have to add the “--user” parameter at the end
-e.g. pip install pandas --user
-Ideally you would install all requirements within your dockerfile though
+Note: if you try to install things within the singularity container,
+you probably will have to add the “--user” parameter at the end,
+e.g. `pip install pandas --user`. Ideally you would install all requirements within your dockerfile though
 
 #### Running non-interactively using Sbatch/Slurm:
-View the `sbatch_example.slurm` file in the `test_harness/scripts/examples` folder. As you can see the `sbatch_example.slurm` file is pretty self-explanatory.
+View the `sbatch_example.slurm` file in the `example_scripts` folder. As you can see the `sbatch_example.slurm` file is pretty self-explanatory.
 In the last line you can see the command that runs `example_script.py`. In this case there is just one command being run, but you can add more if you would like.
 Just keep in mind that the commands will be run in serial on a single node. To access multiple nodes and parallelization, you can either manually kick off more
 jobs in the same way, or you can use launcher (see below for the guide to that).
@@ -90,16 +93,16 @@ jobs in the same way, or you can use launcher (see below for the guide to that).
 2. You can view the progress of your job in realtime by using `tail -f [name_of_my_job_id_file]`
 
 #### Running non-interactively using Sbatch/Slurm, combined with parallelization using Launcher and Argparse:
-Looking at the test_harness/scripts/examples` folder, there are 3 files that are used for this:
+Looking at the `example_scripts` folder, there are 3 files that are used for this:
 1. `example_script_argparse.py` --> the script I am running
 2. `jobfile_example` --> just a list of the jobs I want to run. Make sure you have an empty line at the end of this file or your last line won't be read!
 3. `launcher_example.slurm` --> slurm file that uses Launcher to organize and split up tasks in the `jobfile` over multiple nodes so they can run in parallel
 
 Once again you would use the `sbatch` and `tail` commands to kick off your jobs and view their progress.
 
-**Please note that if you have major changes to the codebase, you will have to reinstall setup.py. The current way to do this is to get on a
-compute node interactively using `idev`, start a singularity shell, and run `python3 setup.py install --user`. Then you can exit the shell and compute node,
-and resume using sbatch/slurm/launcher. I am working with Joe Allen to remove this minor inconvenience soon.
+** Please note that if you installed the `test-harness` package without the `-e` option,
+then if you make any major changes to the `test-harness` package, you will have to
+reinstall the package to update it.
 
 ### How It Works (Behind the Scenes)
 The Test Harness consists of several parts that work together. 
@@ -107,15 +110,23 @@ The Test Harness consists of several parts that work together.
     1. All TH-Model Classes must subclass from the abstract base classes in `test_harness_models_abstract_classes.py`. A Model Class defines how to fit and predict.
     2. Once a TH-Model Class is created (e.g. SklearnClassification), TH-Model Instances can be created with specific models passed in.
 2. `test_harness_class.py` contains the `TestHarness` class, which allows the user to add and execute different types of runs (custom, leave-one-out).
-3. `run_classes.py` defines classes for different types of runs. These are used by the `TestHarness` class to carry out its operations.
+3. `run_classes.py` defines the `BaseRun` class that is used by the `TestHarness` class to carry out runs.
 4.  Script files that run the Test Harness. This is where you implement the Test Harness and use its methods to run your models.
 
 As a user, you will mainly be concerned with the Test Harness `model classes/instances` (bullet 1 above), and the script files (bullet 4 above).
 
 
-## FAQ
-Q: Can we see other people's results and models?
-A: The TACC App for the Test Harness is currently down. We will be working to get it up soon and that will allow for this.
+## Results and Leaderboards
+By choosing an `output_location` when instantiating your `TestHarness` object,
+you can dictate where the results of your runs go. For example if you want the results of
+a certain set of runs to be isolated from other runs, you can set a previously unused
+path to be your `output_location`.
+
+For submitting to the SD2-wide leaderboard, set your `output_location` to the following path
+in sd2e-community depending on your challenge problem:
+
+1. Protein Design: `/sd2e-community/protein-design/test-harness-outputs`
+2. Perovskites: tbd
 
 
 
