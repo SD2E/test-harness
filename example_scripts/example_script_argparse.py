@@ -3,8 +3,8 @@ import argparse
 import pandas as pd
 from pathlib import Path
 from sklearn.model_selection import train_test_split
-from test_harness.test_harness_class import TestHarness
-from test_harness.th_model_instances.hamed_models.random_forest_classification import random_forest_classification
+from harness.test_harness_class import TestHarness
+from harness.th_model_instances.hamed_models.random_forest_classification import random_forest_classification
 
 # At some point in your script you will need to define your data. For most cases the data will come from the `versioned_datasets` repo,
 # which is why in this example script I am pointing to the data folder in the `versioned-datasets` repo:

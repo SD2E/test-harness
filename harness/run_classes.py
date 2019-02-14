@@ -17,9 +17,9 @@ from harness.utils.names import Names
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
 
 import shap
-import BlackBoxAuditing as BBA
+# import BlackBoxAuditing as BBA
 from operator import itemgetter
-from BlackBoxAuditing.model_factories.SKLearnModelVisitor import SKLearnModelVisitor
+# from BlackBoxAuditing.model_factories.SKLearnModelVisitor import SKLearnModelVisitor
 
 
 
