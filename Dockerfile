@@ -21,3 +21,8 @@ RUN pip install hashids
 RUN pip install BlackBoxAuditing
 RUN pip install eli5
 RUN pip install hyperas
+
+ADD scripts/perovskite_test_harness.py scripts/
+
+#RUN cd test-harness && python3 setup.py install
+CMD [ "python3", "scripts/perovskite_test_harness.py" ]
