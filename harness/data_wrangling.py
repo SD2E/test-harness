@@ -52,7 +52,7 @@ def encode_dssps(df, max_residues, col_to_encode='dssp', seq_col='sequence', pad
             code[i, structure_dict[dssp[i]]] = 1.0
         return [code]
     
-    df['encoded_dssp'] = df[col_to_encode].apply(lambda x: make_struct(x[col_to_encode], x[seq_col]))
+    df['encoded_dssp'] = df.apply(lambda x: make_struct(x[col_to_encode], x[seq_col]), axis=1)
     # shuffle training data, because validation data are selected from end before shuffling:
     df = df.sample(frac=1)
     
@@ -78,7 +78,7 @@ def encode_cnn_v2_targets(df,
                 ),
                 row['encoded_dssp']
                )
-    df = df.apply(make_target, axis=1)
+    df['cnn_v2_targets'] = df.apply(make_target, axis=1)
     
     return df
     

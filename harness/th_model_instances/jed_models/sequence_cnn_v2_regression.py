@@ -20,6 +20,10 @@ class KerasRegressionTwoDimensional(KerasRegression):
         self.verbose = verbose
 
     def _fit(self, X, y):
+        X = np.expand_dims(np.stack([x for x in X.values]), 3)
+        y_stability = np.stack([x[0] for x in y.values], axis=1).T
+        y_dssp = np.squeeze(np.stack([x[1] for x in y.values], axis=1))
+        y = [y_stability, y_dssp]
         val_size = int(X.shape[0]*.1)
         Xv = X[-val_size:, :, :, :]
         yv = [y[0][-val_size:, :], y[1][-val_size:, :, :]]
@@ -117,7 +121,7 @@ class KerasRegressionTwoDimensional(KerasRegression):
         os.remove(checkpoint_filepath)
 
     def _predict(self, X):
-        return self.model.predict(np.expand_dims(np.stack([x[0] for x in X.values]), 3))
+        return self.model.predict(np.expand_dims(np.stack([x for x in X.values]), 3))
 
 
 def sequence_only_cnn_v2(max_residues, padding):
