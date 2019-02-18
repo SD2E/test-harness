@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = '3.2'
+VERSION = '3.2.1'
 DISTNAME = 'test-harness'
 DESCRIPTION = 'A tool for collaboration on models and comparison of model results.'
 with open('README.md') as f:

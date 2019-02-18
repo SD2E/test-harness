@@ -21,6 +21,3 @@ RUN pip install hashids
 RUN pip install BlackBoxAuditing
 RUN pip install eli5
 RUN pip install hyperas
-
-#ADD protein-design /protein-design
-#RUN cd /protein-design && python3 setup.py install
