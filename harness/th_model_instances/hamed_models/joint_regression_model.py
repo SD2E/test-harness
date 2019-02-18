@@ -33,9 +33,9 @@ class KerasJointRegression(KerasRegression):
         return self.model.predict([X1, X2])
 
 
-def joint_network(max_residues, padding):
+def joint_network(max_residues, padding, num_rosetta_inputs=113):
     sequence_inputs = Input(shape=(23, max_residues + 2 + 2 * padding, 1), name="sequence_inputs")  # 22 amino acids plus null/beginning/end
-    rosetta_inputs = Input(shape=(113,), name="rosetta_inputs")
+    rosetta_inputs = Input(shape=(num_rosetta_inputs,), name="rosetta_inputs")
 
     # creating sequence layers
     sequence_model = Conv2D(400, (23, 5), kernel_regularizer=l2(.0), activation='relu')(sequence_inputs)
@@ -52,7 +52,7 @@ def joint_network(max_residues, padding):
     # sequence_model = Model(inputs=sequence_inputs, outputs=sequence_model)
 
     # creating rosetta layers
-    rosetta_model = Dense(units=113, activation="relu")(rosetta_inputs)
+    rosetta_model = Dense(units=num_rosetta_inputs, activation="relu")(rosetta_inputs)
     rosetta_model = Dense(units=80, activation="relu")(rosetta_model)
     rosetta_model = Dropout(0.019414354060286951)(rosetta_model)
     rosetta_model = Dense(units=73, activation="relu")(rosetta_model)
