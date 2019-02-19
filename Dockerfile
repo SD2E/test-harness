@@ -23,5 +23,6 @@ RUN pip install hashids
 RUN pip install BlackBoxAuditing
 RUN pip install eli5
 RUN pip install hyperas
+RUN pip install pyyaml
 
 ADD scripts/perovskite_test_harness.py /scripts/

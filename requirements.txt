@@ -12,3 +12,4 @@ html5lib
 eli5
 hyperas
 seaborn
+pyyaml
