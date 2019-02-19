@@ -24,4 +24,4 @@ RUN pip install BlackBoxAuditing
 RUN pip install eli5
 RUN pip install hyperas
 
-ADD scripts/perovskite_test_harness.py scripts/
+ADD scripts/perovskite_test_harness.py /scripts/
