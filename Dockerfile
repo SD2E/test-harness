@@ -3,6 +3,7 @@ FROM gzynda/tacc-maverick-ml:latest
 ENV LD_LIBRARY_PATH "/opt/conda/lib/:$LD_LIBRARY_PATH"
 ENV LD_LIBRARY_PATH "/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH"
 ENV LD_LIBRARY_PATH "/usr/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH"
+ENV LD_LIBRARY_PATH "/usr/local/cuda-8.0/targets/x86_64-linux/lib/stubs/:$LD_LIBRARY_PATH"
 
 RUN apt-get update
 RUN apt-get --assume-yes install libgl1
@@ -11,6 +12,7 @@ RUN apt-get --assume-yes install xcb
 
 RUN conda update scikit-learn
 
+# todo: combine lines to make fewer layers
 RUN pip install --upgrade pip
 RUN pip install scikit-learn --upgrade
 RUN pip install rfpimp
@@ -23,6 +25,3 @@ RUN pip install eli5
 RUN pip install hyperas
 
 ADD scripts/perovskite_test_harness.py scripts/
-
-#RUN cd test-harness && python3 setup.py install
-CMD [ "python3", "scripts/perovskite_test_harness.py" ]

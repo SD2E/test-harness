@@ -10,20 +10,34 @@
   "defaultNodeCount": 1,
   "defaultQueue": "normal",
   "label": "{{ date_time.iso8601_micro }}",
-  "modules": ["load tacc-singularity"],
+  "modules": [
+    "load tacc-singularity"
+  ],
   "shortDescription": "{{ app.description }}",
   "templatePath": "runner-template.sh",
   "testPath": "tester.sh",
   "inputs": [],
-  "parameters": [{
-    "id": "CONTAINER_IMAGE",
-    "value": {
-      "default": "{{ docker.organization }}/{{ docker.repo }}:{{ docker.tag }}",
-      "description": "Container Image. Do not edit.",
-      "type": "string",
-      "visible": false,
-      "required": true
+  "parameters": [
+    {
+      "id": "CONTAINER_IMAGE",
+      "value": {
+        "default": "{{ docker.organization }}/{{ docker.repo }}:{{ docker.tag }}",
+        "description": "Container Image. Do not edit.",
+        "type": "string",
+        "visible": false,
+        "required": true
+      }
+    },
+    {
+      "id": "git_hash",
+      "value": {
+        "default": null,
+        "description": "7 character git hash string",
+        "type": "string",
+        "visible": true,
+        "required": true
+      }
     }
-  }],
+  ],
   "outputs": []
 }
