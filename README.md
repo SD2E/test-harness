@@ -11,19 +11,20 @@ README Last Updated by Hamed on 2/13/19
 4. Automated selection of future experiments to run (coming soon for protein design and perovskites)
 
 ## Using the Test Harness
-You can use the Test Harness locally or with TACC resources such as Maverick.
+You can use the Test Harness locally or with TACC resources such as Maverick2.
 
 Python 3 should be used when using the Test Harness.
 
 ### Installation
 1. Clone this repository into the environment of your choice (directory, conda env, virtualenv, etc)
 2. Using command-line, navigate to the directory in which you cloned this repo (not inside the repo itself).
-3. Run `pip install test-harness` or `pip install -e test-harness` .
+3. Run `pip3 install test-harness` or `pip3 install -e test-harness` .
 This will install the `test-harness` package and make it visible to all other repositories/projects
 you have in the current environment. The `-e` option stands for "editable". This will install the package
 in a way where any local changes to the package will automatically be reflected in your environment.
 See [this link](https://stackoverflow.com/questions/41535915/python-pip-install-from-local-dir/41536128)
-for more details.
+for more details. Note: for some reason I cannot install the package unless I use the `-e` option on Maverick2.
+In addition you must include `--user`: `pip3 install -e test-harness --user`. 
 
 
 ### Running The Test Harness
@@ -58,10 +59,10 @@ Feature Extraction results are saved in the file `feature_importances.csv` in th
 **Note**: In a test that I ran, I got significantly different results from the two different implementations of permutation importance: this needs to be investigated.
 
 
-### Maverick Instructions:
+### Maverick2 Instructions:
 
 #### Setup:
-1. `ssh _____@maverick.tacc.utexas.edu`
+1. `ssh _____@maverick2.tacc.utexas.edu`
 2. Enter user/pass/auth-code
 3. `module load tacc-singularity/2.6.0`
     1. Not necessary if you make singularity part of your default set of modules using "module save"
@@ -81,7 +82,7 @@ Feature Extraction results are saved in the file `feature_importances.csv` in th
 
 Note: if you try to install things within the singularity container,
 you probably will have to add the “--user” parameter at the end,
-e.g. `pip install pandas --user`. Ideally you would install all requirements within your dockerfile though
+e.g. `pip3 install pandas --user`. Ideally you would install all requirements within your dockerfile though
 
 #### Running non-interactively using Sbatch/Slurm:
 View the `sbatch_example.slurm` file in the `example_scripts` folder. As you can see the `sbatch_example.slurm` file is pretty self-explanatory.
