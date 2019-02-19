@@ -23,8 +23,9 @@ This will install the `test-harness` package and make it visible to all other re
 you have in the current environment. The `-e` option stands for "editable". This will install the package
 in a way where any local changes to the package will automatically be reflected in your environment.
 See [this link](https://stackoverflow.com/questions/41535915/python-pip-install-from-local-dir/41536128)
-for more details. Note: for some reason I cannot install the package unless I use the `-e` option on Maverick2.
-In addition you must include `--user`: `pip3 install -e test-harness --user`. 
+for more details. 
+
+**Note**: for some reason I cannot install the package on Maverick2 unless I use the `-e` option and also `--user`: `pip3 install -e test-harness --user`
 
 
 ### Running The Test Harness
