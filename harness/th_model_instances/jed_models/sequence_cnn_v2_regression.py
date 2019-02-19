@@ -1,6 +1,7 @@
 from harness.th_model_classes.class_keras_regression import KerasRegression
 
 import numpy as np
+from keras import losses
 from keras.models import Model
 from keras.layers import Dense, Input
 from keras.layers.core import Dropout, Flatten
@@ -13,11 +14,12 @@ import os
 
 
 class KerasRegressionTwoDimensional(KerasRegression):
-    def __init__(self, model, model_description, epochs=25, batch_size=128, verbose=0):
+    def __init__(self, model, model_description, epochs=25, batch_size=128, verbose=0, padding=14):
         super(KerasRegressionTwoDimensional, self).__init__(model, model_description)
         self.epochs = epochs
         self.batch_size = batch_size
         self.verbose = verbose
+        self.padding = padding
 
     def _fit(self, X, y):
         # Pulling out the zeroth item from each element because X, y are dataframes and 
@@ -34,6 +36,9 @@ class KerasRegressionTwoDimensional(KerasRegression):
 
         def data_gen(batch_size):
             batch_ind = 0
+            amino_dict = dict(zip(
+                ['A', 'R', 'N', 'D', 'C', 'E', 'Q', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V',
+                 'X', 'J', 'O'], range(23)))  # 'X' means nothing, 'J' means beginning, 'O' means end
             while True:
                 xi = randrange(X.shape[0] - batch_size)
                 if batch_ind % batch_size == 0:
@@ -43,8 +48,8 @@ class KerasRegressionTwoDimensional(KerasRegression):
                 x = X[xi, :, :, :]
                 y0 = y[0][xi, :]
                 y1 = y[1][xi, :, :]
-                minshift = np.argmax(x[amino_dict['O'], :, :]) - x.shape[1] + PADDING
-                maxshift = np.argmax(x[amino_dict['J'], :, :]) - PADDING
+                minshift = np.argmax(x[amino_dict['O'], :, :]) - x.shape[1] + self.padding
+                maxshift = np.argmax(x[amino_dict['J'], :, :]) - self.padding
                 shift = randrange(minshift, maxshift) + 1 # +1 is because we want to be able to shift maxshift (putting the 'J' at the beginning) but not minshift (putting the 'O' wrapped around and at the beginning - we want the farthest rightward shift possible to put the 'O' at the end)
                 x_ret += [np.roll(x, shift, axis=1)]
                 y_ret[0] += [y0]
@@ -195,5 +200,5 @@ def sequence_only_cnn_v2(max_residues, padding):
     comp_model.compile(optimizer='adadelta', loss=loss, loss_weights=loss_weights)
 
     mr = KerasRegressionTwoDimensional(model=model, model_description='Sequence CNN v2 regressor: 400x5->200x9->100x17->80->40->1',
-                                       batch_size=128, epochs=50)
+                                       batch_size=128, epochs=50, padding=padding)
     return mr
