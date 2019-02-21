@@ -23,6 +23,8 @@ class KerasRegressionTwoDimensional(KerasRegression):
         checkpoint_callback = ModelCheckpoint(checkpoint_filepath, monitor='val_loss', save_best_only=True)
         stopping_callback = EarlyStopping(monitor='val_loss', min_delta=0, patience=3)
         callbacks_list = [checkpoint_callback, stopping_callback]
+        # Pulling out the zeroth item from each element because X is a dataframe and 
+        # so each item in X.values is a list of length 1. Same for _predict, below.
         self.model.fit(np.expand_dims(np.stack([x[0] for x in X.values]), 3), y, validation_split=0.1,
                        epochs=self.epochs, batch_size=self.batch_size, verbose=self.verbose, callbacks=callbacks_list)
         self.model.load_weights(checkpoint_filepath)
