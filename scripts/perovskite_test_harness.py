@@ -11,17 +11,16 @@ import yaml
 import os
 
 import requests
-import sklearn
-import tensorflow
 
 
 PEROVSKITE_VERSIONED_DATA_DIR = '/work/projects/SD2E-Community/prod/data/versioned-dataframes/perovskite'
 
 parser = argparse.ArgumentParser()
-parser.add_argument('commit_hash', help='First 7 characters of versioned data commit hash')
+parser.add_argument('commit_hash', default='master', help='First 7 characters of versioned data commit hash')
 
 
 def get_manifest_from_gitlab_api(commit_id):
+    # todo: oops, committed this.  Need to revoke, but leaving for testing
     auth_token = '4a8751b83c9744234367b52c58f4c46a53f5d0e0225da3f9c32ed238b7f82a69'
     headers = {"Authorization": "Bearer {}".format(auth_token)}
     # this is the API call for the versioned data repository.  It gets the raw data file.
@@ -37,22 +36,25 @@ def get_manifest_from_gitlab_api(commit_id):
     return perovskite_manifest
 
 
-if __name__ == '__main__':
-    with open('test_me.txt', 'w') as fout:
-        fout.write('hello')
+def file_is_training_data(file_name):
+    return 'perovskitedata' in file_name
 
+
+if __name__ == '__main__':
     args = parser.parse_args()
     commit_id = args.commit_hash
-    print(args.commit_hash)
     perovskite_manifest = get_manifest_from_gitlab_api(commit_id)
     print(perovskite_manifest)
 
+    # todo: shutils make copy of the file to local dir, use that
     for file_name in perovskite_manifest['files']:
-        file_path = os.path.join(PEROVSKITE_VERSIONED_DATA_DIR, file_name)
-        print(file_path)
-        with open(file_path, 'r') as fin:
-            for i in range(10):
-                print(fin.readline())
+        if file_is_training_data(file_name):
+            file_path = os.path.join(PEROVSKITE_VERSIONED_DATA_DIR, file_name)
+            print(file_path)
+            # do we need to make sure we can't write/mess up any files here?
+            # It'd sure be nice to have a read-only service account...
+            with open(file_path, 'r') as fin:
+                for i in range(10):
+                    print(fin.readline())
 
     print("I finished the perovskite test harness script")
-
