@@ -66,7 +66,7 @@ Feature Extraction results are saved in the file `feature_importances.csv` in th
 3. `module load tacc-singularity/2.6.0`
     1. Not necessary if you make singularity part of your default set of modules using "module save"
 4. Only do these ONCE: first get on a compute node by using the `idev` command. Then run `singularity pull docker://eram5/test-harness:3.2`
-    1. This is only needed the first time you’re pulling the image, or if you want to pull an updated version of the image.
+    1. This is only needed the first time you're pulling the image, or if you want to pull an updated version of the image.
     2. This will build a singularity image from the docker container and store it in a ".simg" file under singularity_cache
     3. The path to the ".simg" file will be printed out, make sure to save the path for everytime you need to kick off a singularity shell!
 
@@ -80,7 +80,7 @@ Feature Extraction results are saved in the file `feature_importances.csv` in th
     2. This starts an interactive singularity shell and places you within it
 
 Note: if you try to install things within the singularity container,
-you probably will have to add the “--user” parameter at the end,
+you probably will have to add the "--user" parameter at the end,
 e.g. `pip install pandas --user`. Ideally you would install all requirements within your dockerfile though
 
 #### Running non-interactively using Sbatch/Slurm:
