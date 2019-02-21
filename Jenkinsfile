@@ -20,21 +20,26 @@ pipeline {
 
     }
     stages {
-        stage('Run test sbatch') {
+
+        stage('Run perovskite test harness') {
+            when {
+                environment name:'gitlabActionType', value:'PUSH'
+            }
             steps {
-                sh 'echo "running test harness script"'
+                sh 'echo "running perovskite test harnesst"'
                 sh 'pip install -r requirements.txt --user'
-                sh "sbatch  ${WORKSPACE}/scripts/slurm_runner.slurm"
-                sh 'echo "finished running test harness hello 2"'
+                sh "python ${WORKSPACE}/scripts/perovskite_test_harness.py"
+                sh 'echo "finished running test harness script"'
             }
         }
     }
     post {
+
       failure {
-           slackSend (message: ":bomb: *${env.JOB_NAME}/${env.BUILD_NUMBER}* failed \n(<${env.BUILD_URL}|Link>)", channel: "@nleiby")
+           slackSend (message: ":bomb: *${env.JOB_NAME}/${env.BUILD_NUMBER}* failed \n(<${env.BUILD_URL}|Link>)", channel: "#versioned-datasets")
          }
       success {
-          slackSend (message: ":white_check_mark: *${env.JOB_NAME}/${env.BUILD_NUMBER}* completed \n(<${env.BUILD_URL}|Link>)", channel: "@nleiby")
+          slackSend (message: ":white_check_mark: *${env.JOB_NAME}/${env.BUILD_NUMBER}* completed \n(<${env.BUILD_URL}|Link>)", channel: "#versioned-datasets")
       }
 
     }
