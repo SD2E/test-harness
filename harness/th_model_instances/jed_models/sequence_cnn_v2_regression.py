@@ -3,7 +3,7 @@ from harness.th_model_classes.class_keras_regression import KerasRegression
 import numpy as np
 from keras import losses
 from keras.models import Model
-from keras.layers import Dense, Input
+from keras.layers import Dense, Input, Reshape, Activation, Concatenate, Lambda
 from keras.layers.core import Dropout, Flatten
 from keras.layers.convolutional import Conv2D
 from keras.regularizers import l2
