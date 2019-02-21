@@ -65,7 +65,7 @@ def joint_network(max_residues, padding, num_rosetta_inputs=113):
 
     # creating merged model
     merged_model = Model(inputs=[sequence_inputs, rosetta_inputs], output=output_layer)
-    print(merged_model.summary())
+    # print(merged_model.summary())
 
     # do we want to create a custom loss function for R^2? --> probably not because MSE will achieve the same thing because in training
     # we're not trying to compare a metric across different datasets
