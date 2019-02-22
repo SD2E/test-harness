@@ -25,8 +25,9 @@ class KerasRegressionTwoDimensional(KerasRegression):
         # Pulling out the zeroth item from each element because X, y are dataframes and 
         # so each item in _.values is a list of length 1. Same for _predict, below.
         X = np.expand_dims(np.stack([x[0] for x in X.values]), 3)
-        y_stability = np.stack([x[0][0] for x in y.values], axis=1).T
-        y_dssp = np.squeeze(np.stack([x[0][1] for x in y.values], axis=1))
+        # TODO: figure out why y is a Series and X is a pandas dataframe
+        y_stability = np.stack([x[0] for x in y.values], axis=1).T
+        y_dssp = np.squeeze(np.stack([x[1] for x in y.values], axis=1))
         y = [y_stability, y_dssp]
         val_size = int(X.shape[0]*.1)
         Xv = X[-val_size:, :, :, :]
@@ -128,7 +129,9 @@ class KerasRegressionTwoDimensional(KerasRegression):
         os.remove(checkpoint_filepath)
 
     def _predict(self, X):
-        return self.model.predict(np.expand_dims(np.stack([x[0] for x in X.values]), 3))
+        # print(self.model.predict(np.expand_dims(np.stack([x[0] for x in X.values]), 3)))
+        # print(self.model.predict(np.expand_dims(np.stack([x[0] for x in X.values]), 3))[0][:, 2])
+        return self.model.predict(np.expand_dims(np.stack([x[0] for x in X.values]), 3))[0][:, 2]
 
 
 def sequence_only_cnn_v2(max_residues, padding):
@@ -199,6 +202,6 @@ def sequence_only_cnn_v2(max_residues, padding):
     loss_weights = {"model_stability": 0.2, "model_dssp": 1.2}
     comp_model.compile(optimizer='adadelta', loss=loss, loss_weights=loss_weights)
 
-    mr = KerasRegressionTwoDimensional(model=model, model_description='Sequence CNN v2 regressor: 400x5->200x9->100x17->80->40->1',
+    mr = KerasRegressionTwoDimensional(model=comp_model, model_description='Sequence CNN v2 regressor: 400x5->200x9->100x17->80->40->1',
                                        batch_size=128, epochs=50, padding=padding)
     return mr

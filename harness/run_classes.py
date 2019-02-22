@@ -113,7 +113,7 @@ class BaseRun:
             self.feature_importances = pis.copy()
         elif method == "sklearn_rf_default":
             pass  # TODO
-        
+
         elif method == Names.BBA_AUDIT:
             data = self.perform_bba_audit(training_data=self.training_data.copy(),
                                 testing_data=self.testing_data.copy(),
@@ -122,7 +122,7 @@ class BaseRun:
                                 col_to_predict=self.col_to_predict)
             feature_importances_df = pd.DataFrame(data, columns=["Feature","Importance"])
             self.feature_importances = feature_importances_df.copy()
-            
+
         elif method == Names.SHAP_AUDIT:
             data = self.perform_shap_audit()
             feature_importances_df = pd.DataFrame(data, columns=["Feature","Importance"])
@@ -157,7 +157,7 @@ class BaseRun:
                 totals_list[i] += fabs(val_list[i])
         means = [(feat, total / len(shap_values)) for feat, total in zip(features, totals_list)]
         mean_shaps = sorted(means, key=itemgetter(1), reverse=True)
-        print(mean_shaps)   
+        print(mean_shaps)
         return mean_shaps
 
     def perform_bba_audit(self,training_data,
@@ -168,7 +168,7 @@ class BaseRun:
         combined_df = training_data.append(testing_data)
         X = combined_df[features]
         y = pd.DataFrame(combined_df[col_to_predict],columns=[col_to_predict])
-        
+
         data = BBA.data.load_testdf_only(X, y)
         response_index = len(data[0]) - 1
         auditor = BBA.Auditor()
@@ -177,7 +177,7 @@ class BaseRun:
         print("BBA AUDITOR RESULTS:\n")
         print(auditor._audits_data["ranks"])
         return auditor._audits_data["ranks"]
-    
+
     def train_and_test_model(self):
         if self.normalize is not False:
             self._normalize_dataframes()
@@ -197,7 +197,8 @@ class BaseRun:
         if self.run_type == Names.CLASSIFICATION:
             test_df.loc[:, self.prob_predictions_col] = self.test_harness_model._predict_proba(test_df[self.feature_cols_to_use])
         elif self.run_type == Names.REGRESSION:
-            test_df[self.residuals_col] = test_df[self.col_to_predict] - test_df[self.predictions_col]
+            # test_df[self.residuals_col] = test_df[self.col_to_predict] - test_df[self.predictions_col]
+            pass
         else:
             raise ValueError(
                 "run_type must be '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
@@ -221,6 +222,8 @@ class BaseRun:
             self.untested_data_predictions = None
 
     def calculate_metrics(self):
+        cnn_targs = list(map(list, zip(*self.testing_data_predictions['cnn_v2_targets'].apply(pd.Series)[0].tolist())))[2]
+
         self.metrics_dict[Names.NUM_FEATURES_USED] = len(self.feature_cols_to_use)
         if self.feature_cols_to_normalize:
             self.metrics_dict[Names.NUM_FEATURES_NORMALIZED] = len(self.feature_cols_to_normalize)
@@ -255,8 +258,8 @@ class BaseRun:
                                                            self.testing_data_predictions[self.predictions_col])
         elif self.run_type == Names.REGRESSION:
             self.metrics_dict[Names.RMSE] = sqrt(
-                mean_squared_error(self.testing_data_predictions[self.col_to_predict], self.testing_data_predictions[self.predictions_col]))
-            self.metrics_dict[Names.R_SQUARED] = r2_score(self.testing_data_predictions[self.col_to_predict],
+                mean_squared_error(cnn_targs, self.testing_data_predictions[self.predictions_col]))
+            self.metrics_dict[Names.R_SQUARED] = r2_score(cnn_targs,
                                                           self.testing_data_predictions[self.predictions_col])
         else:
             raise TypeError("self.run_type must equal '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
