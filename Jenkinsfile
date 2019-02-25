@@ -31,8 +31,8 @@ pipeline {
             steps {
                 sh 'echo $GITLAB_API_AUTH_TOKEN'
                 sh 'echo "running perovskite test harnesst"'
-                sh 'pip install -r requirements-app.txt --user'
-                sh "python ${WORKSPACE}/scripts/perovskite_test_harness.py $GITLAB_API_AUTH_TOKEN"
+                sh 'pip3 install -r requirements-app.txt --user'
+                sh "python3 ${WORKSPACE}/scripts/perovskite_test_harness.py $GITLAB_API_AUTH_TOKEN"
                 sh 'echo "finished running test harness script"'
             }
         }
