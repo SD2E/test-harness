@@ -25,7 +25,6 @@ pipeline {
 
         stage('Run perovskite test harness') {
             when {
-            # todo: should be on merge, not push
                 environment name:'gitlabActionType', value:'PUSH'
             }
             steps {
