@@ -14,7 +14,8 @@ import os
 import requests
 
 
-LOCAL_VERSIONED_DIR_PATH_CACHE = 'local_versioned_data_dir_cache.json'
+LOCAL_VERSIONED_DIR_PATH_CACHE = 'local_versioned_data_path_cache.json'
+LOCAL_AUTH_TOKEN_CACHE = 'local_auth_token_cache.json'
 
 
 def make_cached_versioned_dir(versioned_data_path):
@@ -53,17 +54,32 @@ def get_versioned_data_dir():
 VERSIONED_DATA_DIR = get_versioned_data_dir()
 FILE_TYPE_OF_INTEREST = 'perovskitedata'
 
-parser = argparse.ArgumentParser()
-parser.add_argument('gitlab_auth', help='gitlab auth token (see readme)')
-parser.add_argument('commit_hash', const='master', nargs='?', type=str, help='First 7 characters of versioned data commit hash')
-
 
 def get_auth_token():
-    # check if auth token is provided as arg
-    # check if auth token is provided as environment variable
-    # check if auth token is cached in file
+    # # check if auth token is provided as environment variable
+    # while not os.environ.get('GITLAB_API_AUTH_TOKEN'):
+    #     # check if auth token is cached in file
+    #     if os.path.exists(LOCAL_AUTH_TOKEN_CACHE):
+    #         with open(LOCAL_VERSIONED_DIR_PATH_CACHE, 'r') as fin:
+    #             versioned_data_path = json.load(fin).get('path')
+    #         if os.path.exists(versioned_data_path):
+    #             return versioned_data_path
+    #         else:
+    #             make_cached_versioned_dir(versioned_data_path)
+    #     else:
+    #         make_cached_versioned_dir(versioned_data_path)
+    # return versioned_data_path
+    #
+
+    if os.environ.get('GITLAB_API_AUTH_TOKEN'):
+        auth_token = os.environ.get('GITLAB_API_AUTH_TOKEN')
+        print("Found auth token environment variable: %s" % auth_token)
+        return auth_token
+    #     # check if auth token is cached in file
     # offer to cache auth token in file
+    print("Unable to find auth token")
     return
+
 
 def get_manifest_from_gitlab_api(commit_id):
     # todo: oops, committed this.  Need to revoke, but leaving for testing
@@ -87,9 +103,15 @@ def file_is_training_data(file_name):
 
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--commit', help='First 7 characters of versioned data commit hash')
+    parser.add_argument('--gitlab_auth', help='gitlab auth token (see readme)')
+
     args = parser.parse_args()
-    commit_id = args.commit_hash
-    auth_token = args.gitlab_auth
+    commit_id = args.commit or 'master'
+    auth_token = args.gitlab_auth or get_auth_token()
+
     print('auth token: %s' % auth_token)
     print(commit_id)
     perovskite_manifest = get_manifest_from_gitlab_api(commit_id)
