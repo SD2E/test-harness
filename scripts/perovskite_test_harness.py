@@ -7,17 +7,63 @@ It's designed to run on TACC infrastructure, referencing file paths on their fil
 It is invoked by the test-harness-app Agave app.
 """
 import argparse
+import json
 import yaml
 import os
 
 import requests
 
 
-PEROVSKITE_VERSIONED_DATA_DIR = '/work/projects/SD2E-Community/prod/data/versioned-dataframes/perovskite'
+LOCAL_VERSIONED_DIR_PATH_CACHE = 'local_versioned_data_dir_cache.json'
+
+
+def make_cached_versioned_dir(versioned_data_path):
+    """
+    Creates a cache file to store the local path to the versioned data repo data directory
+    :param versioned_data_path:
+    :return:
+    """
+    print("Unable to find a versioned repo directory at:  {}".format(versioned_data_path))
+    versioned_data_dir = input("Enter the absolute path of your versioned-datasets folder containing data files (e.g., /Users/nick.leiby/versioned-datasets/data/): ")
+    with open(LOCAL_VERSIONED_DIR_PATH_CACHE, 'w') as fout:
+        json.dump({'path': versioned_data_dir}, fout)
+
+
+def get_versioned_data_dir():
+    """
+    Helper function to get the path to the versioned data dir depending on where the script is running
+    :return: local path to the versioned data repo data directory
+    """
+    versioned_data_path = '/work/projects/SD2E-Community/prod/data/versioned-dataframes/'
+    # check if on TACC
+    while not os.path.exists(versioned_data_path):
+        # check if running locally from cached local directory
+        if os.path.exists(LOCAL_VERSIONED_DIR_PATH_CACHE):
+            with open(LOCAL_VERSIONED_DIR_PATH_CACHE, 'r') as fin:
+                versioned_data_path = json.load(fin).get('path')
+            if os.path.exists(versioned_data_path):
+                return versioned_data_path
+            else:
+                make_cached_versioned_dir(versioned_data_path)
+        else:
+            make_cached_versioned_dir(versioned_data_path)
+    return versioned_data_path
+
+
+VERSIONED_DATA_DIR = get_versioned_data_dir()
+FILE_TYPE_OF_INTEREST = 'perovskitedata'
 
 parser = argparse.ArgumentParser()
-parser.add_argument('commit_hash', default='master', help='First 7 characters of versioned data commit hash')
+parser.add_argument('gitlab_auth', help='gitlab auth token (see readme)')
+parser.add_argument('commit_hash', const='master', nargs='?', type=str, help='First 7 characters of versioned data commit hash')
 
+
+def get_auth_token():
+    # check if auth token is provided as arg
+    # check if auth token is provided as environment variable
+    # check if auth token is cached in file
+    # offer to cache auth token in file
+    return
 
 def get_manifest_from_gitlab_api(commit_id):
     # todo: oops, committed this.  Need to revoke, but leaving for testing
@@ -37,19 +83,23 @@ def get_manifest_from_gitlab_api(commit_id):
 
 
 def file_is_training_data(file_name):
-    return 'perovskitedata' in file_name
+    return file_name.endswith('{}.csv'.format(FILE_TYPE_OF_INTEREST))
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
     commit_id = args.commit_hash
+    auth_token = args.gitlab_auth
+    print('auth token: %s' % auth_token)
+    print(commit_id)
     perovskite_manifest = get_manifest_from_gitlab_api(commit_id)
     print(perovskite_manifest)
+    perovskite_project_dir = perovskite_manifest['project name']
 
     # todo: shutils make copy of the file to local dir, use that
     for file_name in perovskite_manifest['files']:
         if file_is_training_data(file_name):
-            file_path = os.path.join(PEROVSKITE_VERSIONED_DATA_DIR, file_name)
+            file_path = os.path.join(VERSIONED_DATA_DIR, perovskite_project_dir, file_name)
             print(file_path)
             # do we need to make sure we can't write/mess up any files here?
             # It'd sure be nice to have a read-only service account...
