@@ -1,15 +1,5 @@
-keras
-tensorflow
-pandas
-tabulate
-sklearn
-lxml
-bs4
-hashids
-rfpimp
-BlackBoxAuditing
-html5lib
-eli5
-hyperas
+# not all requirements are needed to run test harness as a remote app, and some don't play well with Jenkins
+# keep all local-only requirements here, and put shared requirements in requirements-app.txt
+
+-r requirements-app.txt
 seaborn
-pyyaml
