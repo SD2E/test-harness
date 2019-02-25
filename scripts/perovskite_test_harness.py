@@ -51,9 +51,7 @@ def get_versioned_data_dir():
     return versioned_data_path
 
 
-VERSIONED_DATA_DIR = get_versioned_data_dir()
 FILE_TYPE_OF_INTEREST = 'perovskitedata'
-
 
 def get_auth_token():
     # # check if auth token is provided as environment variable
@@ -116,11 +114,12 @@ if __name__ == '__main__':
     perovskite_manifest = get_manifest_from_gitlab_api(commit_id)
     print(perovskite_manifest)
     perovskite_project_dir = perovskite_manifest['project name']
+    versioned_data_dir = get_versioned_data_dir()
 
     # todo: shutils make copy of the file to local dir, use that
     for file_name in perovskite_manifest['files']:
         if file_is_training_data(file_name):
-            file_path = os.path.join(VERSIONED_DATA_DIR, perovskite_project_dir, file_name)
+            file_path = os.path.join(versioned_data_dir, perovskite_project_dir, file_name)
             print(file_path)
             # do we need to make sure we can't write/mess up any files here?
             # It'd sure be nice to have a read-only service account...
