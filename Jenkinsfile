@@ -16,6 +16,8 @@ pipeline {
         REGISTRY_USERNAME = "sd2etest"
         REGISTRY_PASSWORD = credentials('sd2etest-dockerhub-password')
         REGISTRY_ORG      = credentials('sd2etest-dockerhub-org')
+        GITLAB_API_AUTH_TOKEN = credentials('sd2e-jenkins')
+
         PATH = "${HOME}/bin:${HOME}/sd2e-cloud-cli/bin:${env.PATH}"
 
     }
@@ -23,12 +25,14 @@ pipeline {
 
         stage('Run perovskite test harness') {
             when {
+            # todo: should be on merge, not push
                 environment name:'gitlabActionType', value:'PUSH'
             }
             steps {
+                sh 'echo $GITLAB_API_AUTH_TOKEN'
                 sh 'echo "running perovskite test harnesst"'
-                sh 'pip install -r requirements.txt --user'
-                sh "python ${WORKSPACE}/scripts/perovskite_test_harness.py"
+                sh 'pip install -r requirements-app.txt --user'
+                sh "python ${WORKSPACE}/scripts/perovskite_test_harness.py $GITLAB_API_AUTH_TOKEN"
                 sh 'echo "finished running test harness script"'
             }
         }
