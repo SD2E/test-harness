@@ -103,7 +103,6 @@ def file_is_training_data(file_name):
 
 
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--commit', help='First 7 characters of versioned data commit hash')
     parser.add_argument('--gitlab_auth', help='gitlab auth token (see readme)')
