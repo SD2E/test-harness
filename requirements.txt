@@ -3,3 +3,10 @@
 
 -r requirements-app.txt
 seaborn
+bs4
+hashids
+rfpimp
+BlackBoxAuditing
+html5lib
+eli5
+hyperas
