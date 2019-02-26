@@ -197,8 +197,7 @@ class BaseRun:
         if self.run_type == Names.CLASSIFICATION:
             test_df.loc[:, self.prob_predictions_col] = self.test_harness_model._predict_proba(test_df[self.feature_cols_to_use])
         elif self.run_type == Names.REGRESSION:
-            # test_df[self.residuals_col] = test_df[self.col_to_predict] - test_df[self.predictions_col]
-            pass
+            test_df[self.residuals_col] = test_df[self.col_to_predict] - test_df[self.predictions_col]
         else:
             raise ValueError(
                 "run_type must be '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
@@ -222,8 +221,6 @@ class BaseRun:
             self.untested_data_predictions = None
 
     def calculate_metrics(self):
-        cnn_targs = list(map(list, zip(*self.testing_data_predictions['cnn_v2_targets'].apply(pd.Series)[0].tolist())))[2]
-
         self.metrics_dict[Names.NUM_FEATURES_USED] = len(self.feature_cols_to_use)
         if self.feature_cols_to_normalize:
             self.metrics_dict[Names.NUM_FEATURES_NORMALIZED] = len(self.feature_cols_to_normalize)
@@ -258,8 +255,8 @@ class BaseRun:
                                                            self.testing_data_predictions[self.predictions_col])
         elif self.run_type == Names.REGRESSION:
             self.metrics_dict[Names.RMSE] = sqrt(
-                mean_squared_error(cnn_targs, self.testing_data_predictions[self.predictions_col]))
-            self.metrics_dict[Names.R_SQUARED] = r2_score(cnn_targs,
+                mean_squared_error(self.testing_data_predictions[self.col_to_predict], self.testing_data_predictions[self.predictions_col]))
+            self.metrics_dict[Names.R_SQUARED] = r2_score(self.testing_data_predictions[self.col_to_predict],
                                                           self.testing_data_predictions[self.predictions_col])
         else:
             raise TypeError("self.run_type must equal '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
