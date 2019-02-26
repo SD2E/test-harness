@@ -12,8 +12,10 @@ import argparse
 import yaml
 import os
 
+import pandas as pd
 import requests
 
+from scripts.perovskite_model_run import initial_perovskites_run
 
 LOCAL_VERSIONED_DIR_PATH_CACHE = 'local_versioned_data_path_cache.json'
 LOCAL_AUTH_TOKEN_CACHE = 'local_auth_token_cache.json'
@@ -122,14 +124,19 @@ if __name__ == '__main__':
     versioned_data_dir = '/work/projects/SD2E-Community/prod/data/versioned-dataframes/'
 
     # todo: shutils make copy of the file to local dir, use that
+    # do we need to make sure we can't write/mess up any files here?
+    # It'd sure be nice to have a read-only service account...
+    df = None
     for file_name in perovskite_manifest['files']:
         if file_is_training_data(file_name):
             file_path = os.path.join(versioned_data_dir, perovskite_project_dir, file_name)
-            print(file_path)
-            # do we need to make sure we can't write/mess up any files here?
-            # It'd sure be nice to have a read-only service account...
-            with open(file_path, 'r') as fin:
-                for i in range(10):
-                    print(fin.readline())
+            df = pd.read_csv(file_path,
+                             comment='#',
+                             low_memory=False)
+            print(df.head())
+
+    if df:
+        initial_perovskites_run(df)
+
 
     print("I finished the perovskite test harness script")

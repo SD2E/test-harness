@@ -3,25 +3,12 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelBinarizer
 from harness.test_harness_class import TestHarness
 from harness.th_model_instances.hamed_models.random_forest_classification import random_forest_classification
 
-VERSIONED_DATA = os.path.join(Path(__file__).resolve().parents[2], 'versioned-datasets/data')
-print("Path to data folder in the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATA))
-assert os.path.isdir(VERSIONED_DATA), "The path you gave for VERSIONED_DATA does not exist."
-print()
-
-
-def main():
-    # Reading in data from versioned-datasets repo.
-    df = pd.read_csv(os.path.join(VERSIONED_DATA, 'perovskite/experimental_run/2017-07-20-Final.experimental_run.csv'), comment='#',
-                     low_memory=False)
-
-    initial_perovskites_run(df)
-
 
 def initial_perovskites_run(df):
+    print("Starting test harness initial perovskites run")
     all_cols = df.columns.tolist()
     not_features = ['dataset', 'name', '_out_crystalscore']
     feature_cols = [c for c in all_cols if c not in not_features]
@@ -41,7 +28,7 @@ def initial_perovskites_run(df):
     col_order = list(df.columns.values)
     col_order.insert(3, col_order.pop(col_order.index('binarized_crystalscore')))
     df = df[col_order]
-    print(df)
+    print(df.head())
 
     col_to_predict = 'binarized_crystalscore'
 
@@ -60,4 +47,16 @@ def initial_perovskites_run(df):
 
 
 if __name__ == '__main__':
-    main()
+    VERSIONED_DATA = os.path.join(Path(__file__).resolve().parents[2], 'versioned-datasets/data')
+    print("Path to data folder in the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATA))
+    assert os.path.isdir(VERSIONED_DATA), "The path you gave for VERSIONED_DATA does not exist."
+
+
+    # Reading in data from versioned-datasets repo.
+    df = pd.read_csv(
+        os.path.join(VERSIONED_DATA, 'perovskite/experimental_run/2017-07-20-Final.experimental_run.csv'),
+        comment='#',
+        low_memory=False)
+
+    initial_perovskites_run(df)
+
