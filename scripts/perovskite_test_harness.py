@@ -15,7 +15,8 @@ import os
 import pandas as pd
 import requests
 
-from harness.th_model_groupings.perovskite_model_run import initial_perovskites_run
+from scripts.perovskite_model_run import initial_perovskites_run
+
 
 LOCAL_VERSIONED_DIR_PATH_CACHE = 'local_versioned_data_path_cache.json'
 LOCAL_AUTH_TOKEN_CACHE = 'local_auth_token_cache.json'
@@ -126,7 +127,6 @@ if __name__ == '__main__':
     # todo: shutils make copy of the file to local dir, use that
     # do we need to make sure we can't write/mess up any files here?
     # It'd sure be nice to have a read-only service account...
-    df = None
     for file_name in perovskite_manifest['files']:
         if file_is_training_data(file_name):
             file_path = os.path.join(versioned_data_dir, perovskite_project_dir, file_name)
@@ -135,8 +135,8 @@ if __name__ == '__main__':
                              low_memory=False)
             print(df.head())
 
-    if df:
-        initial_perovskites_run(df)
+            # todo: this should take a training df and the stateset df and return ranked predictions
+            initial_perovskites_run(df)
 
 
     print("I finished the perovskite test harness script")
