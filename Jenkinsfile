@@ -16,11 +16,7 @@ pipeline {
         REGISTRY_USERNAME = "sd2etest"
         REGISTRY_PASSWORD = credentials('sd2etest-dockerhub-password')
         REGISTRY_ORG      = credentials('sd2etest-dockerhub-org')
-        GITLAB_API_AUTH_TOKEN = withCredentials([[
-          $class: 'com.dabsquared.gitlabjenkins.connection.GitLabApiTokenImpl',
-          credentialsId: '83b032c2-f3f4-43a9-a967-d73e411543a7',
-          variable: 'GITLAB_API_TOKEN'
-        ]])
+        GITLAB_API_AUTH_TOKEN = credentials('nick-test-gitlab-api-key')
 
         PATH = "${HOME}/bin:${HOME}/sd2e-cloud-cli/bin:${env.PATH}"
 
