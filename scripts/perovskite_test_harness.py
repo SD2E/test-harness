@@ -9,7 +9,6 @@ It is invoked by the test-harness-app Agave app.
 
 
 import argparse
-import json
 import yaml
 import os
 
