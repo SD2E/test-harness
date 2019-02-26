@@ -16,7 +16,7 @@ fi
 # Usage: container_exec IMAGE COMMAND OPTIONS
 #   Example: docker run centos:7 uname -a
 #            container_exec centos:7 uname -a
-PARAMS=${git_hash}
+GIT_HASH=${git_hash}
 echo "Hello, in runner template script"
 COMMAND="python /scripts/perovskite_test_harness.py"
-container_exec ${CONTAINER_IMAGE} ${COMMAND} ${PARAMS}
+container_exec ${CONTAINER_IMAGE} ${COMMAND} --commit ${GIT_HASH}
