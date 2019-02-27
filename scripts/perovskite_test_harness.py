@@ -56,7 +56,6 @@ LOCAL_AUTH_TOKEN_CACHE = 'local_auth_token_cache.json'
 #     return versioned_data_path
 #
 
-FILE_TYPE_OF_INTEREST = 'perovskitedata'
 #
 # def get_auth_token():
 #     # # check if auth token is provided as environment variable
@@ -102,8 +101,27 @@ def get_manifest_from_gitlab_api(commit_id, auth_token):
     return perovskite_manifest
 
 
-def file_is_training_data(file_name):
-    return file_name.endswith('{}.csv'.format(FILE_TYPE_OF_INTEREST))
+def get_training_and_stateset_filenames(manifest):
+    files_of_interest = {
+        'perovskitedata': None,
+        'stateset': None
+    }
+    print(files_of_interest.items())
+    for file_name in manifest['files']:
+        for file_type, existing_filename in files_of_interest.items():
+            if file_name.endswith('{}.csv'.format(file_type)):
+                if existing_filename:
+                    raise KeyError(
+                        "More than one file found in manifest of type {}.  Manifest files: {}".format(
+                            file_type,
+                            manifest['files'])
+                    )
+                else:
+                    files_of_interest[file_type] = file_name
+                    break
+    for file_type, existing_filename in files_of_interest.items():
+        assert existing_filename is not None, "No file found in manifest for type {}".format(file_type)
+    return files_of_interest['perovskitedata'], files_of_interest['stateset']
 
 
 if __name__ == '__main__':
@@ -127,16 +145,19 @@ if __name__ == '__main__':
     # todo: shutils make copy of the file to local dir, use that
     # do we need to make sure we can't write/mess up any files here?
     # It'd sure be nice to have a read-only service account...
-    for file_name in perovskite_manifest['files']:
-        if file_is_training_data(file_name):
-            file_path = os.path.join(versioned_data_dir, perovskite_project_dir, file_name)
-            df = pd.read_csv(file_path,
-                             comment='#',
-                             low_memory=False)
-            print(df.head())
+    training_data_filename, stateset_filename = get_training_and_stateset_filenames(perovskite_manifest)
+    print(training_data_filename, stateset_filename)
 
-            # todo: this should take a training df and the stateset df and return ranked predictions
-            initial_perovskites_run(df)
+    training_data_df = pd.read_csv(os.path.join(versioned_data_dir, perovskite_project_dir, training_data_filename),
+                                   comment='#',
+                                   low_memory=False)
+    print(training_data_df.head())
 
+    stateset_df = pd.read_csv(os.path.join(versioned_data_dir, perovskite_project_dir, stateset_filename),
+                              comment='#',
+                              low_memory=False)
+    print(stateset_df.head())
 
+    # todo: this should return ranked predictions
+    initial_perovskites_run(train_set=training_data_df, state_set=stateset_df)
     print("I finished the perovskite test harness script")
