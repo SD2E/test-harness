@@ -24,10 +24,13 @@ RUN pip install BlackBoxAuditing
 RUN pip install eli5
 RUN pip install hyperas
 RUN pip install pyyaml
+RUN pip install shap
 
 ADD scripts/perovskite_test_harness.py /scripts/
 ADD scripts/perovskite_model_run.py /scripts/
+ADD harness/ /harness/
 
 ENV PYTHONPATH "${PYTHONPATH}:/scripts/"
 ENV PYTHONPATH "${PYTHONPATH}:/test-harness/"
+ENV PYTHONPATH "${PYTHONPATH}:/harness/"
 ENV PYTHONPATH "${PYTHONPATH}:/"
