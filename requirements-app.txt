@@ -1,0 +1,10 @@
+# not all requirements are needed to run test harness as a remote app, and some don't play well with Jenkins
+# keep all local-only requirements in requirements.txt, and put shared requirements here
+keras
+tensorflow
+pandas
+tabulate
+sklearn
+lxml
+pyyaml
+requests
