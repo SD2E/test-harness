@@ -10,10 +10,9 @@ from harness.th_model_instances.hamed_models.random_forest_classification import
 def initial_perovskites_run(df):
     print("Starting test harness initial perovskites run")
     all_cols = df.columns.tolist()
-    not_features = ['dataset', 'name', '_out_crystalscore']
-    feature_cols = [c for c in all_cols if c not in not_features]
-    # remove _feat_atoms feature for now because it has string values in it (e.g. "4,1")
-    feature_cols.remove('_feat_atoms')
+    feature_cols = [c for c in all_cols if ("_rxn_" in c) or ("_feat_" in c)]
+    non_numerical_cols = (df.select_dtypes('object').columns.tolist())
+    feature_cols = [c for c in feature_cols if c not in non_numerical_cols]
 
     # create binarized crystal scores because Ian said to start with binary task
     # also multiclass support needs to be added to Test Harness
@@ -28,7 +27,7 @@ def initial_perovskites_run(df):
     col_order = list(df.columns.values)
     col_order.insert(3, col_order.pop(col_order.index('binarized_crystalscore')))
     df = df[col_order]
-    print(df.head())
+    print(df)
 
     col_to_predict = 'binarized_crystalscore'
 
@@ -39,7 +38,8 @@ def initial_perovskites_run(df):
     print("initializing TestHarness object with output_location equal to {}\n".format(current_path))
     th = TestHarness(output_location=current_path)
 
-    th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train,
+    th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={},
+                  training_data=train,
                   testing_data=test, data_and_split_description="test run on perovskite data",
                   cols_to_predict=col_to_predict,
                   feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
