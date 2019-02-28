@@ -109,8 +109,8 @@ class TestHarness:
     # TODO: make feature_extraction options something like: "BBA", "permutation", and "custom", where custom means that
     # TODO: it's not a black box feature tool, but rather a specific one defined inside of the TestHarnessModel object
     def run_custom(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                   data_and_split_description, cols_to_predict, feature_cols_to_use, normalize=False, feature_cols_to_normalize=None,
-                   feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None):
+                   data_and_split_description, cols_to_predict, feature_cols_to_use, index_cols=["dataset", "name"], normalize=False,
+                   feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None):
         """
         Instantiates and runs a model on a custom train/test split
         If you pass in a list of columns to predict, a separate run will occur for each string in the list

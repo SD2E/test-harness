@@ -48,6 +48,7 @@ class BaseRun:
         self.feature_extraction = feature_extraction
         self.predict_untested_data = predict_untested_data
         self.predictions_col = "{}_predictions".format(col_to_predict)
+        self.rankings_col = "{}_rankings".format(col_to_predict)
         self.run_id = get_id()
         self.loo_dict = loo_dict
         if self.predict_untested_data is False:
@@ -209,10 +210,24 @@ class BaseRun:
         if self.predict_untested_data is not False:
             untested_df = self.predict_untested_data.copy()
             prediction_start_time = time.time()
+
             untested_df.loc[:, self.predictions_col] = self.test_harness_model._predict(untested_df[self.feature_cols_to_use])
             if self.run_type == Names.CLASSIFICATION:
                 untested_df.loc[:, self.prob_predictions_col] = \
                     self.test_harness_model._predict_proba(untested_df[self.feature_cols_to_use])
+
+            # remove all columns except for self.prediction_cols_to_keep and self.predictions_col
+
+
+            # creating rankings column based on the predictions
+            if self.run_type == Names.REGRESSION:
+                # TODO: add ranking based on pred
+            elif self.run_type == Names.CLASSIFICATION:
+                #TODO: add in ranking based on classification double sorting (pred and proba) here
+                # classification assumes that a higher score is better
+            else:
+                raise ValueError("self.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
+
             print(("Prediction time of untested data was: {}".format(time.time() - prediction_start_time)))
             untested_df.sort_values(self.predictions_col, inplace=True, ascending=False)
             # Saving untested predictions
