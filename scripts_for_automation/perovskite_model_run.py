@@ -145,8 +145,14 @@ def run_configured_test_harness_models_on_perovskites(train_set, state_set):
                       testing_data=test, data_and_split_description="test run on perovskite data",
                       cols_to_predict=col_to_predict,
                       feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
-                      feature_extraction=False, predict_untested_data=state_set)
-
+                      feature_extraction=False, predict_untested_data=state_set,
+                      index_cols=[
+                          "dataset",
+                          "name",
+                          "_rxn_M_inorganic",
+                          "_rxn_M_organic"
+                      ]
+                      )
 
 if __name__ == '__main__':
     VERSIONED_DATA = os.path.join(Path(__file__).resolve().parents[2], 'versioned-datasets/data')
