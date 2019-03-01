@@ -105,7 +105,10 @@ if __name__ == '__main__':
     stateset_hash = md5(os.path.join(versioned_data_dir, perovskite_project_dir, stateset_filename))
     crank_number = get_crank_number_from_filename(training_data_filename)
     prediction_csv_paths = get_prediction_csvs()
-    submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths, stateset_hash, commit_id)
+    submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths,
+                                                                        stateset_hash,
+                                                                        crank_number,
+                                                                        commit_id)
     for submission_path in submissions_paths:
         print("Submitting {} to escalation server".format(submission_path))
         submit_csv_to_escalation_server(submission_path, crank_number)
@@ -113,3 +116,5 @@ if __name__ == '__main__':
     print("I finished the perovskite test harness script")
 
     #
+
+

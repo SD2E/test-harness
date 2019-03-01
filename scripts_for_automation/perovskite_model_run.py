@@ -49,13 +49,13 @@ def get_prediction_csvs(predictions_csv_path=None):
 
 def select_which_predictions_to_submit(predictions_df):
     # use binarized predictions, predict as 4
-    subset = predictions_df[predictions_df[PREDICTED_OUT] == 1]
-    subset[PREDICTED_OUT] = 4
+    subset = predictions_df.loc[predictions_df[PREDICTED_OUT] == 1, :]
+    subset.loc[:, PREDICTED_OUT] = 4
     subset.sort_values(by=SCORE, inplace=True)
     return subset.head(NUM_PREDICTIONS)
 
 
-def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, stateset_hash, commit_id):
+def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, stateset_hash, crank_number, commit_id):
     submissions_paths = []
     for prediction_path in prediction_csv_paths:
         # todo: we need to know about what model this was for the notes field and such
@@ -182,7 +182,10 @@ if __name__ == '__main__':
     commit_id = 'abc12345678'
     crank_number = get_crank_number_from_filename(training_data_filename)
     prediction_csv_paths = get_prediction_csvs()
-    submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths, stateset_hash, commit_id)
+    submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths,
+                                                                        stateset_hash,
+                                                                        crank_number,
+                                                                        commit_id)
     for submission_path in submissions_paths:
         print("Submitting {} to escalation server".format(submission_path))
         submit_csv_to_escalation_server(submission_path, crank_number)
