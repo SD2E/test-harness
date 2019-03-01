@@ -43,6 +43,7 @@ class BaseRun:
         self.data_and_split_description = data_and_split_description
         self.col_to_predict = col_to_predict
         self.feature_cols_to_use = feature_cols_to_use
+        self.index_cols = index_cols
         self.normalize = normalize
         self.feature_cols_to_normalize = feature_cols_to_normalize
         self.feature_extraction = feature_extraction
@@ -216,15 +217,16 @@ class BaseRun:
                 untested_df.loc[:, self.prob_predictions_col] = \
                     self.test_harness_model._predict_proba(untested_df[self.feature_cols_to_use])
 
-            # remove all columns except for self.prediction_cols_to_keep and self.predictions_col
+            # IDEA: remove all columns except for self.index_cols and self.predictions_col. This is already done in test_harness_class.py,
+            # IDEA: but if it's done here the extra columns wouldn't have to be stored in the run_object either.
 
-
-            # creating rankings column based on the predictions
+            # creating rankings column based on the predictions. Rankings assume that a higher score is more desirable
             if self.run_type == Names.REGRESSION:
-                # TODO: add ranking based on pred
+                untested_df[self.rankings_col] = untested_df.sort_values(by=[self.predictions_col], ascending=False)[
+                                                     self.predictions_col].index + 1
             elif self.run_type == Names.CLASSIFICATION:
-                #TODO: add in ranking based on classification double sorting (pred and proba) here
-                # classification assumes that a higher score is better
+                untested_df[self.rankings_col] = untested_df.sort_values(by=[self.predictions_col, self.prob_predictions_col],
+                                                                         ascending=[False, False])[self.predictions_col].index + 1
             else:
                 raise ValueError("self.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
 

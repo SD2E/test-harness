@@ -476,15 +476,25 @@ class TestHarness:
             row_of_results = pd.DataFrame(columns=self.custom_regression_leaderboard_cols)
             row_of_results = row_of_results.append(row_values, ignore_index=True, sort=False)
         else:
-            raise ValueError()
+            raise ValueError("run_object.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
         return row_of_results
 
     def _output_run_files(self, run_object, output_path, output_data_csvs=True):
         if output_data_csvs:
-            run_object.training_data.to_csv('{}/{}'.format(output_path, 'training_data.csv'), index=False)
-            run_object.testing_data_predictions.to_csv('{}/{}'.format(output_path, 'testing_data.csv'), index=False)
+            # using index_cols and prediction/ranking cols to only output subset of dataframe
+
+            train_cols_to_output = run_object.index_cols
+            if run_object.run_type == Names.CLASSIFICATION:
+                test_cols_to_output = run_object.index_cols + [run_object.predictions_col, run_object.prob_predictions_col]
+            elif run_object.run_type == Names.REGRESSION:
+                test_cols_to_output = run_object.index_cols = [run_object.predictions_col, run_object.residuals_col]
+            else:
+                raise ValueError("run_object.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
+            run_object.training_data[train_cols_to_output].to_csv('{}/{}'.format(output_path, 'training_data.csv'), index=False)
+            run_object.testing_data_predictions[test_cols_to_output].to_csv('{}/{}'.format(output_path, 'testing_data.csv'), index=False)
             if run_object.was_untested_data_predicted is not False:
-                prediction_data_to_save = run_object.untested_data_predictions.copy()
+                pred_cols_to_output = test_cols_to_output + [run_object.rankings_col]
+                prediction_data_to_save = run_object.untested_data_predictions[pred_cols_to_output].copy()
                 prediction_data_to_save.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
         if run_object.feature_extraction is not False:
             run_object.feature_importances.to_csv('{}/{}'.format(output_path, 'feature_importances.csv'), index=False)
