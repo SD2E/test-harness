@@ -99,7 +99,7 @@ def submit_csv_to_escalation_server(submissions_file_path, crank_number):
                              # timeout=60
                              )
     print("Submitted file to submissions server")
-    print(response, response.text)
+    return response, response.text
 
 
 def get_crank_number_from_filename(training_data_filename):

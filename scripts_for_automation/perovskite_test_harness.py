@@ -111,10 +111,8 @@ if __name__ == '__main__':
                                                                         commit_id)
     for submission_path in submissions_paths:
         print("Submitting {} to escalation server".format(submission_path))
-        submit_csv_to_escalation_server(submission_path, crank_number)
+        response, response_text = submit_csv_to_escalation_server(submission_path, crank_number)
+        print("Submission result: {}".format(response_text))
 
-    print("I finished the perovskite test harness script")
-
-    #
 
 
