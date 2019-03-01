@@ -1,3 +1,4 @@
+from datetime import datetime
 import hashlib
 import os
 from pathlib import Path
@@ -13,6 +14,7 @@ from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
 
 PREDICTED_OUT = "predicted_out"
 SCORE = "score"
+# how many predictions from the test harness to send to submissions server
 NUM_PREDICTIONS = 100
 
 # compute md5 hash using small chunks
@@ -53,7 +55,7 @@ def select_which_predictions_to_submit(predictions_df):
     return subset.head(NUM_PREDICTIONS)
 
 
-def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, stateset_hash):
+def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, stateset_hash, commit_id):
     submissions_paths = []
     for prediction_path in prediction_csv_paths:
         # todo: we need to know about what model this was for the notes field and such
@@ -75,7 +77,12 @@ def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, states
         #     selected_predictions[column] = selected_predictions[column].apply(format_truncated_float)
         # 0-pad crank number if padding has been removed
         # selected_predictions['dataset'] = selected_predictions['dataset'].apply(lambda x: '{0:0>4}'.format(x))
-        submissions_file_path = os.path.join(os.path.dirname(prediction_path), "test_predictions.csv")
+        username = 'testharness'
+        submission_template_filename = '_'.join([crank_number,
+                                                 'train',
+                                                 commit_id,
+                                                 username]) + '.csv'
+        submissions_file_path = os.path.join(os.path.dirname(prediction_path), submission_template_filename)
         selected_predictions.to_csv(submissions_file_path, index=False)
         submissions_paths.append(submissions_file_path)
     return submissions_paths
@@ -86,10 +93,10 @@ def submit_csv_to_escalation_server(submissions_file_path, crank_number):
                              headers={'User-Agent': 'escalation'},
                              data={'crank': crank_number,
                                    'username': "test_harness",
-                                   'expname': "test harness automated run",
-                                   'notes': "this is a note"},
+                                   'expname': "Test harness automated run",
+                                   'notes': "Submitted at at {}".format(datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"))},
                              files={'csvfile': open(submissions_file_path, 'rb')},
-                             # timeout=600
+                             # timeout=60
                              )
     print("Submitted file to submissions server")
     print(response, response.text)
@@ -175,7 +182,7 @@ if __name__ == '__main__':
     commit_id = 'abc12345678'
     crank_number = get_crank_number_from_filename(training_data_filename)
     prediction_csv_paths = get_prediction_csvs()
-    submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths, stateset_hash)
+    submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths, stateset_hash, commit_id)
     for submission_path in submissions_paths:
         print("Submitting {} to escalation server".format(submission_path))
         submit_csv_to_escalation_server(submission_path, crank_number)
