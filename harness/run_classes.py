@@ -25,7 +25,7 @@ from operator import itemgetter
 
 class BaseRun:
     def __init__(self, test_harness_model, training_data, testing_data, data_and_split_description,
-                 col_to_predict, feature_cols_to_use, normalize, feature_cols_to_normalize,
+                 col_to_predict, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
                  feature_extraction, predict_untested_data=False, loo_dict=False):
         if isinstance(test_harness_model, ClassificationModel):
             self.run_type = Names.CLASSIFICATION
@@ -43,11 +43,13 @@ class BaseRun:
         self.data_and_split_description = data_and_split_description
         self.col_to_predict = col_to_predict
         self.feature_cols_to_use = feature_cols_to_use
+        self.index_cols = index_cols
         self.normalize = normalize
         self.feature_cols_to_normalize = feature_cols_to_normalize
         self.feature_extraction = feature_extraction
         self.predict_untested_data = predict_untested_data
         self.predictions_col = "{}_predictions".format(col_to_predict)
+        self.rankings_col = "{}_rankings".format(col_to_predict)
         self.run_id = get_id()
         self.loo_dict = loo_dict
         if self.predict_untested_data is False:
@@ -209,10 +211,25 @@ class BaseRun:
         if self.predict_untested_data is not False:
             untested_df = self.predict_untested_data.copy()
             prediction_start_time = time.time()
+
             untested_df.loc[:, self.predictions_col] = self.test_harness_model._predict(untested_df[self.feature_cols_to_use])
             if self.run_type == Names.CLASSIFICATION:
                 untested_df.loc[:, self.prob_predictions_col] = \
                     self.test_harness_model._predict_proba(untested_df[self.feature_cols_to_use])
+
+            # IDEA: remove all columns except for self.index_cols and self.predictions_col. This is already done in test_harness_class.py,
+            # IDEA: but if it's done here the extra columns wouldn't have to be stored in the run_object either.
+
+            # creating rankings column based on the predictions. Rankings assume that a higher score is more desirable
+            if self.run_type == Names.REGRESSION:
+                untested_df[self.rankings_col] = untested_df.sort_values(by=[self.predictions_col], ascending=False)[
+                                                     self.predictions_col].index + 1
+            elif self.run_type == Names.CLASSIFICATION:
+                untested_df[self.rankings_col] = untested_df.sort_values(by=[self.predictions_col, self.prob_predictions_col],
+                                                                         ascending=[False, False])[self.predictions_col].index + 1
+            else:
+                raise ValueError("self.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
+
             print(("Prediction time of untested data was: {}".format(time.time() - prediction_start_time)))
             untested_df.sort_values(self.predictions_col, inplace=True, ascending=False)
             # Saving untested predictions
