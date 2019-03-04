@@ -15,7 +15,7 @@ import os
 import pandas as pd
 import requests
 
-from scripts.perovskite_model_run import initial_perovskites_run
+from scripts_for_automation.perovskite_model_run import initial_perovskites_run
 
 
 LOCAL_VERSIONED_DIR_PATH_CACHE = 'local_versioned_data_path_cache.json'

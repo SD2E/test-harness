@@ -26,8 +26,8 @@ RUN pip install hyperas
 RUN pip install pyyaml
 RUN pip install shap
 
-ADD scripts/perovskite_test_harness.py /scripts/
-ADD scripts/perovskite_model_run.py /scripts/
+ADD scripts_for_automation /scripts/
+ADD scripts_for_automation /scripts/
 ADD harness/ /harness/
 
 ENV PYTHONPATH "${PYTHONPATH}:/scripts/"

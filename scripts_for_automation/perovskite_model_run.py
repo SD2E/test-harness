@@ -5,6 +5,7 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 from harness.test_harness_class import TestHarness
 from harness.th_model_instances.hamed_models.random_forest_classification import random_forest_classification
+from scripts_for_automation.perovskite_models_config import models_to_run
 
 
 def initial_perovskites_run(train_set, state_set):
@@ -45,12 +46,14 @@ def initial_perovskites_run(train_set, state_set):
     print("initializing TestHarness object with output_location equal to {}\n".format(current_path))
     th = TestHarness(output_location=current_path)
 
-    th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={},
-                  training_data=train,
-                  testing_data=test, data_and_split_description="test run on perovskite data",
-                  cols_to_predict=col_to_predict,
-                  feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
-                  feature_extraction=False, predict_untested_data=state_set)
+    models = models_to_run()
+    for model in models:
+        th.run_custom(function_that_returns_TH_model=model, dict_of_function_parameters={},
+                      training_data=train,
+                      testing_data=test, data_and_split_description="test run on perovskite data",
+                      cols_to_predict=col_to_predict,
+                      feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
+                      feature_extraction=False, predict_untested_data=state_set)
 
 
 if __name__ == '__main__':
