@@ -4,8 +4,7 @@ import pandas as pd
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 from harness.test_harness_class import TestHarness
-from harness.th_model_instances.hamed_models.random_forest_classification import random_forest_classification
-from scripts_for_automation.perovskite_models_config import models_to_run
+from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
 
 
 def initial_perovskites_run(train_set, state_set):
@@ -20,8 +19,6 @@ def initial_perovskites_run(train_set, state_set):
     # print(set(feature_cols).difference(set(state_set.columns.tolist())))
     # remove _rxn_temperatureC_actual_bulk column from feature_cols because it doesn't exist in state_set
     feature_cols.remove("_rxn_temperatureC_actual_bulk")
-
-
 
     # create binarized crystal scores because Ian said to start with binary task
     # also multiclass support needs to be added to Test Harness
@@ -46,8 +43,7 @@ def initial_perovskites_run(train_set, state_set):
     print("initializing TestHarness object with output_location equal to {}\n".format(current_path))
     th = TestHarness(output_location=current_path)
 
-    models = models_to_run()
-    for model in models:
+    for model in MODELS_TO_RUN:
         th.run_custom(function_that_returns_TH_model=model, dict_of_function_parameters={},
                       training_data=train,
                       testing_data=test, data_and_split_description="test run on perovskite data",
