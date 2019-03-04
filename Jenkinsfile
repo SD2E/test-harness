@@ -36,14 +36,4 @@ pipeline {
             }
         }
     }
-    post {
-
-      failure {
-           slackSend (message: ":bomb: *${env.JOB_NAME}/${env.BUILD_NUMBER}* failed \n(<${env.BUILD_URL}|Link>)", channel: "#versioned-datasets")
-         }
-      success {
-          slackSend (message: ":white_check_mark: *${env.JOB_NAME}/${env.BUILD_NUMBER}* completed \n(<${env.BUILD_URL}|Link>)", channel: "#versioned-datasets")
-      }
-
-    }
 }
