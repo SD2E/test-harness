@@ -15,7 +15,7 @@ import os
 import pandas as pd
 import requests
 
-from scripts_for_automation.perovskite_model_run import initial_perovskites_run
+from scripts_for_automation.perovskite_model_run import run_configured_test_harness_models_on_perovskites
 
 
 LOCAL_VERSIONED_DIR_PATH_CACHE = 'local_versioned_data_path_cache.json'
@@ -159,5 +159,5 @@ if __name__ == '__main__':
     print(stateset_df.head())
 
     # todo: this should return ranked predictions
-    initial_perovskites_run(train_set=training_data_df, state_set=stateset_df)
+    run_configured_test_harness_models_on_perovskites(train_set=training_data_df, state_set=stateset_df)
     print("I finished the perovskite test harness script")
