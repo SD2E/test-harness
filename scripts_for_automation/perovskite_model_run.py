@@ -7,7 +7,7 @@ from harness.test_harness_class import TestHarness
 from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
 
 
-def initial_perovskites_run(train_set, state_set):
+def run_configured_test_harness_models_on_perovskites(train_set, state_set):
     print("Starting test harness initial perovskites run")
     all_cols = train_set.columns.tolist()
     # don't worry about _calc_ columns for now, but it's in the code so they get included once the data is available
@@ -66,4 +66,4 @@ if __name__ == '__main__':
                             comment='#',
                             low_memory=False)
 
-    initial_perovskites_run(df, state_set)
+    run_configured_test_harness_models_on_perovskites(df, state_set)
