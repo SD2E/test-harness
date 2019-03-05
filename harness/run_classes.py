@@ -138,6 +138,9 @@ class BaseRun:
         From:
         https://slundberg.github.io/shap/notebooks/Census%20income%20classification%20with%20scikit-learn.html
         """
+        import warnings
+        warnings.filterwarnings('ignore')
+        
         features = self.feature_cols_to_use
         classifier = self.test_harness_model
         train_X = self.training_data[features]
@@ -163,7 +166,7 @@ class BaseRun:
         print(mean_shaps)
         
         #plots
-        output_path = "/home/jupyter/tacc-work/test-harness-v3/test-harness/scripts/estrada_runs/test_harness_results/temp_plots_folder/plots_run2/"
+        output_path = "/home/jupyter/tacc-work/test-harness-v3/test-harness/scripts/estrada_runs/test_harness_results/temp_plots_folder/plots_perovskites/"
         print("Creating SHAP plots!")
         
         #Base Values vs. Model Output for first prediction
