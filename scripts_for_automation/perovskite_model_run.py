@@ -1,10 +1,106 @@
+import hashlib
 import os
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
+import requests
 from sklearn.model_selection import train_test_split
+
 from harness.test_harness_class import TestHarness
 from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
+
+
+PREDICTED_OUT = "predicted_out"
+SCORE = "score"
+NUM_PREDICTIONS = 100
+
+# compute md5 hash using small chunks
+def md5(fname):
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
+
+def format_truncated_float(float_number, n=5):
+    # By decision, we want to output reagent values as floats truncated (not rounded!) to 5 decimal places
+    s = '{}'.format(float_number)
+    i, p, d = s.partition('.')
+    return '.'.join([i, (d+'0'*n)[:n]])
+
+
+def get_prediction_csvs(predictions_csv_path=None):
+    prediction_csv_paths = []
+    if predictions_csv_path is None:
+        runs_path = os.path.join('test_harness_results', 'runs')
+        for this_run_path in os.listdir(runs_path):
+            prediction_csv_path = os.path.join(runs_path, this_run_path, 'predicted_data.csv')
+            if os.path.exists(prediction_csv_path):
+                print("file found: ", prediction_csv_path)
+                prediction_csv_paths.append(prediction_csv_path)
+    else:
+        prediction_csv_paths.append(predictions_csv_path)
+    return prediction_csv_paths
+
+
+def select_which_predictions_to_submit(predictions_df):
+    # use binarized predictions, predict as 4
+    subset = predictions_df[predictions_df[PREDICTED_OUT] == 1]
+    subset[PREDICTED_OUT] = 4
+    subset.sort_values(by=SCORE, inplace=True)
+    return subset.head(NUM_PREDICTIONS)
+
+
+def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, stateset_hash):
+    submissions_paths = []
+    for prediction_path in prediction_csv_paths:
+        # todo: we need to know about what model this was for the notes field and such
+        columns = {"dataset": "dataset",
+                   "name": "name",
+                   "_rxn_M_inorganic": "_rxn_M_inorganic",
+                   "_rxn_M_organic": "_rxn_M_organic",
+                   "binarized_crystalscore_predictions": PREDICTED_OUT,
+                   "binarized_crystalscore_prob_predictions": SCORE}
+        df = pd.read_csv(prediction_path, comment='#')
+        df = df.filter(columns.keys())
+        df = df.rename(columns=columns)
+        df['dataset'] = stateset_hash[:11]
+        selected_predictions = select_which_predictions_to_submit(df)
+
+        # fix formatting
+        # truncate floats to 5 digits
+        # for column in ['_rxn_M_inorganic', '_rxn_M_organic']:
+        #     selected_predictions[column] = selected_predictions[column].apply(format_truncated_float)
+        # 0-pad crank number if padding has been removed
+        # selected_predictions['dataset'] = selected_predictions['dataset'].apply(lambda x: '{0:0>4}'.format(x))
+        submissions_file_path = os.path.join(os.path.dirname(prediction_path), "test_predictions.csv")
+        selected_predictions.to_csv(submissions_file_path, index=False)
+        submissions_paths.append(submissions_file_path)
+    return submissions_paths
+
+
+def submit_csv_to_escalation_server(submissions_file_path, crank_number):
+    response = requests.post("http://escalation.sd2e.org/submission",
+                             headers={'User-Agent': 'escalation'},
+                             data={'crank': crank_number,
+                                   'username': "test_harness",
+                                   'expname': "test harness automated run",
+                                   'notes': "this is a note"},
+                             files={'csvfile': open(submissions_file_path, 'rb')},
+                             # timeout=600
+                             )
+    print("Submitted file to submissions server")
+    print(response, response.text)
+
+
+def get_crank_number_from_filename(training_data_filename):
+    # Gets the challenge problem iteration number from the training data
+    crank_number = os.path.basename(training_data_filename).split('.')[0]
+    # should be of format ####
+    assert len(crank_number) == 4
+    return crank_number
 
 
 def run_configured_test_harness_models_on_perovskites(train_set, state_set):
@@ -57,8 +153,9 @@ if __name__ == '__main__':
     print("Path to data folder in the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATA))
     assert os.path.isdir(VERSIONED_DATA), "The path you gave for VERSIONED_DATA does not exist."
 
-    # Reading in data from versioned-datasets repo.
-    df = pd.read_csv(os.path.join(VERSIONED_DATA, 'perovskite/perovskitedata/0018.perovskitedata.csv'),
+    training_data_filename = 'perovskite/perovskitedata/0018.perovskitedata.csv'
+    # # Reading in data from versioned-datasets repo.
+    df = pd.read_csv(os.path.join(VERSIONED_DATA, training_data_filename),
                      comment='#',
                      low_memory=False)
 
@@ -67,3 +164,16 @@ if __name__ == '__main__':
                             low_memory=False)
 
     run_configured_test_harness_models_on_perovskites(df, state_set)
+
+    stateset_hash = md5(os.path.join(VERSIONED_DATA, 'perovskite/stateset/0018.stateset.csv'))
+    commit_id = 'abc12345678'
+    crank_number = get_crank_number_from_filename(training_data_filename)
+    prediction_csv_paths = get_prediction_csvs()
+    submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths, stateset_hash)
+    for submission_path in submissions_paths:
+        print("Submitting {} to escalation server".format(submission_path))
+        submit_csv_to_escalation_server(submission_path, crank_number)
+
+
+# todo: remove hash requirement from submission
+# round instead of truncate float
