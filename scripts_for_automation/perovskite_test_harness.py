@@ -15,72 +15,15 @@ import os
 import pandas as pd
 import requests
 
-from scripts_for_automation.perovskite_model_run import run_configured_test_harness_models_on_perovskites
+
+from scripts_for_automation.perovskite_model_run import (get_crank_number_from_filename, run_configured_test_harness_models_on_perovskites, md5,
+                                          submit_csv_to_escalation_server, build_submissions_csvs_from_test_harness_output,
+                                          get_prediction_csvs,)
 
 
 LOCAL_VERSIONED_DIR_PATH_CACHE = 'local_versioned_data_path_cache.json'
 LOCAL_AUTH_TOKEN_CACHE = 'local_auth_token_cache.json'
 
-#
-# def make_cached_versioned_dir(versioned_data_path):
-#     """
-#     Creates a cache file to store the local path to the versioned data repo data directory
-#     :param versioned_data_path:
-#     :return:
-#     """
-#     print("Unable to find a versioned repo directory at:  {}".format(versioned_data_path))
-#     # todo: separate out what runs on the agave app vs what can run locally. No input on app
-#     versioned_data_dir = input("Enter the absolute path of your versioned-datasets folder containing data files (e.g., /Users/nick.leiby/versioned-datasets/data/): ")
-#     with open(LOCAL_VERSIONED_DIR_PATH_CACHE, 'w') as fout:
-#         json.dump({'path': versioned_data_dir}, fout)
-#
-#
-# def get_versioned_data_dir():
-#     """
-#     Helper function to get the path to the versioned data dir depending on where the script is running
-#     :return: local path to the versioned data repo data directory
-#     """
-#     versioned_data_path = '/work/projects/SD2E-Community/prod/data/versioned-dataframes/'
-#     # check if on TACC
-#     while not os.path.exists(versioned_data_path):
-#         # check if running locally from cached local directory
-#         if os.path.exists(LOCAL_VERSIONED_DIR_PATH_CACHE):
-#             with open(LOCAL_VERSIONED_DIR_PATH_CACHE, 'r') as fin:
-#                 versioned_data_path = json.load(fin).get('path')
-#             if os.path.exists(versioned_data_path):
-#                 return versioned_data_path
-#             else:
-#                 make_cached_versioned_dir(versioned_data_path)
-#         else:
-#             make_cached_versioned_dir(versioned_data_path)
-#     return versioned_data_path
-#
-
-#
-# def get_auth_token():
-#     # # check if auth token is provided as environment variable
-#     # while not os.environ.get('GITLAB_API_AUTH_TOKEN'):
-#     #     # check if auth token is cached in file
-#     #     if os.path.exists(LOCAL_AUTH_TOKEN_CACHE):
-#     #         with open(LOCAL_VERSIONED_DIR_PATH_CACHE, 'r') as fin:
-#     #             versioned_data_path = json.load(fin).get('path')
-#     #         if os.path.exists(versioned_data_path):
-#     #             return versioned_data_path
-#     #         else:
-#     #             make_cached_versioned_dir(versioned_data_path)
-#     #     else:
-#     #         make_cached_versioned_dir(versioned_data_path)
-#     # return versioned_data_path
-#     #
-#
-#     if os.environ.get('GITLAB_API_AUTH_TOKEN'):
-#         auth_token = os.environ.get('GITLAB_API_AUTH_TOKEN')
-#         print("Found auth token environment variable: %s" % auth_token)
-#         return auth_token
-#     #     # check if auth token is cached in file
-#     # offer to cache auth token in file
-#     print("Unable to find auth token")
-#     return
 
 # todo: oops, committed this.  Need to revoke, but leaving for testing
 AUTH_TOKEN = '4a8751b83c9744234367b52c58f4c46a53f5d0e0225da3f9c32ed238b7f82a69'
@@ -147,12 +90,10 @@ if __name__ == '__main__':
     # It'd sure be nice to have a read-only service account...
     training_data_filename, stateset_filename = get_training_and_stateset_filenames(perovskite_manifest)
     print(training_data_filename, stateset_filename)
-
     training_data_df = pd.read_csv(os.path.join(versioned_data_dir, perovskite_project_dir, training_data_filename),
                                    comment='#',
                                    low_memory=False)
     print(training_data_df.head())
-
     stateset_df = pd.read_csv(os.path.join(versioned_data_dir, perovskite_project_dir, stateset_filename),
                               comment='#',
                               low_memory=False)
@@ -160,4 +101,18 @@ if __name__ == '__main__':
 
     # todo: this should return ranked predictions
     run_configured_test_harness_models_on_perovskites(train_set=training_data_df, state_set=stateset_df)
-    print("I finished the perovskite test harness script")
+
+    stateset_hash = md5(os.path.join(versioned_data_dir, perovskite_project_dir, stateset_filename))
+    crank_number = get_crank_number_from_filename(training_data_filename)
+    prediction_csv_paths = get_prediction_csvs()
+    submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths,
+                                                                        stateset_hash,
+                                                                        crank_number,
+                                                                        commit_id)
+    for submission_path in submissions_paths:
+        print("Submitting {} to escalation server".format(submission_path))
+        response, response_text = submit_csv_to_escalation_server(submission_path, crank_number)
+        print("Submission result: {}".format(response_text))
+
+
+
