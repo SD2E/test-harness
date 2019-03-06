@@ -34,6 +34,7 @@ def format_truncated_float(float_number, n=5):
 
 
 def get_prediction_csvs(predictions_csv_path=None):
+    # todo: need to look up current runs by id, or will submit old runs here also
     prediction_csv_paths = []
     if predictions_csv_path is None:
         runs_path = os.path.join('test_harness_results', 'runs')
@@ -188,8 +189,8 @@ if __name__ == '__main__':
                                                                         commit_id)
     for submission_path in submissions_paths:
         print("Submitting {} to escalation server".format(submission_path))
-        submit_csv_to_escalation_server(submission_path, crank_number)
-
+        response, response_text = submit_csv_to_escalation_server(submission_path, crank_number)
+        print("Submission result: {}".format(response_text))
 
 # todo: remove hash requirement from submission
 # round instead of truncate float
