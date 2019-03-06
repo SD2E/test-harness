@@ -6,7 +6,7 @@ from harness.unique_id import get_id
 from six import string_types
 from datetime import datetime
 from statistics import mean, pstdev
-from harness.run_classes import BaseRun
+from harness.run_classes import _BaseRun
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
 from harness.utils.names import Names
 
@@ -305,7 +305,7 @@ class TestHarness:
                      loo_dict=False):
         """
         1. Instantiates the TestHarnessModel object
-        2. Creates a BaseRun object and calls their train_and_test_model and calculate_metrics methods
+        2. Creates a _BaseRun object and calls their train_and_test_model and calculate_metrics methods
         3. Calls _output_results(Run Object)
 
         :param function_that_returns_TH_model:
@@ -363,15 +363,28 @@ class TestHarness:
         # TODO: add checks to ensure index_cols represent unique values in training, testing, and prediction dataframes
 
         train_df, test_df = training_data.copy(), testing_data.copy()
+        if isinstance(predict_untested_data, pd.DataFrame):
+            pred_df = predict_untested_data.copy()
+
+
+        # for each col in index_cols, create a copy with and "original_" prefix added, because later we want to
+        # output the original column that hasn't been changed by operations such as normalization
+        for col in index_cols:
+            pass
+
+
+
         # TODO sparse_cols for untested data
         if sparse_cols_to_use is not None:
             train_df, feature_cols_to_use = self._make_sparse_cols(train_df, sparse_cols_to_use, feature_cols_to_use)
             test_df = self._make_sparse_cols(test_df, sparse_cols_to_use)
 
         test_harness_model = function_that_returns_TH_model(**dict_of_function_parameters)
-        run_object = BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
-                             feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize, feature_extraction,
-                             predict_untested_data, loo_dict)
+
+        # This is the one and only time _BaseRun is invoked:
+        run_object = _BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
+                              feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize, feature_extraction,
+                              pred_df, loo_dict)
 
         # call run object methods
         start = time.time()

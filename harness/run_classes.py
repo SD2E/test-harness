@@ -22,8 +22,7 @@ from operator import itemgetter
 # from BlackBoxAuditing.model_factories.SKLearnModelVisitor import SKLearnModelVisitor
 
 
-
-class BaseRun:
+class _BaseRun:
     def __init__(self, test_harness_model, training_data, testing_data, data_and_split_description,
                  col_to_predict, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
                  feature_extraction, predict_untested_data=False, loo_dict=False):
