@@ -28,6 +28,7 @@ RUN pip install shap
 
 ADD scripts_for_automation/perovskite_test_harness.py /scripts_for_automation/
 ADD scripts_for_automation/perovskite_model_run.py /scripts_for_automation/
+ADD scripts_for_automation/perovskite_models_config.py /scripts_for_automation/
 ADD harness/ /harness/
 
 ENV PYTHONPATH "${PYTHONPATH}:/scripts/"
