@@ -110,7 +110,7 @@ The Test Harness consists of several parts that work together.
     1. All TH-Model Classes must subclass from the abstract base classes in `test_harness_models_abstract_classes.py`. A Model Class defines how to fit and predict.
     2. Once a TH-Model Class is created (e.g. SklearnClassification), TH-Model Instances can be created with specific models passed in.
 2. `test_harness_class.py` contains the `TestHarness` class, which allows the user to add and execute different types of runs (custom, leave-one-out).
-3. `run_classes.py` defines the `BaseRun` class that is used by the `TestHarness` class to carry out runs.
+3. `run_classes.py` defines the `_BaseRun` class that is used by the `TestHarness` class to carry out runs.
 4.  Script files that run the Test Harness. This is where you implement the Test Harness and use its methods to run your models.
 
 As a user, you will mainly be concerned with the Test Harness `model classes/instances` (bullet 1 above), and the script files (bullet 4 above).
