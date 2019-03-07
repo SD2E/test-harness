@@ -513,7 +513,7 @@ class TestHarness:
 
             train_df_to_output = run_object.training_data[train_cols_to_output].copy()
             for col in unchanged_index_cols:
-                train_df_to_output.rename(columns={col : col.rsplit("unchanged_")[1]}, inplace=True)
+                train_df_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
             train_df_to_output.to_csv('{}/{}'.format(output_path, 'training_data.csv'), index=False)
 
             test_df_to_output = run_object.testing_data_predictions[test_cols_to_output].copy()
