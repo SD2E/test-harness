@@ -2,13 +2,13 @@ import time
 import eli5
 import rfpimp
 import warnings
-from sklearn.exceptions import DataConversionWarning
 import pandas as pd
 import numpy as np
 from math import sqrt, fabs
 from datetime import datetime
 from sklearn import preprocessing
 from eli5.sklearn import PermutationImportance
+from sklearn.exceptions import DataConversionWarning
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
 from sklearn.metrics import average_precision_score
 from sklearn.metrics import mean_squared_error, r2_score
@@ -58,6 +58,7 @@ class _BaseRun:
         self.date_ran = datetime.now().strftime("%Y-%m-%d")
         self.time_ran = datetime.now().strftime("%H:%M:%S")
         self.metrics_dict = {}
+        self.normalization_scaler_object = None
 
     def _normalize_dataframes(self):
         warnings.simplefilter('ignore', DataConversionWarning)
@@ -75,6 +76,9 @@ class _BaseRun:
             raise ValueError("MinMax normalization hasn't been added yet")
         else:
             raise ValueError("normalize must have a value of True, 'StandardScaler', or 'MinMax'")
+
+        # saving fitted scaler as an instance variable. In test_harness_class.py this variable will be saved via joblib.
+        self.normalization_scaler_object = scaler
 
         train_df[self.feature_cols_to_normalize] = scaler.transform(train_df[self.feature_cols_to_normalize])
         test_df[self.feature_cols_to_normalize] = scaler.transform(test_df[self.feature_cols_to_normalize])

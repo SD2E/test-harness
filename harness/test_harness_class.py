@@ -6,6 +6,7 @@ from harness.unique_id import get_id
 from six import string_types
 from datetime import datetime
 from statistics import mean, pstdev
+from sklearn.externals import joblib
 from harness.run_classes import _BaseRun
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
 from harness.utils.names import Names
@@ -502,7 +503,7 @@ class TestHarness:
             # thus what is output are the original input columns and not transformed input columns (e.g. if normalization is used)
 
             unchanged_index_cols = ["unchanged_{}".format(x) for x in run_object.index_cols]
-            
+
             train_cols_to_output = unchanged_index_cols
             if run_object.run_type == Names.CLASSIFICATION:
                 test_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.prob_predictions_col]
@@ -518,7 +519,7 @@ class TestHarness:
 
             test_df_to_output = run_object.testing_data_predictions[test_cols_to_output].copy()
             for col in unchanged_index_cols:
-                test_df_to_output.rename(columns={col : col.rsplit("unchanged_")[1]}, inplace=True)
+                test_df_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
             test_df_to_output.to_csv('{}/{}'.format(output_path, 'testing_data.csv'), index=False)
 
             if run_object.was_untested_data_predicted is not False:
@@ -543,6 +544,9 @@ class TestHarness:
                 f.write(' - Path: ' + path + '\n')
                 f.write(' - Line: ' + str(line) + ',  Function: ' + str(func) + '\n')
                 f.write("\n")
+
+        if run_object.normalization_scaler_object is not None:
+            joblib.dump(run_object.normalization_scaler_object, "normalization_scalar_object.pkl")
 
     def print_leaderboards(self):
         pass
