@@ -19,7 +19,11 @@ from harness.test_harness_models_abstract_classes import ClassificationModel, Re
 import shap
 # import BlackBoxAuditing as BBA
 from operator import itemgetter
-# from BlackBoxAuditing.model_factories.SKLearnModelVisitor import SKLearnModelVisitor
+from BlackBoxAuditing.model_factories.SKLearnModelVisitor import SKLearnModelVisitor
+
+import matplotlib.pyplot as plt
+import os
+
 
 
 class _BaseRun:
@@ -140,6 +144,9 @@ class _BaseRun:
         From:
         https://slundberg.github.io/shap/notebooks/Census%20income%20classification%20with%20scikit-learn.html
         """
+        import warnings
+        warnings.filterwarnings('ignore')
+        
         features = self.feature_cols_to_use
         classifier = self.test_harness_model
         train_X = self.training_data[features]
@@ -163,6 +170,38 @@ class _BaseRun:
         means = [(feat, total / len(shap_values)) for feat, total in zip(features, totals_list)]
         mean_shaps = sorted(means, key=itemgetter(1), reverse=True)
         print(mean_shaps)
+        
+        #plots
+        output_path = "/home/jupyter/tacc-work/test-harness-v3/test-harness/scripts/estrada_runs/test_harness_results/temp_plots_folder/plots_perovskites/"
+        print("Creating SHAP plots!")
+        
+        #Base Values vs. Model Output for first prediction
+        shap.force_plot(explainer.expected_value, shap_values[0,:], test_X_df.iloc[0,:],matplotlib=True,show=False)
+        plt.savefig(os.path.join(output_path,"shap_BaseValue_ModelOutput_first_pred.jpeg"),bbox_inches="tight")
+        plt.close()
+        
+        
+        #Base Values vs. Model Output for full predictions
+        shap.force_plot(explainer.expected_value, shap_values, train_X_df,show=False)
+        plt.savefig(os.path.join(output_path,"shap_BaseValue_ModelOutput_full_preds.jpeg"),bbox_inches="tight")
+        plt.close()
+        
+        for feature in self.feature_cols_to_use:
+            #Dependencies plot
+            shap.dependence_plot(feature, shap_values, test_X_df,
+                                 interaction_index='auto',show=False)
+            plt.savefig(os.path.join(output_path,"shap_%s_DependencePlot.jpeg")%feature.upper(),bbox_inches="tight")
+            plt.close()
+            
+        #Summary of effect of feature on predictions
+        shap.summary_plot(shap_values, test_X_df,show=False)
+        plt.savefig(os.path.join(output_path,"shap_SummaryPlot.jpeg"),bbox_inches="tight")
+        plt.close()
+        
+        shap.summary_plot(shap_values, test_X_df, plot_type="bar",show=False)
+        plt.savefig(os.path.join(output_path,"shap_SummaryBarPlot.jpeg"),bbox_inches="tight")
+        plt.close()
+        
         return mean_shaps
 
     def perform_bba_audit(self,training_data,
