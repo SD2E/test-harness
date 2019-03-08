@@ -20,7 +20,7 @@ def main():
                             comment='#',
                             low_memory=False)
 
-    RUN_ID = "OmEgP97Olkbyw"
+    RUN_ID = "5ZzVXNP2ypqJY"
 
     out_files_path = "test_harness_results/runs/run_{}".format(RUN_ID)
     output_train = pd.read_csv(os.path.join(out_files_path, "training_data.csv"))
@@ -63,15 +63,19 @@ def main():
     compare_cols_of_two_equally_shaped_dataframes(input_pred, output_pred, index_cols)
 
 
-def compare_cols_of_two_equally_shaped_dataframes(df1, df2, index_cols):
-    cols_to_check = df1.columns.tolist()
-    for i in index_cols:
-        cols_to_check.remove(i)
+def compare_cols_of_two_equally_shaped_dataframes(df1, df2, index_cols, cols_to_check=None):
     merged = pd.merge(df1, df2, on=index_cols)
+
+    if cols_to_check is None:
+        cols_to_check = df1.columns.tolist()
+        for i in index_cols:
+            cols_to_check.remove(i)
 
     for col in cols_to_check:
         x = "{}_x".format(col)
-        y = "{}_x".format(col)
+        y = "{}_y".format(col)
+        merged[x] = merged[x].apply(lambda a: round(a, 10))
+        merged[y] = merged[y].apply(lambda a: round(a, 10))
         merged[col] = merged[x] - merged[y]
         print(merged[col].value_counts(dropna=False))
         print()
