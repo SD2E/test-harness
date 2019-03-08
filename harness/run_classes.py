@@ -2,13 +2,13 @@ import time
 import eli5
 import rfpimp
 import warnings
-from sklearn.exceptions import DataConversionWarning
 import pandas as pd
 import numpy as np
 from math import sqrt, fabs
 from datetime import datetime
 from sklearn import preprocessing
 from eli5.sklearn import PermutationImportance
+from sklearn.exceptions import DataConversionWarning
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
 from sklearn.metrics import average_precision_score
 from sklearn.metrics import mean_squared_error, r2_score
@@ -22,10 +22,9 @@ from operator import itemgetter
 # from BlackBoxAuditing.model_factories.SKLearnModelVisitor import SKLearnModelVisitor
 
 
-
-class BaseRun:
+class _BaseRun:
     def __init__(self, test_harness_model, training_data, testing_data, data_and_split_description,
-                 col_to_predict, feature_cols_to_use, normalize, feature_cols_to_normalize,
+                 col_to_predict, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
                  feature_extraction, predict_untested_data=False, loo_dict=False):
         if isinstance(test_harness_model, ClassificationModel):
             self.run_type = Names.CLASSIFICATION
@@ -43,11 +42,13 @@ class BaseRun:
         self.data_and_split_description = data_and_split_description
         self.col_to_predict = col_to_predict
         self.feature_cols_to_use = feature_cols_to_use
+        self.index_cols = index_cols
         self.normalize = normalize
         self.feature_cols_to_normalize = feature_cols_to_normalize
         self.feature_extraction = feature_extraction
         self.predict_untested_data = predict_untested_data
         self.predictions_col = "{}_predictions".format(col_to_predict)
+        self.rankings_col = "{}_rankings".format(col_to_predict)
         self.run_id = get_id()
         self.loo_dict = loo_dict
         if self.predict_untested_data is False:
@@ -57,6 +58,7 @@ class BaseRun:
         self.date_ran = datetime.now().strftime("%Y-%m-%d")
         self.time_ran = datetime.now().strftime("%H:%M:%S")
         self.metrics_dict = {}
+        self.normalization_scaler_object = None
 
     def _normalize_dataframes(self):
         warnings.simplefilter('ignore', DataConversionWarning)
@@ -74,6 +76,9 @@ class BaseRun:
             raise ValueError("MinMax normalization hasn't been added yet")
         else:
             raise ValueError("normalize must have a value of True, 'StandardScaler', or 'MinMax'")
+
+        # saving fitted scaler as an instance variable. In test_harness_class.py this variable will be saved via joblib.
+        self.normalization_scaler_object = scaler
 
         train_df[self.feature_cols_to_normalize] = scaler.transform(train_df[self.feature_cols_to_normalize])
         test_df[self.feature_cols_to_normalize] = scaler.transform(test_df[self.feature_cols_to_normalize])
@@ -113,7 +118,7 @@ class BaseRun:
             self.feature_importances = pis.copy()
         elif method == "sklearn_rf_default":
             pass  # TODO
-        
+
         elif method == Names.BBA_AUDIT:
             data = self.perform_bba_audit(training_data=self.training_data.copy(),
                                 testing_data=self.testing_data.copy(),
@@ -122,7 +127,7 @@ class BaseRun:
                                 col_to_predict=self.col_to_predict)
             feature_importances_df = pd.DataFrame(data, columns=["Feature","Importance"])
             self.feature_importances = feature_importances_df.copy()
-            
+
         elif method == Names.SHAP_AUDIT:
             data = self.perform_shap_audit()
             feature_importances_df = pd.DataFrame(data, columns=["Feature","Importance"])
@@ -157,7 +162,7 @@ class BaseRun:
                 totals_list[i] += fabs(val_list[i])
         means = [(feat, total / len(shap_values)) for feat, total in zip(features, totals_list)]
         mean_shaps = sorted(means, key=itemgetter(1), reverse=True)
-        print(mean_shaps)   
+        print(mean_shaps)
         return mean_shaps
 
     def perform_bba_audit(self,training_data,
@@ -168,7 +173,7 @@ class BaseRun:
         combined_df = training_data.append(testing_data)
         X = combined_df[features]
         y = pd.DataFrame(combined_df[col_to_predict],columns=[col_to_predict])
-        
+
         data = BBA.data.load_testdf_only(X, y)
         response_index = len(data[0]) - 1
         auditor = BBA.Auditor()
@@ -177,7 +182,7 @@ class BaseRun:
         print("BBA AUDITOR RESULTS:\n")
         print(auditor._audits_data["ranks"])
         return auditor._audits_data["ranks"]
-    
+
     def train_and_test_model(self):
         if self.normalize is not False:
             self._normalize_dataframes()
@@ -209,10 +214,25 @@ class BaseRun:
         if self.predict_untested_data is not False:
             untested_df = self.predict_untested_data.copy()
             prediction_start_time = time.time()
+
             untested_df.loc[:, self.predictions_col] = self.test_harness_model._predict(untested_df[self.feature_cols_to_use])
             if self.run_type == Names.CLASSIFICATION:
                 untested_df.loc[:, self.prob_predictions_col] = \
                     self.test_harness_model._predict_proba(untested_df[self.feature_cols_to_use])
+
+            # IDEA: remove all columns except for self.index_cols and self.predictions_col. This is already done in test_harness_class.py,
+            # IDEA: but if it's done here the extra columns wouldn't have to be stored in the run_object either.
+
+            # creating rankings column based on the predictions. Rankings assume that a higher score is more desirable
+            if self.run_type == Names.REGRESSION:
+                untested_df[self.rankings_col] = untested_df.sort_values(by=[self.predictions_col], ascending=False)[
+                                                     self.predictions_col].index + 1
+            elif self.run_type == Names.CLASSIFICATION:
+                untested_df[self.rankings_col] = untested_df.sort_values(by=[self.predictions_col, self.prob_predictions_col],
+                                                                         ascending=[False, False])[self.predictions_col].index + 1
+            else:
+                raise ValueError("self.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
+
             print(("Prediction time of untested data was: {}".format(time.time() - prediction_start_time)))
             untested_df.sort_values(self.predictions_col, inplace=True, ascending=False)
             # Saving untested predictions

@@ -68,7 +68,7 @@ Feature Extraction results are saved in the file `feature_importances.csv` in th
 3. `module load tacc-singularity/2.6.0`
     1. Not necessary if you make singularity part of your default set of modules using "module save"
 4. Only do these ONCE: first get on a compute node by using the `idev` command. Then run `singularity pull docker://eram5/test-harness:3.2`
-    1. This is only needed the first time you’re pulling the image, or if you want to pull an updated version of the image.
+    1. This is only needed the first time you're pulling the image, or if you want to pull an updated version of the image.
     2. This will build a singularity image from the docker container and store it in a ".simg" file under singularity_cache
     3. The path to the ".simg" file will be printed out, make sure to save the path for everytime you need to kick off a singularity shell!
 
@@ -112,7 +112,7 @@ The Test Harness consists of several parts that work together.
     1. All TH-Model Classes must subclass from the abstract base classes in `test_harness_models_abstract_classes.py`. A Model Class defines how to fit and predict.
     2. Once a TH-Model Class is created (e.g. SklearnClassification), TH-Model Instances can be created with specific models passed in.
 2. `test_harness_class.py` contains the `TestHarness` class, which allows the user to add and execute different types of runs (custom, leave-one-out).
-3. `run_classes.py` defines the `BaseRun` class that is used by the `TestHarness` class to carry out runs.
+3. `run_classes.py` defines the `_BaseRun` class that is used by the `TestHarness` class to carry out runs.
 4.  Script files that run the Test Harness. This is where you implement the Test Harness and use its methods to run your models.
 
 As a user, you will mainly be concerned with the Test Harness `model classes/instances` (bullet 1 above), and the script files (bullet 4 above).
