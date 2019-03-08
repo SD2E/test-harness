@@ -37,7 +37,7 @@ def main():
 
     index_cols = ['name', 'dataset']
 
-    scaler = joblib.load("normalization_scalar_object.pkl")
+    scaler = joblib.load("normalization_scaler_object.pkl")
 
     # check training_data:
     input_train = df.loc[df['name'].isin(normalized_train_df['name'])]

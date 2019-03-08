@@ -546,7 +546,7 @@ class TestHarness:
                 f.write("\n")
 
         if run_object.normalization_scaler_object is not None:
-            joblib.dump(run_object.normalization_scaler_object, "normalization_scalar_object.pkl")
+            joblib.dump(run_object.normalization_scaler_object, os.path.join(output_path, "normalization_scaler_object.pkl"))
 
     def print_leaderboards(self):
         pass
