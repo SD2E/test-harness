@@ -1,10 +1,10 @@
 import os
+import argparse
 import pandas as pd
 from pathlib import Path
 from sklearn.model_selection import train_test_split
-from test_harness.test_harness_class import TestHarness
-from test_harness.th_model_instances.hamed_models.random_forest_classification import random_forest_classification
-from test_harness.th_model_instances.hamed_models.random_forest_regression import random_forest_regression
+from harness.test_harness_class import TestHarness
+from harness.th_model_instances.hamed_models.random_forest_classification import random_forest_classification
 
 # At some point in your script you will need to define your data. For most cases the data will come from the `versioned_datasets` repo,
 # which is why in this example script I am pointing to the data folder in the `versioned-datasets` repo:
@@ -15,8 +15,13 @@ assert os.path.isdir(VERSIONED_DATA), "The path you gave for VERSIONED_DATA does
 print("Path to data folder in the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATA))
 print()
 
+# this is where arguments are defined.
+# argparse is useful for many situations such as using Launcher to run the same script with different arguments across multiple nodes
+parser = argparse.ArgumentParser()
+parser.add_argument('--data_split_number', required=True, help='Enter number between 1 and 7')
 
-def main():
+
+def main(args):
     # Reading in data from versioned-datasets repo.
     # Using the versioned-datasets repo is probably what most people want to do, but you can read in your data however you like.
     combined_data = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/aggregated_data/all_libs_cleaned.v3.aggregated_data.csv'),
@@ -32,17 +37,13 @@ def main():
     combined_data = combined_data[col_order]
     combined_data['stabilityscore_2classes'] = combined_data['stabilityscore'] > 1
 
-    # Using a subset of the data for testing, and making custom train/test splits.
-    data_RD_16k = combined_data.loc[combined_data['dataset_original'] == 'Rocklin'].copy()
-    train1, test1 = train_test_split(data_RD_16k, test_size=0.2, random_state=5, stratify=data_RD_16k[['topology', 'dataset_original']])
-
     # Grouping Dataframe read in for leave-one-out analysis.
     grouping_df = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/metadata/protein_groupings_by_uw.v1.metadata.csv'), comment='#',
                               low_memory=False)
     grouping_df['dataset'] = grouping_df['dataset'].replace({"longxing_untested": "t_l_untested",
                                                              "topmining_untested": "t_l_untested"})
 
-    # list of feature columns to use and/or normalize:
+    # list of feature columns to normalize:
     feature_cols = ['AlaCount', 'T1_absq', 'T1_netq', 'Tend_absq', 'Tend_netq', 'Tminus1_absq',
                     'Tminus1_netq', 'abego_res_profile', 'abego_res_profile_penalty',
                     'avg_all_frags', 'avg_best_frag', 'bb', 'buns_bb_heavy', 'buns_nonheavy',
@@ -73,7 +74,43 @@ def main():
                     'ss_sc', 'sum_best_frags', 'total_score', 'tryp_cut_sites', 'two_core_each',
                     'worst6frags', 'worstfrag']
 
-    # TestHarness usage starts here, all code before this was just data input and pre-processing.
+    # Here I am creating different data subsets based on the different rounds of protein design data we had on SD2
+    data_RD_16k = combined_data.loc[combined_data['dataset_original'] == 'Rocklin'].copy()
+    data_RD_BL_81k = combined_data.loc[
+        combined_data['dataset_original'].isin(['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
+    data_RD_BL_TA1R1_105k = combined_data.loc[
+        combined_data['dataset_original'].isin(
+            ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
+             'topology_mining_and_Longxing_chip_2'])].copy()
+    data_RD_BL_TA1R1_KJ_114k = combined_data.loc[
+        combined_data['dataset_original'].isin(
+            ['Rocklin', 'Eva1', 'Eva2', 'Inna', 'Longxing', 'topology_mining_and_Longxing_chip_1',
+             'topology_mining_and_Longxing_chip_2', 'topology_mining_and_Longxing_chip_3'])].copy()
+
+    # Here I am creating 7 train/test splits based on the different data rounds defined above
+    train1, test1 = train_test_split(data_RD_16k, test_size=0.2, random_state=5,
+                                     stratify=data_RD_16k[['topology', 'dataset_original']])
+    train2, test2 = train1.copy(), combined_data.loc[
+        combined_data['dataset_original'].isin(['Eva1', 'Eva2', 'Inna', 'Longxing'])].copy()
+    train3, test3 = train_test_split(data_RD_BL_81k, test_size=0.2, random_state=5,
+                                     stratify=data_RD_BL_81k[['topology', 'dataset_original']])
+    train4, test4 = train3.copy(), combined_data.loc[combined_data['dataset_original'].isin(
+        ['topology_mining_and_Longxing_chip_1', 'topology_mining_and_Longxing_chip_2'])].copy()
+    train5, test5 = train_test_split(data_RD_BL_TA1R1_105k, test_size=0.2, random_state=5,
+                                     stratify=data_RD_BL_TA1R1_105k[['topology', 'dataset_original']])
+    train6, test6 = train5.copy(), combined_data.loc[
+        combined_data['dataset_original'].isin(['topology_mining_and_Longxing_chip_3'])].copy()
+    train7, test7 = train_test_split(data_RD_BL_TA1R1_KJ_114k, test_size=0.2, random_state=5,
+                                     stratify=data_RD_BL_TA1R1_KJ_114k[['topology', 'dataset_original']])
+
+    # I use this dictionary to be able to pass the numbers 1-7 as argparse arguments for my script
+    train_test_dict = {"1": (train1, test1), "2": (train2, test2), "3": (train3, test3), "4": (train4, test4), "5": (train5, test5),
+                       "6": (train6, test6), "7": (train7, test7)}
+
+    # Retrieve data split argument from argparse and create train_split and test_split, which are used by the test harness runs
+    data_split_number = args.data_split_number
+    train_split = train_test_dict[data_split_number][0].copy()
+    test_split = train_test_dict[data_split_number][1].copy()
 
     # Here I set the path to the directory in which I want my results to go by setting the output_location argument. When the Test Harness
     # runs, it will create a "test_harness_results" folder inside of output_location and place all results inside the "test_harness_results"
@@ -84,17 +121,14 @@ def main():
     print()
     th = TestHarness(output_location=examples_folder_path)
 
-    th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train1,
-                  testing_data=test1, data_and_split_description="example custom run on Rocklin data",
+    th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train_split,
+                  testing_data=test_split,
+                  data_and_split_description="example argparse custom run on Rocklin data, split = {}".format(data_split_number),
                   cols_to_predict='stabilityscore_2classes',
                   feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
                   feature_extraction=False, predict_untested_data=False)
 
-    th.run_leave_one_out(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, data=data_RD_16k,
-                         data_description="example leave-one-out run on Rocklin data", grouping=grouping_df,
-                         grouping_description="grouping_v1", cols_to_predict="stabilityscore", feature_cols_to_use=feature_cols,
-                         normalize=True, feature_cols_to_normalize=feature_cols, feature_extraction=False)
-
 
 if __name__ == '__main__':
-    main()
+    args = parser.parse_args()
+    main(args)

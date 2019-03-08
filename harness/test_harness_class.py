@@ -6,7 +6,8 @@ from harness.unique_id import get_id
 from six import string_types
 from datetime import datetime
 from statistics import mean, pstdev
-from harness.run_classes import BaseRun
+from sklearn.externals import joblib
+from harness.run_classes import _BaseRun
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
 from harness.utils.names import Names
 
@@ -109,8 +110,8 @@ class TestHarness:
     # TODO: make feature_extraction options something like: "BBA", "permutation", and "custom", where custom means that
     # TODO: it's not a black box feature tool, but rather a specific one defined inside of the TestHarnessModel object
     def run_custom(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                   data_and_split_description, cols_to_predict, feature_cols_to_use, normalize=False, feature_cols_to_normalize=None,
-                   feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None):
+                   data_and_split_description, cols_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
+                   feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None):
         """
         Instantiates and runs a model on a custom train/test split
         If you pass in a list of columns to predict, a separate run will occur for each string in the list
@@ -121,6 +122,7 @@ class TestHarness:
         :param data_and_split_description:
         :param cols_to_predict:
         :param feature_cols_to_use:
+        :param index_cols:
         :param normalize:
         :param feature_cols_to_normalize:
         :param feature_extraction:
@@ -139,12 +141,12 @@ class TestHarness:
 
         for col in cols_to_predict:
             self._execute_run(function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                              data_and_split_description, col, feature_cols_to_use, normalize, feature_cols_to_normalize,
+                              data_and_split_description, col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
                               feature_extraction, predict_untested_data, sparse_cols_to_use)
 
     def run_leave_one_out(self, function_that_returns_TH_model, dict_of_function_parameters, data, data_description, grouping,
-                          grouping_description, cols_to_predict, feature_cols_to_use, normalize=False, feature_cols_to_normalize=None,
-                          feature_extraction=False):
+                          grouping_description, cols_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
+                          feature_cols_to_normalize=None, feature_extraction=False):
         """
         Splits the data into appropriate train/test splits according to the grouping dataframe, and then runs a separate instantiation of
         the passed-in model on each split.
@@ -156,6 +158,7 @@ class TestHarness:
         :param grouping_description:
         :param cols_to_predict:
         :param feature_cols_to_use:
+        :param index_cols:
         :param normalize:
         :param feature_cols_to_normalize:
         :param feature_extraction:
@@ -221,7 +224,7 @@ class TestHarness:
                             "grouping_description": grouping_description, "group_info": group_info}
 
                 self._execute_run(function_that_returns_TH_model, dict_of_function_parameters, train_split, test_split,
-                                  data_and_split_description, col, feature_cols_to_use, normalize, feature_cols_to_normalize,
+                                  data_and_split_description, col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
                                   feature_extraction, False, None, loo_dict)
 
             # summary results are calculated here, and summary leaderboards are updated
@@ -298,11 +301,12 @@ class TestHarness:
 
     # TODO: replace loo_dict with type_dict --> first entry is run type --> this will allow for more types in the future
     def _execute_run(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                     data_and_split_description, col_to_predict, feature_cols_to_use, normalize=False, feature_cols_to_normalize=None,
-                     feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None, loo_dict=False):
+                     data_and_split_description, col_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
+                     feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
+                     loo_dict=False):
         """
         1. Instantiates the TestHarnessModel object
-        2. Creates a BaseRun object and calls their train_and_test_model and calculate_metrics methods
+        2. Creates a _BaseRun object and calls their train_and_test_model and calculate_metrics methods
         3. Calls _output_results(Run Object)
 
         :param function_that_returns_TH_model:
@@ -313,6 +317,7 @@ class TestHarness:
         :param col_to_predict:
         :param feature_cols_to_use:
         :param normalize:
+        :param index_cols:
         :param feature_cols_to_normalize:
         :param feature_extraction:
         :param predict_untested_data:
@@ -340,17 +345,50 @@ class TestHarness:
             "predict_untested_data must be False or a Pandas Dataframe"
         assert (sparse_cols_to_use is None) or is_list_of_strings(sparse_cols_to_use), \
             "sparse_cols_to_use must be None, a string, or a list of strings"
+        assert (index_cols is None) or (isinstance(index_cols, list)) or (isinstance(index_cols, tuple)), \
+            "index_cols must be None or a list (or tuple) of index column names in the passed-in training, testing, and prediction data."
+        if isinstance(index_cols, tuple):
+            index_cols = list(index_cols)
+        if isinstance(index_cols, list):
+            assert is_list_of_strings(index_cols), "if index_cols is a tuple or list, it must contain only strings."
+
+        # check if index_cols exist in training, testing, and prediction dataframes:
+        assert (set(index_cols).issubset(training_data.columns.tolist())), \
+            "the strings in index_cols are not valid columns in training_data."
+        assert (set(index_cols).issubset(testing_data.columns.tolist())), \
+            "the strings in index_cols are not valid columns in testing_data."
+        if isinstance(predict_untested_data, pd.DataFrame):
+            assert (set(index_cols).issubset(predict_untested_data.columns.tolist())), \
+                "the strings in index_cols are not valid columns in predict_untested_data."
+
+        # TODO: add checks to ensure index_cols represent unique values in training, testing, and prediction dataframes
 
         train_df, test_df = training_data.copy(), testing_data.copy()
+        if isinstance(predict_untested_data, pd.DataFrame):
+            pred_df = predict_untested_data.copy()
+        else:
+            pred_df = False
+
+        # for each col in index_cols, create a copy with and "unchanged_" prefix added, because later we want to
+        # output the original column that hasn't been changed by operations such as normalization
+        for col in index_cols:
+            train_df["unchanged_{}".format(col)] = train_df[col]
+            test_df["unchanged_{}".format(col)] = test_df[col]
+            if isinstance(pred_df, pd.DataFrame):
+                pred_df["unchanged_{}".format(col)] = pred_df[col]
+
         # TODO sparse_cols for untested data
+        # TODO move sparse col code to run_classes.py
         if sparse_cols_to_use is not None:
             train_df, feature_cols_to_use = self._make_sparse_cols(train_df, sparse_cols_to_use, feature_cols_to_use)
             test_df = self._make_sparse_cols(test_df, sparse_cols_to_use)
 
         test_harness_model = function_that_returns_TH_model(**dict_of_function_parameters)
-        run_object = BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
-                             feature_cols_to_use, normalize, feature_cols_to_normalize, feature_extraction,
-                             predict_untested_data, loo_dict)
+
+        # This is the one and only time _BaseRun is invoked:
+        run_object = _BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
+                              feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize, feature_extraction,
+                              pred_df, loo_dict)
 
         # call run object methods
         start = time.time()
@@ -455,16 +493,41 @@ class TestHarness:
             row_of_results = pd.DataFrame(columns=self.custom_regression_leaderboard_cols)
             row_of_results = row_of_results.append(row_values, ignore_index=True, sort=False)
         else:
-            raise ValueError()
+            raise ValueError("run_object.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
         return row_of_results
 
     def _output_run_files(self, run_object, output_path, output_data_csvs=True):
         if output_data_csvs:
-            run_object.training_data.to_csv('{}/{}'.format(output_path, 'training_data.csv'), index=False)
-            run_object.testing_data_predictions.to_csv('{}/{}'.format(output_path, 'testing_data.csv'), index=False)
+            # using index_cols and prediction/ranking cols to only output subset of dataframe.
+            # using unchanged_index_cols to get names of columns that were created in execute_run for later output.
+            # thus what is output are the original input columns and not transformed input columns (e.g. if normalization is used)
+
+            unchanged_index_cols = ["unchanged_{}".format(x) for x in run_object.index_cols]
+
+            train_cols_to_output = unchanged_index_cols
+            if run_object.run_type == Names.CLASSIFICATION:
+                test_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.prob_predictions_col]
+            elif run_object.run_type == Names.REGRESSION:
+                test_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.residuals_col]
+            else:
+                raise ValueError("run_object.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
+
+            train_df_to_output = run_object.training_data[train_cols_to_output].copy()
+            for col in unchanged_index_cols:
+                train_df_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
+            train_df_to_output.to_csv('{}/{}'.format(output_path, 'training_data.csv'), index=False)
+
+            test_df_to_output = run_object.testing_data_predictions[test_cols_to_output].copy()
+            for col in unchanged_index_cols:
+                test_df_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
+            test_df_to_output.to_csv('{}/{}'.format(output_path, 'testing_data.csv'), index=False)
+
             if run_object.was_untested_data_predicted is not False:
-                prediction_data_to_save = run_object.untested_data_predictions.copy()
-                prediction_data_to_save.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
+                pred_cols_to_output = test_cols_to_output + [run_object.rankings_col]
+                prediction_data_to_output = run_object.untested_data_predictions[pred_cols_to_output].copy()
+                for col in unchanged_index_cols:
+                    prediction_data_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
+                prediction_data_to_output.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
         if run_object.feature_extraction is not False:
             run_object.feature_importances.to_csv('{}/{}'.format(output_path, 'feature_importances.csv'), index=False)
 
@@ -481,6 +544,9 @@ class TestHarness:
                 f.write(' - Path: ' + path + '\n')
                 f.write(' - Line: ' + str(line) + ',  Function: ' + str(func) + '\n')
                 f.write("\n")
+
+        if run_object.normalization_scaler_object is not None:
+            joblib.dump(run_object.normalization_scaler_object, os.path.join(output_path, "normalization_scaler_object.pkl"))
 
     def print_leaderboards(self):
         pass
