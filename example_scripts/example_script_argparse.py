@@ -116,10 +116,10 @@ def main(args):
     # runs, it will create a "test_harness_results" folder inside of output_location and place all results inside the "test_harness_results"
     # folder. If the "test_harness_results" folder already exists, then previous results/leaderboards will be updated.
     # In this example script, the output_location has been set to the "examples" folder to separate example results from other ones.
-    examples_folder_path = os.getcwd()
-    print("initializing TestHarness object with output_location equal to {}".format(examples_folder_path))
+    current_path = os.getcwd()
+    print("initializing TestHarness object with output_location equal to {}".format(current_path))
     print()
-    th = TestHarness(output_location=examples_folder_path)
+    th = TestHarness(output_location=current_path)
 
     th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train_split,
                   testing_data=test_split,

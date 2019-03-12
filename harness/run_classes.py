@@ -17,13 +17,12 @@ from harness.utils.names import Names
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
 
 import shap
-# import BlackBoxAuditing as BBA
+import BlackBoxAuditing as BBA
 from operator import itemgetter
 from BlackBoxAuditing.model_factories.SKLearnModelVisitor import SKLearnModelVisitor
 
 import matplotlib.pyplot as plt
 import os
-
 
 
 class _BaseRun:
@@ -63,6 +62,9 @@ class _BaseRun:
         self.time_ran = datetime.now().strftime("%H:%M:%S")
         self.metrics_dict = {}
         self.normalization_scaler_object = None
+        self.shap_values = None
+        self.shap_plots_dict = None
+        self.feature_importances = None
 
     def _normalize_dataframes(self):
         warnings.simplefilter('ignore', DataConversionWarning)
@@ -125,16 +127,17 @@ class _BaseRun:
 
         elif method == Names.BBA_AUDIT:
             data = self.perform_bba_audit(training_data=self.training_data.copy(),
-                                testing_data=self.testing_data.copy(),
-                                features=self.feature_cols_to_use,
-                                classifier=self.test_harness_model.model,
-                                col_to_predict=self.col_to_predict)
-            feature_importances_df = pd.DataFrame(data, columns=["Feature","Importance"])
+                                          testing_data=self.testing_data.copy(),
+                                          features=self.feature_cols_to_use,
+                                          classifier=self.test_harness_model.model,
+                                          col_to_predict=self.col_to_predict)
+            feature_importances_df = pd.DataFrame(data, columns=["Feature", "Importance"])
             self.feature_importances = feature_importances_df.copy()
 
         elif method == Names.SHAP_AUDIT:
+            self.shap_plots_dict = {}
             data = self.perform_shap_audit()
-            feature_importances_df = pd.DataFrame(data, columns=["Feature","Importance"])
+            feature_importances_df = pd.DataFrame(data, columns=["Feature", "Importance"])
             self.feature_importances = feature_importances_df.copy()
 
         print(("Feature Extraction time with method {0} was: {1:.2f} seconds".format(method, time.time() - start_time)))
@@ -146,72 +149,87 @@ class _BaseRun:
         """
         import warnings
         warnings.filterwarnings('ignore')
-        
+
         features = self.feature_cols_to_use
         classifier = self.test_harness_model
         train_X = self.training_data[features]
         test_X = self.testing_data[features]
 
         shap.initjs()
-        #f = lambda x: classifier._predict_proba(x)[:,1]
+        # f = lambda x: classifier._predict_proba(x)[:,1]
         f = classifier._predict_proba
-        train_X_df = pd.DataFrame(data = train_X, columns = features)
-        #train_X_df = self.training_data.copy()
-        med = train_X_df.median().values.reshape((1,train_X_df.shape[1]))
+        train_X_df = pd.DataFrame(data=train_X, columns=features)
+        # train_X_df = self.training_data.copy()
+        med = train_X_df.median().values.reshape((1, train_X_df.shape[1]))
         explainer = shap.KernelExplainer(f, med)
-        test_X_df = pd.DataFrame(data = test_X, columns = features)
-        #test_X_df = self.testing_data.copy()
+        test_X_df = pd.DataFrame(data=test_X, columns=features)
+        # test_X_df = self.testing_data.copy()
         shap_values = explainer.shap_values(test_X_df)
+
+        # store shap_values so they can be accessed and output by TestHarness class
+        self.shap_values = self.training_data[self.index_cols + features].copy()
+        self.shap_values[features] = shap_values.copy()
+
         means = []
         totals_list = [0.0 for f in features]
         for val_list in shap_values:
             for i in range(0, len(val_list)):
                 totals_list[i] += fabs(val_list[i])
         means = [(feat, total / len(shap_values)) for feat, total in zip(features, totals_list)]
+        # mean_shaps are returned for use as feature_importances
         mean_shaps = sorted(means, key=itemgetter(1), reverse=True)
-        print(mean_shaps)
-        
-        #plots
-        output_path = "/home/jupyter/tacc-work/test-harness-v3/test-harness/scripts/estrada_runs/test_harness_results/temp_plots_folder/plots_perovskites/"
-        print("Creating SHAP plots!")
-        
-        #Base Values vs. Model Output for first prediction
-        shap.force_plot(explainer.expected_value, shap_values[0,:], test_X_df.iloc[0,:],matplotlib=True,show=False)
-        plt.savefig(os.path.join(output_path,"shap_BaseValue_ModelOutput_first_pred.jpeg"),bbox_inches="tight")
-        plt.close()
-        
-        
-        #Base Values vs. Model Output for full predictions
-        shap.force_plot(explainer.expected_value, shap_values, train_X_df,show=False)
-        plt.savefig(os.path.join(output_path,"shap_BaseValue_ModelOutput_full_preds.jpeg"),bbox_inches="tight")
-        plt.close()
-        
+
+        # generating plots
+        print("Generating SHAP plots!")
+
+        plt.close("all")  # close all previous pyplot figures
+
+        # Base Values vs. Model Output for first prediction
+        shap.force_plot(explainer.expected_value, shap_values[0, :], test_X_df.iloc[0, :], matplotlib=True, show=False)
+        fig = plt.gcf()  # get current figure
+        self.shap_plots_dict["example_single_sample_force_plot"] = fig
+        plt.close("all")  # close all previous pyplot figures
+
+        # TODO: figure out how to save multiple sample force plots as variable
+        # # Base Values vs. Model Output for full predictions
+        # shap.force_plot(explainer.expected_value, shap_values, train_X_df, matplotlib=True, show=False)
+        # fig = plt.gcf()      # get current figure
+        # self.shap_plots_dict["force_plot_all_samples"] = fig
+        # plt.close("all")     # close all previous pyplot figures
+
+        # Dependencies plots
         for feature in self.feature_cols_to_use:
-            #Dependencies plot
-            shap.dependence_plot(feature, shap_values, test_X_df,
-                                 interaction_index='auto',show=False)
-            plt.savefig(os.path.join(output_path,"shap_%s_DependencePlot.jpeg")%feature.upper(),bbox_inches="tight")
-            plt.close()
-            
-        #Summary of effect of feature on predictions
-        shap.summary_plot(shap_values, test_X_df,show=False)
-        plt.savefig(os.path.join(output_path,"shap_SummaryPlot.jpeg"),bbox_inches="tight")
-        plt.close()
-        
-        shap.summary_plot(shap_values, test_X_df, plot_type="bar",show=False)
-        plt.savefig(os.path.join(output_path,"shap_SummaryBarPlot.jpeg"),bbox_inches="tight")
-        plt.close()
-        
+            shap.dependence_plot(feature, shap_values, test_X_df, interaction_index='auto', show=False)
+            fig = plt.gcf()  # get current figure
+            self.shap_plots_dict["dependence_plot_{}".format(feature.upper())] = fig
+            plt.close("all")  # close all previous pyplot figures
+
+        # Feature importance summaries in 3 plots: dot, violin, and bar
+        shap.summary_plot(shap_values, test_X_df, show=False, plot_type="dot")
+        fig = plt.gcf()  # get current figure
+        self.shap_plots_dict["summary_dot_plot"] = fig
+        plt.close("all")  # close all previous pyplot figures
+
+        shap.summary_plot(shap_values, test_X_df, show=False, plot_type="violin")
+        fig = plt.gcf()  # get current figure
+        self.shap_plots_dict["summary_violin_plot"] = fig
+        plt.close("all")  # close all previous pyplot figures
+
+        shap.summary_plot(shap_values, test_X_df, plot_type="bar", show=False)
+        fig = plt.gcf()  # get current figure
+        self.shap_plots_dict["summary_bar_plot"] = fig
+        plt.close("all")  # close all previous pyplot figures
+
         return mean_shaps
 
-    def perform_bba_audit(self,training_data,
+    def perform_bba_audit(self, training_data,
                           testing_data,
                           features,
                           classifier,
                           col_to_predict):
         combined_df = training_data.append(testing_data)
         X = combined_df[features]
-        y = pd.DataFrame(combined_df[col_to_predict],columns=[col_to_predict])
+        y = pd.DataFrame(combined_df[col_to_predict], columns=[col_to_predict])
 
         data = BBA.data.load_testdf_only(X, y)
         response_index = len(data[0]) - 1

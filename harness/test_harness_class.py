@@ -2,6 +2,7 @@ import os
 import json
 import time
 import pandas as pd
+import matplotlib.pyplot as plt
 from harness.unique_id import get_id
 from six import string_types
 from datetime import datetime
@@ -530,6 +531,19 @@ class TestHarness:
                 prediction_data_to_output.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
         if run_object.feature_extraction is not False:
             run_object.feature_importances.to_csv('{}/{}'.format(output_path, 'feature_importances.csv'), index=False)
+            if run_object.feature_extraction == Names.SHAP_AUDIT:
+                shap_path = os.path.join(output_path, 'SHAP')
+                if not os.path.exists(shap_path):
+                    os.makedirs(shap_path)
+                dependence_path = os.path.join(shap_path, 'feature_dependence_plots')
+                if not os.path.exists(dependence_path):
+                    os.makedirs(dependence_path)
+                run_object.shap_values.to_csv('{}/{}'.format(shap_path, 'shap_values.csv'), index=False)
+                for name, plot in run_object.shap_plots_dict.items():
+                    if "dependence_plot" in name:
+                        plot.savefig(os.path.join(dependence_path, name), bbox_inches="tight")
+                    else:
+                        plot.savefig(os.path.join(shap_path, name), bbox_inches="tight")
 
         test_file_name = os.path.join(output_path, 'model_information.txt')
         with open(test_file_name, "w") as f:
