@@ -167,19 +167,19 @@ if __name__ == '__main__':
     print("Path to data folder in the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATA))
     assert os.path.isdir(VERSIONED_DATA), "The path you gave for VERSIONED_DATA does not exist."
 
-    training_data_filename = 'perovskite/perovskitedata/0018.perovskitedata.csv'
+    training_data_filename = 'perovskite/perovskitedata/0019.perovskitedata.csv'
     # # Reading in data from versioned-datasets repo.
     df = pd.read_csv(os.path.join(VERSIONED_DATA, training_data_filename),
                      comment='#',
                      low_memory=False)
 
-    state_set = pd.read_csv(os.path.join(VERSIONED_DATA, 'perovskite/stateset/0018.stateset.csv'),
+    state_set = pd.read_csv(os.path.join(VERSIONED_DATA, 'perovskite/stateset/0019.stateset.csv'),
                             comment='#',
                             low_memory=False)
 
     run_configured_test_harness_models_on_perovskites(df, state_set)
 
-    stateset_hash = md5(os.path.join(VERSIONED_DATA, 'perovskite/stateset/0018.stateset.csv'))
+    stateset_hash = md5(os.path.join(VERSIONED_DATA, 'perovskite/stateset/0019.stateset.csv'))
     commit_id = 'abc12345678'
     crank_number = get_crank_number_from_filename(training_data_filename)
     prediction_csv_paths = get_prediction_csvs()
