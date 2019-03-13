@@ -82,7 +82,7 @@ Feature Extraction results are saved in the file `feature_importances.csv` in th
     2. This starts an interactive singularity shell and places you within it
 
 Note: if you try to install things within the singularity container,
-you probably will have to add the “--user” parameter at the end,
+you probably will have to add the "--user" parameter at the end,
 e.g. `pip3 install pandas --user`. Ideally you would install all requirements within your dockerfile though
 
 #### Running non-interactively using Sbatch/Slurm:
