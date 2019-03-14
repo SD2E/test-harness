@@ -18,5 +18,5 @@ fi
 #            container_exec centos:7 uname -a
 GIT_HASH=${git_hash}
 echo "Hello, in runner template script"
-COMMAND="python /scripts_for_automation/perovskite_test_harness.py"
+COMMAND="python /scripts/perovskite_test_harness.py"
 container_exec ${CONTAINER_IMAGE} ${COMMAND} --commit ${GIT_HASH}
