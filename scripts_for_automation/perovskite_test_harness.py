@@ -16,9 +16,9 @@ import pandas as pd
 import requests
 
 
-from scripts.perovskite_model_run import (get_crank_number_from_filename, run_configured_test_harness_models_on_perovskites, md5,
+from scripts_for_automation.perovskite_model_run import (get_crank_number_from_filename, run_configured_test_harness_models_on_perovskites, md5,
                                           submit_csv_to_escalation_server, build_submissions_csvs_from_test_harness_output,
-                                          get_prediction_csvs, )
+                                          get_prediction_csvs,)
 
 
 LOCAL_VERSIONED_DIR_PATH_CACHE = 'local_versioned_data_path_cache.json'

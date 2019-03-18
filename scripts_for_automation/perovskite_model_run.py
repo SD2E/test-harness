@@ -9,7 +9,7 @@ import requests
 from sklearn.model_selection import train_test_split
 
 from harness.test_harness_class import TestHarness
-from scripts.perovskite_models_config import MODELS_TO_RUN
+from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
 
 
 PREDICTED_OUT = "predicted_out"
