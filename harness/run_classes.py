@@ -15,6 +15,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from harness.unique_id import get_id
 from harness.utils.names import Names
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
+from harness.test_harness_class import is_list_of_strings
 
 import shap
 import BlackBoxAuditing as BBA
@@ -28,7 +29,7 @@ import os
 class _BaseRun:
     def __init__(self, test_harness_model, training_data, testing_data, data_and_split_description,
                  col_to_predict, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
-                 feature_extraction, predict_untested_data=False, loo_dict=False):
+                 feature_extraction, predict_untested_data=False, sparse_cols_to_use=None, loo_dict=False):
         if isinstance(test_harness_model, ClassificationModel):
             self.run_type = Names.CLASSIFICATION
             self.prob_predictions_col = "{}_prob_predictions".format(col_to_predict)
@@ -50,6 +51,7 @@ class _BaseRun:
         self.feature_cols_to_normalize = feature_cols_to_normalize
         self.feature_extraction = feature_extraction
         self.predict_untested_data = predict_untested_data
+        self.sparse_cols_to_use = sparse_cols_to_use
         self.predictions_col = "{}_predictions".format(col_to_predict)
         self.rankings_col = "{}_rankings".format(col_to_predict)
         self.run_id = get_id()
@@ -96,6 +98,45 @@ class _BaseRun:
             untested_df = self.predict_untested_data.copy()
             untested_df[self.feature_cols_to_normalize] = scaler.transform(untested_df[self.feature_cols_to_normalize])
             self.predict_untested_data = untested_df.copy()
+
+    # TODO: Put in a check to never normalize the sparse data category
+    def _add_sparse_cols(self):
+        assert is_list_of_strings(self.sparse_cols_to_use), \
+            "self.sparse_cols_to_use must be a string or a list of strings when the _add_sparse_cols method is called."
+
+        # obtain all the sparse column values present in training_data, testing_data, and untested_data (if applicable)
+        for sparse_col in self.sparse_cols_to_use:
+            train_vals = set(self.training_data[sparse_col].unique())
+            test_vals = set(self.testing_data[sparse_col].unique())
+            if self.was_untested_data_predicted:
+                untested_vals = set(self.predict_untested_data[sparse_col].unique())
+            else:
+                untested_vals = set()
+            all_vals_for_this_sparse_col = set().union(train_vals, test_vals, untested_vals)
+            print(train_vals)
+            print(test_vals)
+            print(untested_vals)
+            print(all_vals_for_this_sparse_col)
+
+            # update self.feature_cols_to_use
+            self.feature_cols_to_use.remove(sparse_col)
+            self.feature_cols_to_use.extend(['{}_{}'.format(sparse_col, val) for val in all_vals_for_this_sparse_col])
+
+            # update training data:
+            self.training_data = pd.get_dummies(self.training_data, columns=[sparse_col])
+            for val in all_vals_for_this_sparse_col.difference(train_vals):
+                self.training_data['{}_{}'.format(sparse_col, val)] = 0
+
+            # update testing data:
+            self.testing_data = pd.get_dummies(self.testing_data, columns=[sparse_col])
+            for val in all_vals_for_this_sparse_col.difference(test_vals):
+                self.testing_data['{}_{}'.format(sparse_col, val)] = 0
+
+            # update untested data:
+            if self.was_untested_data_predicted:
+                self.predict_untested_data = pd.get_dummies(self.predict_untested_data, columns=[sparse_col])
+                for val in all_vals_for_this_sparse_col.difference(untested_vals):
+                    self.predict_untested_data['{}_{}'.format(sparse_col, val)] = 0
 
     # TODO: add different options for eli5.sklearn.permutation_importance (current usage) and eli5.permutation_importance
     def feature_extraction_method(self, method=Names.ELI5_PERMUTATION):
@@ -243,6 +284,9 @@ class _BaseRun:
     def train_and_test_model(self):
         if self.normalize is not False:
             self._normalize_dataframes()
+
+        if self.sparse_cols_to_use is not False:
+            self._add_sparse_cols()
 
         train_df = self.training_data.copy()
         test_df = self.testing_data.copy()
