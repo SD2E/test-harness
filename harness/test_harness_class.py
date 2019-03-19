@@ -12,6 +12,7 @@ from harness.run_classes import _BaseRun
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
 from harness.utils.names import Names
 
+plt.switch_backend('agg')
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)
 pd.set_option('display.max_colwidth', -1)
