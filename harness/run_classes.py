@@ -1,5 +1,4 @@
 import time
-import eli5
 import rfpimp
 import warnings
 import pandas as pd
@@ -20,9 +19,9 @@ import shap
 import BlackBoxAuditing as BBA
 from operator import itemgetter
 from BlackBoxAuditing.model_factories.SKLearnModelVisitor import SKLearnModelVisitor
-
 import matplotlib.pyplot as plt
-import os
+
+plt.switch_backend('agg')
 
 
 class _BaseRun:
