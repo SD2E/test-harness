@@ -14,8 +14,8 @@ import os
 
 
 class KerasRegressionTwoDimensional(KerasRegression):
-    def __init__(self, model, model_description, epochs=25, batch_size=128, verbose=0, padding=14):
-        super(KerasRegressionTwoDimensional, self).__init__(model, model_description)
+    def __init__(self, model, model_author, model_description, epochs=25, batch_size=128, verbose=0, padding=14):
+        super(KerasRegressionTwoDimensional, self).__init__(model, model_author, model_description)
         self.epochs = epochs
         self.batch_size = batch_size
         self.verbose = verbose
@@ -29,7 +29,7 @@ class KerasRegressionTwoDimensional(KerasRegression):
         y_stability = np.stack([x[0] for x in y.values], axis=1).T
         y_dssp = np.squeeze(np.stack([x[1] for x in y.values], axis=1))
         y = [y_stability, y_dssp]
-        val_size = int(X.shape[0]*.1)
+        val_size = int(X.shape[0] * .1)
         Xv = X[-val_size:, :, :, :]
         yv = [y[0][-val_size:, :], y[1][-val_size:, :, :]]
         X = X[:-val_size, :, :, :]
@@ -51,7 +51,8 @@ class KerasRegressionTwoDimensional(KerasRegression):
                 y1 = y[1][xi, :, :]
                 minshift = np.argmax(x[amino_dict['O'], :, :]) - x.shape[1] + self.padding
                 maxshift = np.argmax(x[amino_dict['J'], :, :]) - self.padding
-                shift = randrange(minshift, maxshift) + 1 # +1 is because we want to be able to shift maxshift (putting the 'J' at the beginning) but not minshift (putting the 'O' wrapped around and at the beginning - we want the farthest rightward shift possible to put the 'O' at the end)
+                shift = randrange(minshift,
+                                  maxshift) + 1  # +1 is because we want to be able to shift maxshift (putting the 'J' at the beginning) but not minshift (putting the 'O' wrapped around and at the beginning - we want the farthest rightward shift possible to put the 'O' at the end)
                 x_ret += [np.roll(x, shift, axis=1)]
                 y_ret[0] += [y0]
                 y_ret[1] += [np.roll(y1, shift, axis=0)]
@@ -64,34 +65,36 @@ class KerasRegressionTwoDimensional(KerasRegression):
         stopping_callback = EarlyStopping(monitor='val_loss', min_delta=0.0, patience=5)
         callbacks_list = [checkpoint_callback, stopping_callback]
         self.model.fit_generator(
-                                 data_gen(self.batch_size),
-                                 epochs=self.epochs,
-                                 steps_per_epoch=1*X.shape[0]/self.batch_size,
-                                 validation_data=(Xv, yv),
-                                 callbacks=callbacks_list,
-                                 verbose=self.verbose
-                                )
+            data_gen(self.batch_size),
+            epochs=self.epochs,
+            steps_per_epoch=1 * X.shape[0] / self.batch_size,
+            validation_data=(Xv, yv),
+            callbacks=callbacks_list,
+            verbose=self.verbose
+        )
 
         # Based on permissible transitions between DSSP codes
         transition_kernels = K.constant([[[1, 0, 0, 0, 0, 0],
-        [-1, -1, -1, 0, 0, -1]],
-        [[0, 1, 0, 0, 0, 0],
-        [-1, -1, 0, 0, 0, 0]],
-        [[0, 0, 1, 0, 0, 0],
-        [-1, 0, -1, 0, 0, 0]],
-        [[0, 0, 0, 1, 0, 0],
-        [0, 0, 0, -1, -1, 0]],
-        [[0, 0, 0, 0, 1, 0],
-        [-1, 0, 0, 0, 0, 0]],
-        [[0, 0, 0, 0, 0, 1],
-        [0, 0, 0, -1, 0, 0]]])
+                                          [-1, -1, -1, 0, 0, -1]],
+                                         [[0, 1, 0, 0, 0, 0],
+                                          [-1, -1, 0, 0, 0, 0]],
+                                         [[0, 0, 1, 0, 0, 0],
+                                          [-1, 0, -1, 0, 0, 0]],
+                                         [[0, 0, 0, 1, 0, 0],
+                                          [0, 0, 0, -1, -1, 0]],
+                                         [[0, 0, 0, 0, 1, 0],
+                                          [-1, 0, 0, 0, 0, 0]],
+                                         [[0, 0, 0, 0, 0, 1],
+                                          [0, 0, 0, -1, 0, 0]]])
         transition_kernels = K.permute_dimensions(transition_kernels, (1, 2, 0))
         transition_kernels = K.expand_dims(transition_kernels, -2)
 
         def custom_loss_dssp(y_true, y_pred):
             y_pred_one_hot = K.one_hot(K.argmax(y_pred), 6)
+
             def conv_loss(pred):
                 return K.max(K.clip(K.conv2d(K.expand_dims(y_pred_one_hot, -1), transition_kernels), 0.0, 1.0), axis=-1)
+
             return (K.mean(losses.categorical_crossentropy(y_true, y_pred))
                     # inner max is over filters, which is important to only pick the most-activated filter at each site -
                     # this will be the filter that matches the identity of the DSSP code.
@@ -99,16 +102,16 @@ class KerasRegressionTwoDimensional(KerasRegression):
                     + 0.4 * K.max(conv_loss(y_pred_one_hot))
                     + 0.4 * K.mean(conv_loss(y_pred))
                     + 0.2 * K.max(conv_loss(y_pred))
-                   )
+                    )
 
         def coeff_determination(y_true, y_pred):
             SS_res = K.sum(K.square(y_true - y_pred))
             SS_tot = K.sum(K.square(y_true - K.mean(y_true)))
-            return 1 - SS_res/(SS_tot + K.epsilon())
-    
+            return 1 - SS_res / (SS_tot + K.epsilon())
+
         def custom_loss_stability(y_true, y_pred):
             return K.sqrt(K.mean(K.square(y_pred - y_true), axis=-1)) - 3.0 * coeff_determination(y_true, y_pred)
-        
+
         loss = {
             "model_dssp": custom_loss_dssp,
             "model_stability": custom_loss_stability,
@@ -117,13 +120,13 @@ class KerasRegressionTwoDimensional(KerasRegression):
         self.model.load_weights(checkpoint_filepath)
         self.model.compile(optimizer='adadelta', loss=loss, loss_weights=loss_weights)
         self.model.fit_generator(
-                                 data_gen(self.batch_size),
-                                 epochs=self.epochs,
-                                 steps_per_epoch=1*X.shape[0]/self.batch_size,
-                                 validation_data=(Xv, yv),
-                                 callbacks=callbacks_list,
-                                 verbose=self.verbose
-                                )
+            data_gen(self.batch_size),
+            epochs=self.epochs,
+            steps_per_epoch=1 * X.shape[0] / self.batch_size,
+            validation_data=(Xv, yv),
+            callbacks=callbacks_list,
+            verbose=self.verbose
+        )
         self.model.load_weights(checkpoint_filepath)
 
         os.remove(checkpoint_filepath)
@@ -146,9 +149,9 @@ def sequence_only_cnn_v2(max_residues, padding):
 
     model = Flatten()(amino_model)
 
-    model_dssp = Dense((max_residues + 2 + 2 * padding)*6)(model)
+    model_dssp = Dense((max_residues + 2 + 2 * padding) * 6)(model)
     model_dssp = Reshape(((max_residues + 2 + 2 * padding), 6))(model_dssp)
-    model_dssp = Activation('softmax', name='model_dssp')(model_dssp) #softmax default axis is last axis
+    model_dssp = Activation('softmax', name='model_dssp')(model_dssp)  # softmax default axis is last axis
     model_dssp_flat = Flatten()(model_dssp)
     model = Concatenate()([model, model_dssp_flat])
 
@@ -160,24 +163,26 @@ def sequence_only_cnn_v2(max_residues, padding):
 
     # Based on permissible transitions between DSSP codes
     transition_kernels = K.constant([[[1, 0, 0, 0, 0, 0],
-    [-1, -1, -1, 0, 0, -1]],
-    [[0, 1, 0, 0, 0, 0],
-    [-1, -1, 0, 0, 0, 0]],
-    [[0, 0, 1, 0, 0, 0],
-    [-1, 0, -1, 0, 0, 0]],
-    [[0, 0, 0, 1, 0, 0],
-    [0, 0, 0, -1, -1, 0]],
-    [[0, 0, 0, 0, 1, 0],
-    [-1, 0, 0, 0, 0, 0]],
-    [[0, 0, 0, 0, 0, 1],
-    [0, 0, 0, -1, 0, 0]]])
+                                      [-1, -1, -1, 0, 0, -1]],
+                                     [[0, 1, 0, 0, 0, 0],
+                                      [-1, -1, 0, 0, 0, 0]],
+                                     [[0, 0, 1, 0, 0, 0],
+                                      [-1, 0, -1, 0, 0, 0]],
+                                     [[0, 0, 0, 1, 0, 0],
+                                      [0, 0, 0, -1, -1, 0]],
+                                     [[0, 0, 0, 0, 1, 0],
+                                      [-1, 0, 0, 0, 0, 0]],
+                                     [[0, 0, 0, 0, 0, 1],
+                                      [0, 0, 0, -1, 0, 0]]])
     transition_kernels = K.permute_dimensions(transition_kernels, (1, 2, 0))
     transition_kernels = K.expand_dims(transition_kernels, -2)
 
     def custom_loss_dssp(y_true, y_pred):
         y_pred_one_hot = K.one_hot(K.argmax(y_pred), 6)
+
         def conv_loss(pred):
             return K.max(K.clip(K.conv2d(K.expand_dims(y_pred_one_hot, -1), transition_kernels), 0.0, 1.0), axis=-1)
+
         return (K.mean(losses.categorical_crossentropy(y_true, y_pred))
                 # inner max is over filters, which is important to only pick the most-activated filter at each site -
                 # this will be the filter that matches the identity of the DSSP code.
@@ -185,16 +190,16 @@ def sequence_only_cnn_v2(max_residues, padding):
                 + 0.4 * K.max(conv_loss(y_pred_one_hot))
                 + 0.4 * K.mean(conv_loss(y_pred))
                 + 0.2 * K.max(conv_loss(y_pred))
-               )
+                )
 
     def coeff_determination(y_true, y_pred):
         SS_res = K.sum(K.square(y_true - y_pred))
         SS_tot = K.sum(K.square(y_true - K.mean(y_true)))
-        return 1 - SS_res/(SS_tot + K.epsilon())
-    
+        return 1 - SS_res / (SS_tot + K.epsilon())
+
     def custom_loss_stability(y_true, y_pred):
         return K.sqrt(K.mean(K.square(y_pred - y_true), axis=-1)) - 3.0 * coeff_determination(y_true, y_pred)
-        
+
     loss = {
         "model_dssp": custom_loss_dssp,
         "model_stability": custom_loss_stability,
@@ -202,6 +207,7 @@ def sequence_only_cnn_v2(max_residues, padding):
     loss_weights = {"model_stability": 0.2, "model_dssp": 1.2}
     comp_model.compile(optimizer='adadelta', loss=loss, loss_weights=loss_weights)
 
-    mr = KerasRegressionTwoDimensional(model=comp_model, model_description='Sequence CNN v2 regressor: 400x5->200x9->100x17->80->40->1',
-                                       batch_size=128, epochs=50, padding=padding)
-    return mr
+    th_model = KerasRegressionTwoDimensional(model=comp_model, model_author="Jed",
+                                             model_description='Sequence CNN v2 regressor: 400x5->200x9->100x17->80->40->1',
+                                             batch_size=128, epochs=50, padding=padding)
+    return th_model

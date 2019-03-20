@@ -9,7 +9,7 @@ def random_forest_classification(n_estimators=361, max_features='auto', criterio
                                  min_samples_leaf=min_samples_leaf, n_jobs=n_jobs, class_weight=class_weight)
 
     # Creating an instance of the SklearnClassification Model Runner subclass
-    mr_rfc = SklearnClassification(model=rfc,
-                                   model_description="Random Forest: n_estimators={0}, max_features={1}, criterion={2}, min_samples_leaf={3}, n_jobs={4}".format(
-                                       n_estimators, max_features, criterion, min_samples_leaf, n_jobs))
-    return mr_rfc
+    th_model = SklearnClassification(model=rfc, model_author='Hamed',
+                                     model_description="Random Forest: n_estimators={0}, max_features={1}, criterion={2}, min_samples_leaf={3}, n_jobs={4}".format(
+                                         n_estimators, max_features, criterion, min_samples_leaf, n_jobs))
+    return th_model

@@ -1,12 +1,15 @@
 import inspect
 from abc import ABCMeta, abstractmethod
-from sklearn.linear_model import LinearRegression, LogisticRegression
 
 
 class TestHarnessModel(metaclass=ABCMeta):
-    def __init__(self, model, model_description):
+    def __init__(self, model, model_author, model_description):
         self.model = model
+        self.model_author = model_author
         self.model_description = model_description
+        # this will get the name of the function that called the TestHarnessModel object.
+        # E.g. see harness/th_model_instances/hamed_models/random_forest_regression.py
+        self.model_name = inspect.stack()[0][3]
         self.stack_trace = inspect.stack()
 
     @abstractmethod
@@ -19,9 +22,6 @@ class TestHarnessModel(metaclass=ABCMeta):
 
 
 class ClassificationModel(TestHarnessModel, metaclass=ABCMeta):
-    def __init__(self, model=LogisticRegression(), model_description='Default Sklearn Logistic Classifier'):
-        super().__init__(model, model_description)
-
     # in subclasses, this method should return probability values for being in the positive (1) class
     @abstractmethod
     def _predict_proba(self, X_test):
@@ -29,5 +29,6 @@ class ClassificationModel(TestHarnessModel, metaclass=ABCMeta):
 
 
 class RegressionModel(TestHarnessModel, metaclass=ABCMeta):
-    def __init__(self, model=LinearRegression(), model_description='Default Sklearn Linear Regression'):
-        super().__init__(model, model_description)
+    # the init is only here so the subclass isn't empty...
+    def __init__(self, model, model_author, model_description):
+        super().__init__(model, model_author, model_description)

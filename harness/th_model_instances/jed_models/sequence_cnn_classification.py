@@ -13,8 +13,8 @@ from sklearn.utils.class_weight import compute_class_weight
 
 
 class KerasClassificationTwoDimensional(KerasClassification):
-    def __init__(self, model, model_description, epochs=25, batch_size=128, verbose=0, assign_class_weights=False):
-        super(KerasClassificationTwoDimensional, self).__init__(model, model_description)
+    def __init__(self, model, model_author, model_description, epochs=25, batch_size=128, verbose=0, assign_class_weights=False):
+        super(KerasClassificationTwoDimensional, self).__init__(model, model_author, model_description)
         self.epochs = epochs
         self.batch_size = batch_size
         self.verbose = verbose
@@ -64,6 +64,8 @@ def sequence_only_cnn_classification(max_residues, padding, assign_class_weights
     model = Model(inputs=amino_inputs, outputs=model)
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['binary_crossentropy'])
 
-    mr = KerasClassificationTwoDimensional(model=model, model_description='Sequence CNN classifier v1, assign_class_weights = {}'.format(
-        assign_class_weights), batch_size=128, epochs=25, assign_class_weights=assign_class_weights)
-    return mr
+    th_model = KerasClassificationTwoDimensional(model=model, model_author="Jed and Hamed",
+                                                 model_description='Sequence CNN classifier v1, assign_class_weights = {}'.format(
+                                                     assign_class_weights), batch_size=128, epochs=25,
+                                                 assign_class_weights=assign_class_weights)
+    return th_model
