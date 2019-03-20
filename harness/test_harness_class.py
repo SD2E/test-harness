@@ -381,7 +381,7 @@ class TestHarness:
         # This is the one and only time _BaseRun is invoked:
         run_object = _BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
                               feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize, feature_extraction,
-                              pred_df, loo_dict)
+                              pred_df, sparse_cols_to_use, loo_dict)
 
         # call run object methods
         start = time.time()
@@ -516,7 +516,7 @@ class TestHarness:
             test_df_to_output.to_csv('{}/{}'.format(output_path, 'testing_data.csv'), index=False)
 
             if run_object.was_untested_data_predicted is not False:
-                pred_cols_to_output = test_cols_to_output + [run_object.rankings_col]
+                pred_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.rankings_col]
                 prediction_data_to_output = run_object.untested_data_predictions[pred_cols_to_output].copy()
                 for col in unchanged_index_cols:
                     prediction_data_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
