@@ -168,7 +168,7 @@ if __name__ == '__main__':
     assert os.path.isdir(VERSIONED_DATA), "The path you gave for VERSIONED_DATA does not exist."
 
     training_data_filename = 'perovskite/perovskitedata/0019.perovskitedata.csv'
-    # # Reading in data from versioned-datasets repo.
+    # Reading in data from versioned-datasets repo.
     df = pd.read_csv(os.path.join(VERSIONED_DATA, training_data_filename),
                      comment='#',
                      low_memory=False)
