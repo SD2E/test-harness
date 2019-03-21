@@ -107,10 +107,9 @@ class TestHarness:
                                                  Names.RFPIMP_PERMUTATION,
                                                  Names.BBA_AUDIT,
                                                  Names.SHAP_AUDIT]
+        self.list_of_this_instance_run_ids = []
 
     # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
-    # TODO: make feature_extraction options something like: "BBA", "permutation", and "custom", where custom means that
-    # TODO: it's not a black box feature tool, but rather a specific one defined inside of the TestHarnessModel object
     def run_custom(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                    data_and_split_description, cols_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
                    feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None):
@@ -391,6 +390,10 @@ class TestHarness:
         run_object = _BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
                               feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize, feature_extraction,
                               pred_df, loo_dict)
+
+        # tracking the run_ids of all the runs that were kicked off in this TestHarness instance
+        # TODO: take into account complications when dealing with LOO runs. e.g. do we want to keep a list of LOO Ids as well (if yes, how).
+        self.list_of_this_instance_run_ids.append(run_object.run_id)
 
         # call run object methods
         start = time.time()
