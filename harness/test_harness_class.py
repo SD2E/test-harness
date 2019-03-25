@@ -1,15 +1,17 @@
+from datetime import datetime
 import os
 import json
 import time
+
 import pandas as pd
 import matplotlib.pyplot as plt
-from harness.unique_id import get_id
 from six import string_types
-from datetime import datetime
 from statistics import mean
 from sklearn.externals import joblib
+
 from harness.run_classes import _BaseRun
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
+from harness.unique_id import get_id
 from harness.utils.names import Names
 
 plt.switch_backend('agg')

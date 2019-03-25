@@ -2,13 +2,14 @@ from datetime import datetime
 import hashlib
 import os
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import requests
 from sklearn.model_selection import train_test_split
 
 from harness.test_harness_class import TestHarness
-from setup import VERSION
+from version import VERSION
 from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
 
 
