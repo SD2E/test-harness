@@ -2,7 +2,6 @@ from datetime import datetime
 import hashlib
 import os
 from pathlib import Path
-import time
 import numpy as np
 import pandas as pd
 import requests
