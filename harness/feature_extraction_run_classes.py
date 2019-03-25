@@ -2,7 +2,6 @@ from math import fabs
 from operator import itemgetter
 import time
 
-from harness.run_classes import _BaseRun
 from harness.utils.names import Names
 
 import BlackBoxAuditing as BBA
@@ -17,7 +16,17 @@ import shap
 plt.switch_backend('agg')
 
 
-class FeatureExtractionRun(_BaseRun):
+class FeatureExtractionRun:
+
+    def __init__(self, base_run_instance):
+        """
+
+        :param base_run_instance: an instantiated _BaseRun class that has trained models
+        """
+        self.base_run_instance = base_run_instance
+        self.shap_values = None
+        self.shap_plots_dict = None
+        self.feature_importances = None
 
     # TODO: add different options for eli5.sklearn.permutation_importance (current usage) and eli5.permutation_importance
     def feature_extraction_method(self, method=Names.ELI5_PERMUTATION):
@@ -28,17 +37,20 @@ class FeatureExtractionRun(_BaseRun):
             method = Names.ELI5_PERMUTATION
 
         if method == Names.ELI5_PERMUTATION:
-            pi_object = PermutationImportance(self.test_harness_model.model)
-            pi_object.fit(self.testing_data[self.feature_cols_to_use], self.testing_data[self.col_to_predict])
+            pi_object = PermutationImportance(self.base_run_instance.test_harness_model.model)
+            pi_object.fit(self.base_run_instance.testing_data[self.base_run_instance.feature_cols_to_use],
+                          self.base_run_instance.testing_data[self.base_run_instance.col_to_predict]
+                          )
             feature_importances_df = pd.DataFrame()
-            feature_importances_df["Feature"] = self.feature_cols_to_use
+            feature_importances_df["Feature"] = self.base_run_instance.feature_cols_to_use
             feature_importances_df["Importance"] = pi_object.feature_importances_
             feature_importances_df["Importance_Std"] = pi_object.feature_importances_std_
             feature_importances_df.sort_values(by='Importance', inplace=True, ascending=False)
             self.feature_importances = feature_importances_df.copy()
         elif method == Names.RFPIMP_PERMUTATION:
-            pis = rfpimp.importances(self.test_harness_model.model, self.testing_data[self.feature_cols_to_use],
-                                     self.testing_data[self.col_to_predict])
+            pis = rfpimp.importances(self.base_run_instance.test_harness_model.model,
+                                     self.base_run_instance.testing_data[self.base_run_instance.feature_cols_to_use],
+                                     self.base_run_instance.testing_data[self.base_run_instance.col_to_predict])
             pis['Feature'] = pis.index
             pis.reset_index(inplace=True, drop=True)
             pis = pis[['Feature', 'Importance']]
@@ -48,11 +60,11 @@ class FeatureExtractionRun(_BaseRun):
             pass  # TODO
 
         elif method == Names.BBA_AUDIT:
-            data = self.perform_bba_audit(training_data=self.training_data.copy(),
-                                          testing_data=self.testing_data.copy(),
-                                          features=self.feature_cols_to_use,
-                                          classifier=self.test_harness_model.model,
-                                          col_to_predict=self.col_to_predict)
+            data = self.perform_bba_audit(training_data=self.base_run_instance.training_data.copy(),
+                                          testing_data=self.base_run_instance.testing_data.copy(),
+                                          features=self.base_run_instance.feature_cols_to_use,
+                                          classifier=self.base_run_instance.test_harness_model.model,
+                                          col_to_predict=self.base_run_instance.col_to_predict)
             feature_importances_df = pd.DataFrame(data, columns=["Feature", "Importance"])
             self.feature_importances = feature_importances_df.copy()
 
@@ -72,10 +84,10 @@ class FeatureExtractionRun(_BaseRun):
         import warnings
         warnings.filterwarnings('ignore')
 
-        features = self.feature_cols_to_use
-        classifier = self.test_harness_model
-        train_X = self.training_data[features]
-        test_X = self.testing_data[features]
+        features = self.base_run_instance.feature_cols_to_use
+        classifier = self.base_run_instance.test_harness_model
+        train_X = self.base_run_instance.training_data[features]
+        test_X = self.base_run_instance.testing_data[features]
 
         shap.initjs()
         # f = lambda x: classifier._predict_proba(x)[:,1]
@@ -89,7 +101,7 @@ class FeatureExtractionRun(_BaseRun):
         shap_values = explainer.shap_values(test_X_df)
 
         # store shap_values so they can be accessed and output by TestHarness class
-        self.shap_values = self.training_data[self.index_cols + features].copy()
+        self.shap_values = self.base_run_instance.training_data[self.base_run_instance.index_cols + features].copy()
         self.shap_values[features] = shap_values.copy()
 
         means = []
@@ -120,7 +132,7 @@ class FeatureExtractionRun(_BaseRun):
         # plt.close("all")     # close all previous pyplot figures
 
         # Dependencies plots
-        for feature in self.feature_cols_to_use:
+        for feature in self.base_run_instance.feature_cols_to_use:
             shap.dependence_plot(feature, shap_values, test_X_df, interaction_index='auto', show=False)
             fig = plt.gcf()  # get current figure
             self.shap_plots_dict["dependence_plot_{}".format(feature.upper())] = fig

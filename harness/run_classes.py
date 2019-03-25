@@ -54,9 +54,7 @@ class _BaseRun:
         self.time_ran = datetime.now().strftime("%H:%M:%S")
         self.metrics_dict = {}
         self.normalization_scaler_object = None
-        self.shap_values = None
-        self.shap_plots_dict = None
-        self.feature_importances = None
+
 
     def _normalize_dataframes(self):
         warnings.simplefilter('ignore', DataConversionWarning)

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from harness.unique_id import get_id
 from six import string_types
 from datetime import datetime
-from statistics import mean, pstdev
+from statistics import mean
 from sklearn.externals import joblib
 from harness.run_classes import _BaseRun
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
@@ -394,7 +394,7 @@ class TestHarness:
 
         test_harness_model = function_that_returns_TH_model(**dict_of_function_parameters)
 
-        # This is the one and only time _BaseRun is invoked:
+        # This is the one and only time _BaseRun is invoked
         run_object = _BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
                               feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize, feature_extraction,
                               pred_df, loo_dict)
@@ -408,8 +408,11 @@ class TestHarness:
         print('Starting run at time {}'.format(datetime.now().strftime("%H:%M:%S")))
         run_object.train_and_test_model()
         run_object.calculate_metrics()
+
         if run_object.feature_extraction is not False:
-            run_object.feature_extraction_method(method=run_object.feature_extraction)
+            from harness.feature_extraction_run_classes import FeatureExtractionRun
+            feature_extractor = FeatureExtractionRun(base_run_instance=run_object)
+            feature_extractor.feature_extraction_method(method=run_object.feature_extraction)
 
         # output results of run object by updating the appropriate leaderboard(s) and writing files to disk
 
