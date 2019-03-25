@@ -1,10 +1,8 @@
 from setuptools import setup, find_packages
 from os import path as p
-import os
-from harness.utils.get_project_root import get_project_root
 
-version_file = open(os.path.join(get_project_root(), 'VERSION'))
-VERSION = version_file.read().strip()
+from version import VERSION
+
 DISTNAME = 'test-harness'
 DESCRIPTION = 'A tool for collaboration on models and comparison of model results.'
 with open('README.md') as f:

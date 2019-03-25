@@ -9,9 +9,9 @@ import requests
 from sklearn.model_selection import train_test_split
 
 from harness.test_harness_class import TestHarness
+from setup import VERSION
 from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
 
-from harness.utils.get_project_root import get_project_root
 
 import warnings
 
@@ -122,15 +122,10 @@ def submit_csv_to_escalation_server(submissions_file_path, crank_number):
     print(model_author)
     print(model_description)
 
-    version_file = open(os.path.join(get_project_root(), 'VERSION'))
-    harness_version = version_file.read().strip()
-    print(harness_version)
-    print()
-
     response = requests.post("http://escalation.sd2e.org/submission",
                              headers={'User-Agent': 'escalation'},
                              data={'crank': crank_number,
-                                   'username': "test_harness_{}".format(harness_version),
+                                   'username': "test_harness_{}".format(VERSION),
                                    'expname': model_name,
                                    # todo: add check to make sure that notes doesn't contain any commas
                                    'notes': "Model Author: {}; "
