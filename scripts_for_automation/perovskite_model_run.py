@@ -11,11 +11,11 @@ from sklearn.model_selection import train_test_split
 from harness.test_harness_class import TestHarness
 from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
 
-
 PREDICTED_OUT = "predicted_out"
 SCORE = "score"
 # how many predictions from the test harness to send to submissions server
 NUM_PREDICTIONS = 100
+
 
 # compute md5 hash using small chunks
 def md5(fname):
@@ -30,19 +30,26 @@ def format_truncated_float(float_number, n=5):
     # By decision, we want to output reagent values as floats truncated (not rounded!) to 5 decimal places
     s = '{}'.format(float_number)
     i, p, d = s.partition('.')
-    return '.'.join([i, (d+'0'*n)[:n]])
+    return '.'.join([i, (d + '0' * n)[:n]])
 
 
-def get_prediction_csvs(predictions_csv_path=None):
-    # todo: need to look up current runs by id, or will submit old runs here also
+def get_prediction_csvs(run_ids, predictions_csv_path=None):
     prediction_csv_paths = []
     if predictions_csv_path is None:
         runs_path = os.path.join('test_harness_results', 'runs')
-        for this_run_path in os.listdir(runs_path):
-            prediction_csv_path = os.path.join(runs_path, this_run_path, 'predicted_data.csv')
-            if os.path.exists(prediction_csv_path):
-                print("file found: ", prediction_csv_path)
-                prediction_csv_paths.append(prediction_csv_path)
+        previous_runs = []
+        for this_run_folder in os.listdir(runs_path):
+            if this_run_folder.rsplit("_")[1] in run_ids:
+                print('{} was kicked off by this TestHarness instance. Its results will be submitted.'.format(this_run_folder))
+                prediction_csv_path = os.path.join(runs_path, this_run_folder, 'predicted_data.csv')
+                if os.path.exists(prediction_csv_path):
+                    print("file found: ", prediction_csv_path)
+                    prediction_csv_paths.append(prediction_csv_path)
+            else:
+                previous_runs.append(this_run_folder)
+        print('\nThe results for the following runs will not be submitted, '
+              'because they are older runs that were not initiated by this TestHarness instance:'
+              '\n{}\n'.format(previous_runs))
     else:
         prediction_csv_paths.append(predictions_csv_path)
     return prediction_csv_paths
@@ -154,13 +161,11 @@ def run_configured_test_harness_models_on_perovskites(train_set, state_set):
                       cols_to_predict=col_to_predict,
                       feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
                       feature_extraction=False, predict_untested_data=state_set,
-                      index_cols=[
-                          "dataset",
-                          "name",
-                          "_rxn_M_inorganic",
-                          "_rxn_M_organic"
-                      ]
+                      index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic"]
                       )
+
+    return th.list_of_this_instance_run_ids
+
 
 if __name__ == '__main__':
     VERSIONED_DATA = os.path.join(Path(__file__).resolve().parents[2], 'versioned-datasets/data')
@@ -177,12 +182,12 @@ if __name__ == '__main__':
                             comment='#',
                             low_memory=False)
 
-    run_configured_test_harness_models_on_perovskites(df, state_set)
+    list_of_run_ids = run_configured_test_harness_models_on_perovskites(df, state_set)
 
     stateset_hash = md5(os.path.join(VERSIONED_DATA, 'perovskite/stateset/0019.stateset.csv'))
     commit_id = 'abc12345678'
     crank_number = get_crank_number_from_filename(training_data_filename)
-    prediction_csv_paths = get_prediction_csvs()
+    prediction_csv_paths = get_prediction_csvs(run_ids=list_of_run_ids)
     submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths,
                                                                         stateset_hash,
                                                                         crank_number,
