@@ -202,6 +202,10 @@ def run_configured_test_harness_models_on_perovskites(train_set, state_set):
 
 
 if __name__ == '__main__':
+    """
+    NB: This script is for local testing, and is NOT what is run by the app.
+    The test harness app runs in perovskite_test_harness.py
+    """
     VERSIONED_DATA = os.path.join(Path(__file__).resolve().parents[2], 'versioned-datasets/data')
     print("Path to data folder in the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATA))
     assert os.path.isdir(VERSIONED_DATA), "The path you gave for VERSIONED_DATA does not exist."

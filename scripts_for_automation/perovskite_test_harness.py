@@ -100,11 +100,11 @@ if __name__ == '__main__':
     print(stateset_df.head())
 
     # todo: this should return ranked predictions
-    run_configured_test_harness_models_on_perovskites(train_set=training_data_df, state_set=stateset_df)
+    list_of_run_ids = run_configured_test_harness_models_on_perovskites(train_set=training_data_df, state_set=stateset_df)
 
     stateset_hash = md5(os.path.join(versioned_data_dir, perovskite_project_dir, stateset_filename))
     crank_number = get_crank_number_from_filename(training_data_filename)
-    prediction_csv_paths = get_prediction_csvs()
+    prediction_csv_paths = get_prediction_csvs(list_of_run_ids)
     submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths,
                                                                         stateset_hash,
                                                                         crank_number,
