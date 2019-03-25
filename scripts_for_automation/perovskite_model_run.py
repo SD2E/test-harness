@@ -2,7 +2,7 @@ from datetime import datetime
 import hashlib
 import os
 from pathlib import Path
-
+import time
 import numpy as np
 import pandas as pd
 import requests
@@ -10,6 +10,12 @@ from sklearn.model_selection import train_test_split
 
 from harness.test_harness_class import TestHarness
 from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
+
+from harness.utils.get_project_root import get_project_root
+
+import warnings
+
+# warnings.filterwarnings("ignore")
 
 PREDICTED_OUT = "predicted_out"
 SCORE = "score"
@@ -91,18 +97,46 @@ def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, states
                                                  commit_id,
                                                  username]) + '.csv'
         submissions_file_path = os.path.join(os.path.dirname(prediction_path), submission_template_filename)
+
+        print(submissions_file_path)
         selected_predictions.to_csv(submissions_file_path, index=False)
         submissions_paths.append(submissions_file_path)
     return submissions_paths
 
 
 def submit_csv_to_escalation_server(submissions_file_path, crank_number):
+    print()
+
+    test_harness_results_path = submissions_file_path.rsplit("/runs/")[0]
+    this_run_results_path = submissions_file_path.rsplit("/", 1)[0]
+
+    print(os.listdir(test_harness_results_path))
+
+    leaderboard = pd.read_html(os.path.join(test_harness_results_path, 'custom_classification_leaderboard.html'))[0]
+    leaderboard_entry_for_this_run = leaderboard.loc[leaderboard["Run ID"] == this_run_results_path.rsplit("/run_")[1]]
+
+    model_name = leaderboard_entry_for_this_run["Model Name"].values[0]
+    model_author = leaderboard_entry_for_this_run["Model Author"].values[0]
+    model_description = leaderboard_entry_for_this_run["Model Description"].values[0]
+    print(model_name)
+    print(model_author)
+    print(model_description)
+
+    version_file = open(os.path.join(get_project_root(), 'VERSION'))
+    harness_version = version_file.read().strip()
+    print(harness_version)
+    print()
+
     response = requests.post("http://escalation.sd2e.org/submission",
                              headers={'User-Agent': 'escalation'},
                              data={'crank': crank_number,
-                                   'username': "test_harness",
-                                   'expname': "Test harness automated run",
-                                   'notes': "Submitted at at {}".format(datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"))},
+                                   'username': "test_harness_{}".format(harness_version),
+                                   'expname': model_name,
+                                   # todo: add check to make sure that notes doesn't contain any commas
+                                   'notes': "Model Author: {}; "
+                                            "Model Description: {}; "
+                                            "Submitted at {}".format(model_author, model_description,
+                                                                     datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"))},
                              files={'csvfile': open(submissions_file_path, 'rb')},
                              # timeout=60
                              )
@@ -152,7 +186,7 @@ def run_configured_test_harness_models_on_perovskites(train_set, state_set):
     # Test Harness use starts here:
     current_path = os.getcwd()
     print("initializing TestHarness object with output_location equal to {}\n".format(current_path))
-    th = TestHarness(output_location=current_path)
+    th = TestHarness(output_location=current_path, output_csvs_of_leaderboards=True)
 
     for model in MODELS_TO_RUN:
         th.run_custom(function_that_returns_TH_model=model, dict_of_function_parameters={},
@@ -172,19 +206,19 @@ if __name__ == '__main__':
     print("Path to data folder in the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATA))
     assert os.path.isdir(VERSIONED_DATA), "The path you gave for VERSIONED_DATA does not exist."
 
-    training_data_filename = 'perovskite/perovskitedata/0019.perovskitedata.csv'
+    training_data_filename = 'perovskite/perovskitedata/0021.perovskitedata.csv'
     # Reading in data from versioned-datasets repo.
     df = pd.read_csv(os.path.join(VERSIONED_DATA, training_data_filename),
                      comment='#',
                      low_memory=False)
 
-    state_set = pd.read_csv(os.path.join(VERSIONED_DATA, 'perovskite/stateset/0019.stateset.csv'),
+    state_set = pd.read_csv(os.path.join(VERSIONED_DATA, 'perovskite/stateset/0021.stateset.csv'),
                             comment='#',
                             low_memory=False)
 
     list_of_run_ids = run_configured_test_harness_models_on_perovskites(df, state_set)
 
-    stateset_hash = md5(os.path.join(VERSIONED_DATA, 'perovskite/stateset/0019.stateset.csv'))
+    stateset_hash = md5(os.path.join(VERSIONED_DATA, 'perovskite/stateset/0021.stateset.csv'))
     commit_id = 'abc12345678'
     crank_number = get_crank_number_from_filename(training_data_filename)
     prediction_csv_paths = get_prediction_csvs(run_ids=list_of_run_ids)
