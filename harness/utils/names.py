@@ -25,6 +25,8 @@ class Names:
     RUN_ID = "Run ID"
     DATE = "Date"
     TIME = "Time"
+    MODEL_NAME = "Model Name"
+    MODEL_AUTHOR = "Model Author"
     MODEL_DESCRIPTION = "Model Description"
     COLUMN_PREDICTED = "Column Predicted"
     DATA_AND_SPLIT_DESCRIPTION = "Data and Split Description"

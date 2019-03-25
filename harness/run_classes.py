@@ -37,6 +37,8 @@ class _BaseRun:
         else:
             raise TypeError("test_harness_model must be a ClassificationModel or a RegressionModel")
         self.test_harness_model = test_harness_model
+        self.model_name = test_harness_model.model_name
+        self.model_author = test_harness_model.model_author
         self.model_description = test_harness_model.model_description
         self.model_stack_trace = test_harness_model.stack_trace
         self.training_data = training_data

@@ -56,9 +56,10 @@ def is_list_of_strings(obj):
 
 # TODO: separate data description from split description
 class TestHarness:
-    def __init__(self, output_location=os.path.dirname(os.path.realpath(__file__))):
+    def __init__(self, output_location=os.path.dirname(os.path.realpath(__file__)), output_csvs_of_leaderboards=False):
         # Note: loo stands for leave-one-out
         self.output_path = output_location
+        self.output_csvs_of_leaderboards = output_csvs_of_leaderboards
         self.results_folder_path = os.path.join(self.output_path, 'test_harness_results')
         self.runs_folder_path = os.path.join(self.results_folder_path, 'runs')
         if not os.path.exists(self.results_folder_path):
@@ -76,7 +77,7 @@ class TestHarness:
         self.metric_to_sort_classification_results_by = Names.AVERAGE_PRECISION
         self.metric_to_sort_regression_results_by = Names.R_SQUARED
 
-        custom_cols_1 = [Names.RUN_ID, Names.DATE, Names.TIME]
+        custom_cols_1 = [Names.RUN_ID, Names.DATE, Names.TIME, Names.MODEL_NAME, Names.MODEL_AUTHOR]
         custom_cols_2 = [Names.SAMPLES_IN_TRAIN, Names.SAMPLES_IN_TEST, Names.MODEL_DESCRIPTION, Names.COLUMN_PREDICTED,
                          Names.NUM_FEATURES_USED, Names.DATA_AND_SPLIT_DESCRIPTION, Names.NORMALIZED, Names.NUM_FEATURES_NORMALIZED,
                          Names.FEATURE_EXTRACTION, Names.WAS_UNTESTED_PREDICTED]
@@ -230,6 +231,7 @@ class TestHarness:
 
             # summary results are calculated here, and summary leaderboards are updated
             summary_values = {Names.LOO_ID: loo_id, Names.DATE: date_loo_ran, Names.TIME: time_loo_ran,
+                              Names.MODEL_NAME: dummy_th_model.model_name, Names.MODEL_AUTHOR: dummy_th_model.model_author,
                               Names.MODEL_DESCRIPTION: dummy_th_model.model_description, Names.COLUMN_PREDICTED: col,
                               Names.NUM_FEATURES_USED: len(feature_cols_to_use), Names.DATA_DESCRIPTION: data_description,
                               Names.GROUPING_DESCRIPTION: grouping_description, Names.NORMALIZED: normalize,
@@ -264,6 +266,9 @@ class TestHarness:
 
                 # overwrite old leaderboard with updated leaderboard
                 summary_leaderboard.to_html(html_path, index=False, classes=summary_leaderboard_name)
+                if self.output_csvs_of_leaderboards is True:
+                    csv_path = os.path.join(self.results_folder_path, "{}.csv".format(summary_leaderboard_name))
+                    summary_leaderboard.to_csv(csv_path, index=False)
 
             elif task_type == "Regression":
                 detailed_leaderboard_name = Names.LOO_FULL_REG_LBOARD
@@ -296,6 +301,9 @@ class TestHarness:
 
                 # overwrite old leaderboard with updated leaderboard
                 summary_leaderboard.to_html(html_path, index=False, classes=summary_leaderboard_name)
+                if self.output_csvs_of_leaderboards is True:
+                    csv_path = os.path.join(self.results_folder_path, "{}.csv".format(summary_leaderboard_name))
+                    summary_leaderboard.to_csv(csv_path, index=False)
 
             else:
                 raise TypeError("task_type must be 'Classification' or 'Regression'.")
@@ -473,12 +481,16 @@ class TestHarness:
 
         # overwrite old leaderboard with updated leaderboard
         leaderboard.to_html(html_path, index=False, classes=leaderboard_name)
+        if self.output_csvs_of_leaderboards is True:
+            csv_path = os.path.join(self.results_folder_path, "{}.csv".format(leaderboard_name))
+            leaderboard.to_csv(csv_path, index=False)
 
     def _create_row_entry(self, run_object):
         print(run_object.run_id)
         row_values = {Names.RUN_ID: run_object.run_id, Names.DATE: run_object.date_ran, Names.TIME: run_object.time_ran,
                       Names.SAMPLES_IN_TRAIN: run_object.metrics_dict[Names.SAMPLES_IN_TRAIN],
                       Names.SAMPLES_IN_TEST: run_object.metrics_dict[Names.SAMPLES_IN_TEST],
+                      Names.MODEL_NAME: run_object.model_name, Names.MODEL_AUTHOR: run_object.model_author,
                       Names.MODEL_DESCRIPTION: run_object.model_description, Names.COLUMN_PREDICTED: run_object.col_to_predict,
                       Names.NUM_FEATURES_USED: run_object.metrics_dict[Names.NUM_FEATURES_USED],
                       Names.DATA_AND_SPLIT_DESCRIPTION: run_object.data_and_split_description, Names.NORMALIZED: run_object.normalize,
