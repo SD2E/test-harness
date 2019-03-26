@@ -12,11 +12,10 @@ import pandas as pd
 import rfpimp
 import shap
 
-
 plt.switch_backend('agg')
 
 
-class FeatureExtractionRun:
+class FeatureExtractor:
 
     def __init__(self, base_run_instance):
         """
