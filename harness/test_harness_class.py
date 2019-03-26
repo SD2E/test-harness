@@ -1,15 +1,17 @@
+from datetime import datetime
 import os
 import json
 import time
+
 import pandas as pd
 import matplotlib.pyplot as plt
-from harness.unique_id import get_id
 from six import string_types
-from datetime import datetime
-from statistics import mean, pstdev
+from statistics import mean
 from sklearn.externals import joblib
+
 from harness.run_classes import _BaseRun
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
+from harness.unique_id import get_id
 from harness.utils.names import Names
 
 plt.switch_backend('agg')
@@ -394,7 +396,7 @@ class TestHarness:
 
         test_harness_model = function_that_returns_TH_model(**dict_of_function_parameters)
 
-        # This is the one and only time _BaseRun is invoked:
+        # This is the one and only time _BaseRun is invoked
         run_object = _BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
                               feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize, feature_extraction,
                               pred_df, loo_dict)
@@ -408,8 +410,13 @@ class TestHarness:
         print('Starting run at time {}'.format(datetime.now().strftime("%H:%M:%S")))
         run_object.train_and_test_model()
         run_object.calculate_metrics()
+
         if run_object.feature_extraction is not False:
-            run_object.feature_extraction_method(method=run_object.feature_extraction)
+            from harness.feature_extraction import FeatureExtractor
+            feature_extractor = FeatureExtractor(base_run_instance=run_object)
+            feature_extractor.feature_extraction_method(method=run_object.feature_extraction)
+        else:
+            feature_extractor = None
 
         # output results of run object by updating the appropriate leaderboard(s) and writing files to disk
 
@@ -420,14 +427,14 @@ class TestHarness:
         if run_object.loo_dict is False:
             run_id_folder_path = os.path.join(self.runs_folder_path, '{}_{}'.format("run", run_object.run_id))
             os.makedirs(run_id_folder_path)
-            self._output_run_files(run_object, run_id_folder_path, output_data_csvs=True)
+            self._output_run_files(run_object, run_id_folder_path, True, feature_extractor)
         else:
             loo_id = run_object.loo_dict['loo_id']
             loo_path = os.path.join(self.runs_folder_path, '{}_{}'.format("loo", loo_id))
             os.makedirs(loo_path, exist_ok=True)
             run_id_folder_path = os.path.join(loo_path, '{}_{}'.format("run", run_object.run_id))
             os.makedirs(run_id_folder_path)
-            self._output_run_files(run_object, run_id_folder_path, output_data_csvs=True)
+            self._output_run_files(run_object, run_id_folder_path, True, feature_extractor)
 
         end = time.time()
         print('Run finished at {}'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
@@ -513,7 +520,7 @@ class TestHarness:
             raise ValueError("run_object.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
         return row_of_results
 
-    def _output_run_files(self, run_object, output_path, output_data_csvs=True):
+    def _output_run_files(self, run_object, output_path, output_data_csvs=True, feature_extractor=None):
         if output_data_csvs:
             # using index_cols and prediction/ranking cols to only output subset of dataframe.
             # using unchanged_index_cols to get names of columns that were created in execute_run for later output.
@@ -546,7 +553,10 @@ class TestHarness:
                     prediction_data_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
                 prediction_data_to_output.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
         if run_object.feature_extraction is not False:
-            run_object.feature_importances.to_csv('{}/{}'.format(output_path, 'feature_importances.csv'), index=False)
+            from harness.feature_extraction import FeatureExtractor
+            assert isinstance(feature_extractor, FeatureExtractor), \
+                "feature_extractor must be a FeatureExtractor object when run_object.feature_extraction is not False."
+            feature_extractor.feature_importances.to_csv('{}/{}'.format(output_path, 'feature_importances.csv'), index=False)
             if run_object.feature_extraction == Names.SHAP_AUDIT:
                 shap_path = os.path.join(output_path, 'SHAP')
                 if not os.path.exists(shap_path):
@@ -554,8 +564,8 @@ class TestHarness:
                 dependence_path = os.path.join(shap_path, 'feature_dependence_plots')
                 if not os.path.exists(dependence_path):
                     os.makedirs(dependence_path)
-                run_object.shap_values.to_csv('{}/{}'.format(shap_path, 'shap_values.csv'), index=False)
-                for name, plot in run_object.shap_plots_dict.items():
+                feature_extractor.shap_values.to_csv('{}/{}'.format(shap_path, 'shap_values.csv'), index=False)
+                for name, plot in feature_extractor.shap_plots_dict.items():
                     if "dependence_plot" in name:
                         plot.savefig(os.path.join(dependence_path, name), bbox_inches="tight")
                     else:

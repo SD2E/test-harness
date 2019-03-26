@@ -1,26 +1,30 @@
+import json
 from datetime import datetime
 import hashlib
 import os
 from pathlib import Path
-import time
+
 import numpy as np
 import pandas as pd
 import requests
+import yaml
 from sklearn.model_selection import train_test_split
 
 from harness.test_harness_class import TestHarness
+from version import VERSION
 from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
 
-from harness.utils.get_project_root import get_project_root
 
 import warnings
-
-# warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore")
 
 PREDICTED_OUT = "predicted_out"
 SCORE = "score"
 # how many predictions from the test harness to send to submissions server
 NUM_PREDICTIONS = 100
+
+# todo: oops, committed this.  Need to revoke, but leaving for testing
+AUTH_TOKEN = '4a8751b83c9744234367b52c58f4c46a53f5d0e0225da3f9c32ed238b7f82a69'
 
 
 # compute md5 hash using small chunks
@@ -69,7 +73,7 @@ def select_which_predictions_to_submit(predictions_df):
     return subset.head(NUM_PREDICTIONS)
 
 
-def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, stateset_hash, crank_number, commit_id):
+def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, crank_number, commit_id):
     submissions_paths = []
     for prediction_path in prediction_csv_paths:
         # todo: we need to know about what model this was for the notes field and such
@@ -77,12 +81,13 @@ def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, states
                    "name": "name",
                    "_rxn_M_inorganic": "_rxn_M_inorganic",
                    "_rxn_M_organic": "_rxn_M_organic",
+                   "_rxn_M_acid": "_rxn_M_acid",
                    "binarized_crystalscore_predictions": PREDICTED_OUT,
                    "binarized_crystalscore_prob_predictions": SCORE}
         df = pd.read_csv(prediction_path, comment='#')
         df = df.filter(columns.keys())
         df = df.rename(columns=columns)
-        df['dataset'] = stateset_hash[:11]
+        df['dataset'] = crank_number
         selected_predictions = select_which_predictions_to_submit(df)
 
         # fix formatting
@@ -104,7 +109,7 @@ def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, states
     return submissions_paths
 
 
-def submit_csv_to_escalation_server(submissions_file_path, crank_number):
+def submit_csv_to_escalation_server(submissions_file_path, crank_number, commit_id):
     print()
 
     test_harness_results_path = submissions_file_path.rsplit("/runs/")[0]
@@ -122,16 +127,12 @@ def submit_csv_to_escalation_server(submissions_file_path, crank_number):
     print(model_author)
     print(model_description)
 
-    version_file = open(os.path.join(get_project_root(), 'VERSION'))
-    harness_version = version_file.read().strip()
-    print(harness_version)
-    print()
-
     response = requests.post("http://escalation.sd2e.org/submission",
                              headers={'User-Agent': 'escalation'},
                              data={'crank': crank_number,
-                                   'username': "test_harness_{}".format(harness_version),
+                                   'username': "test_harness_{}".format(VERSION),
                                    'expname': model_name,
+                                   'githash': commit_id,
                                    # todo: add check to make sure that notes doesn't contain any commas
                                    'notes': "Model Author: {}; "
                                             "Model Description: {}; "
@@ -195,13 +196,71 @@ def run_configured_test_harness_models_on_perovskites(train_set, state_set):
                       cols_to_predict=col_to_predict,
                       feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
                       feature_extraction=False, predict_untested_data=state_set,
-                      index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic"]
+                      index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"]
                       )
 
     return th.list_of_this_instance_run_ids
 
 
+def get_manifest_from_gitlab_api(commit_id, auth_token):
+    headers = {"Authorization": "Bearer {}".format(auth_token)}
+    # this is the API call for the versioned data repository.  It gets the raw data file.
+    # 202 is the project id, derived from a previous call to the projects endpoint
+    # we have hard code the file we are fetching (manifest/perovskite.manifest.yml), and vary the commit id to fetch
+    gitlab_manifest_url = 'https://gitlab.sd2e.org/api/v4/projects/202/repository/files/manifest%2fperovskite.manifest.yml/raw?ref={}'.format(commit_id)
+    response = requests.get(gitlab_manifest_url, headers=headers)
+    if response.status_code == 404:
+        raise KeyError("File perovskite manifest not found from Gitlab API for commit {}".format(commit_id))
+    elif response.status_code == 403:
+        raise RuntimeError("Unable to authenticate user with gitlab")
+    perovskite_manifest = yaml.load(response.text)
+    return perovskite_manifest
+
+
+def get_git_hash_at_versioned_data_master_tip(auth_token):
+    headers = {"Authorization": "Bearer {}".format(auth_token)}
+    # this is the API call for the versioned data repository.  It gets the raw data file.
+    # 202 is the project id, derived from a previous call to the projects endpoint
+    # we have hard code the file we are fetching (manifest/perovskite.manifest.yml), and vary the commit id to fetch
+    gitlab_manifest_url = 'https://gitlab.sd2e.org/api/v4//projects/202/repository/commits/master'
+    response = requests.get(gitlab_manifest_url, headers=headers)
+    if response.status_code == 404:
+        raise KeyError("Unable to find metadata on master branch of versioned data repo via gitlab API")
+    elif response.status_code == 403:
+        raise RuntimeError("Unable to authenticate user with gitlab")
+    gitlab_master_branch_metadata = json.loads(response.text)
+    tip_commit_id = gitlab_master_branch_metadata["id"][:7]
+    return tip_commit_id
+
+
+def get_training_and_stateset_filenames(manifest):
+    files_of_interest = {
+        'perovskitedata': None,
+        'stateset': None
+    }
+    print(files_of_interest.items())
+    for file_name in manifest['files']:
+        for file_type, existing_filename in files_of_interest.items():
+            if file_name.endswith('{}.csv'.format(file_type)):
+                if existing_filename:
+                    raise KeyError(
+                        "More than one file found in manifest of type {}.  Manifest files: {}".format(
+                            file_type,
+                            manifest['files'])
+                    )
+                else:
+                    files_of_interest[file_type] = file_name
+                    break
+    for file_type, existing_filename in files_of_interest.items():
+        assert existing_filename is not None, "No file found in manifest for type {}".format(file_type)
+    return files_of_interest['perovskitedata'], files_of_interest['stateset']
+
+
 if __name__ == '__main__':
+    """
+    NB: This script is for local testing, and is NOT what is run by the app.
+    The test harness app runs in perovskite_test_harness.py
+    """
     VERSIONED_DATA = os.path.join(Path(__file__).resolve().parents[2], 'versioned-datasets/data')
     print("Path to data folder in the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATA))
     assert os.path.isdir(VERSIONED_DATA), "The path you gave for VERSIONED_DATA does not exist."
@@ -218,18 +277,17 @@ if __name__ == '__main__':
 
     list_of_run_ids = run_configured_test_harness_models_on_perovskites(df, state_set)
 
-    stateset_hash = md5(os.path.join(VERSIONED_DATA, 'perovskite/stateset/0021.stateset.csv'))
-    commit_id = 'abc12345678'
+    # this uses current master commit on the origin
+    commit_id = get_git_hash_at_versioned_data_master_tip(AUTH_TOKEN)
+
     crank_number = get_crank_number_from_filename(training_data_filename)
     prediction_csv_paths = get_prediction_csvs(run_ids=list_of_run_ids)
     submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths,
-                                                                        stateset_hash,
                                                                         crank_number,
                                                                         commit_id)
     for submission_path in submissions_paths:
         print("Submitting {} to escalation server".format(submission_path))
-        response, response_text = submit_csv_to_escalation_server(submission_path, crank_number)
+        response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
         print("Submission result: {}".format(response_text))
 
-# todo: remove hash requirement from submission
-# round instead of truncate float
+# todo: round instead of truncate float
