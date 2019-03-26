@@ -77,6 +77,7 @@ def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, states
                    "name": "name",
                    "_rxn_M_inorganic": "_rxn_M_inorganic",
                    "_rxn_M_organic": "_rxn_M_organic",
+                   "_rxn_M_acid": "_rxn_M_acid",
                    "binarized_crystalscore_predictions": PREDICTED_OUT,
                    "binarized_crystalscore_prob_predictions": SCORE}
         df = pd.read_csv(prediction_path, comment='#')
@@ -104,7 +105,7 @@ def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, states
     return submissions_paths
 
 
-def submit_csv_to_escalation_server(submissions_file_path, crank_number):
+def submit_csv_to_escalation_server(submissions_file_path, crank_number, commit_id):
     print()
 
     test_harness_results_path = submissions_file_path.rsplit("/runs/")[0]
@@ -127,6 +128,7 @@ def submit_csv_to_escalation_server(submissions_file_path, crank_number):
                              data={'crank': crank_number,
                                    'username': "test_harness_{}".format(VERSION),
                                    'expname': model_name,
+                                   'githash': commit_id,
                                    # todo: add check to make sure that notes doesn't contain any commas
                                    'notes': "Model Author: {}; "
                                             "Model Description: {}; "
@@ -190,7 +192,7 @@ def run_configured_test_harness_models_on_perovskites(train_set, state_set):
                       cols_to_predict=col_to_predict,
                       feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
                       feature_extraction=False, predict_untested_data=state_set,
-                      index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic"]
+                      index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"]
                       )
 
     return th.list_of_this_instance_run_ids
@@ -218,6 +220,7 @@ if __name__ == '__main__':
     list_of_run_ids = run_configured_test_harness_models_on_perovskites(df, state_set)
 
     stateset_hash = md5(os.path.join(VERSIONED_DATA, 'perovskite/stateset/0021.stateset.csv'))
+    # todo: we need to get a comit id for submission to server, which is now checking that
     commit_id = 'abc12345678'
     crank_number = get_crank_number_from_filename(training_data_filename)
     prediction_csv_paths = get_prediction_csvs(run_ids=list_of_run_ids)
@@ -227,7 +230,7 @@ if __name__ == '__main__':
                                                                         commit_id)
     for submission_path in submissions_paths:
         print("Submitting {} to escalation server".format(submission_path))
-        response, response_text = submit_csv_to_escalation_server(submission_path, crank_number)
+        response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
         print("Submission result: {}".format(response_text))
 
 # todo: remove hash requirement from submission

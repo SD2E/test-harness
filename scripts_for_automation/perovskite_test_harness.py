@@ -1,4 +1,3 @@
-print("I am the perovskite test harness script")
 """
 This script takes a commit_id, pulls the perovskite data for that commit, and runs the registered test harness models.
 
@@ -9,6 +8,7 @@ It is invoked by the test-harness-app Agave app.
 
 
 import argparse
+import json
 import yaml
 import os
 
@@ -44,6 +44,22 @@ def get_manifest_from_gitlab_api(commit_id, auth_token):
     return perovskite_manifest
 
 
+def get_git_hash_at_versioned_data_master_tip(auth_token):
+    headers = {"Authorization": "Bearer {}".format(auth_token)}
+    # this is the API call for the versioned data repository.  It gets the raw data file.
+    # 202 is the project id, derived from a previous call to the projects endpoint
+    # we have hard code the file we are fetching (manifest/perovskite.manifest.yml), and vary the commit id to fetch
+    gitlab_manifest_url = 'https://gitlab.sd2e.org/api/v4//projects/202/repository/commits/master'
+    response = requests.get(gitlab_manifest_url, headers=headers)
+    if response.status_code == 404:
+        raise KeyError("Unable to find metadata on master branch of versioned data repo via gitlab API")
+    elif response.status_code == 403:
+        raise RuntimeError("Unable to authenticate user with gitlab")
+    gitlab_master_branch_metadata = json.loads(response.text)
+    tip_commit_id = gitlab_master_branch_metadata["id"][:7]
+    return tip_commit_id
+
+
 def get_training_and_stateset_filenames(manifest):
     files_of_interest = {
         'perovskitedata': None,
@@ -73,7 +89,8 @@ if __name__ == '__main__':
     parser.add_argument('--gitlab_auth', help='gitlab auth token (see readme)')
 
     args = parser.parse_args()
-    commit_id = args.commit or 'master'
+    commit_id = args.commit or get_git_hash_at_versioned_data_master_tip(AUTH_TOKEN)
+
     # auth_token = args.gitlab_auth or get_auth_token()
     auth_token = args.gitlab_auth or AUTH_TOKEN
 
@@ -111,8 +128,7 @@ if __name__ == '__main__':
                                                                         commit_id)
     for submission_path in submissions_paths:
         print("Submitting {} to escalation server".format(submission_path))
-        response, response_text = submit_csv_to_escalation_server(submission_path, crank_number)
+        response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
         print("Submission result: {}".format(response_text))
-
 
 
