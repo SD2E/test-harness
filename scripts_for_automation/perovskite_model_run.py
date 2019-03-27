@@ -66,9 +66,10 @@ def get_prediction_csvs(run_ids, predictions_csv_path=None):
 
 
 def select_which_predictions_to_submit(predictions_df, all_or_subset='subset'):
-    # use binarized predictions, predict as 4
+    # use binarized predictions, change 1s to 4s, and 0s to 1s
     all_preds = predictions_df.copy()
     all_preds.loc[all_preds[PREDICTED_OUT] == 1, PREDICTED_OUT] = 4
+    all_preds.loc[all_preds[PREDICTED_OUT] == 0, PREDICTED_OUT] = 1
     all_preds.sort_values(by=[PREDICTED_OUT, SCORE], ascending=[False, False])
     if all_or_subset == 'subset':
         return all_preds.head(NUM_PREDICTIONS)
