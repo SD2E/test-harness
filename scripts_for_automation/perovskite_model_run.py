@@ -65,13 +65,18 @@ def get_prediction_csvs(run_ids, predictions_csv_path=None):
     return prediction_csv_paths
 
 
-def select_which_predictions_to_submit(predictions_df):
-    # use binarized predictions, predict as 4
-    subset = predictions_df.loc[predictions_df[PREDICTED_OUT] == 1, :]
-    subset.loc[:, PREDICTED_OUT] = 4
-    # @nleiby is this next line needed, given that predictions are already sorted by ranking in the test harness before it outputs?
-    subset.sort_values(by=SCORE, inplace=True)
-    return subset.head(NUM_PREDICTIONS)
+def select_which_predictions_to_submit(predictions_df, all_or_subset='subset'):
+    # use binarized predictions, change 1s to 4s, and 0s to 1s
+    all_preds = predictions_df.copy()
+    all_preds.loc[all_preds[PREDICTED_OUT] == 1, PREDICTED_OUT] = 4
+    all_preds.loc[all_preds[PREDICTED_OUT] == 0, PREDICTED_OUT] = 1
+    all_preds.sort_values(by=[PREDICTED_OUT, SCORE], ascending=[False, False])
+    if all_or_subset == 'subset':
+        return all_preds.head(NUM_PREDICTIONS)
+    elif all_or_subset == 'all':
+        return all_preds
+    else:
+        raise ValueError("all_or_subset must equal 'subset' or 'all'")
 
 
 def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, crank_number, commit_id):
@@ -89,7 +94,7 @@ def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, crank_
         df = df.filter(columns.keys())
         df = df.rename(columns=columns)
         df['dataset'] = crank_number
-        selected_predictions = select_which_predictions_to_submit(df)
+        selected_predictions = select_which_predictions_to_submit(predictions_df=df, all_or_subset='subset')
 
         # fix formatting
         # truncate floats to 5 digits
