@@ -143,19 +143,33 @@ def submit_csv_to_escalation_server(submissions_file_path, crank_number, commit_
     print("Submitted file to submissions server")
     return response, response.text
 
-def submit_leaderboard_to_escalation_server(submissions_file_path, crank_number, commit_id):
+
+def build_leaderboard_rows_dict(submissions_file_path):
+    """
+    :param submissions_file_path: a file path string
+    :return: As dict keyed by run_id, valued with the row from the leaderboard
+    """
     test_harness_results_path = submissions_file_path.rsplit("/runs/")[0]
     leaderboard = pd.read_html(os.path.join(test_harness_results_path, 'custom_classification_leaderboard.html'))[0]
+    leaderboard["Dataset"] = crank_number
+    leaderboard.columns = [x.lower().replace(' ', '_') for x in leaderboard.columns]
+    leaderboard_rows_dict = leaderboard.set_index('run_id', drop=False).to_dict(orient='index')
+    return leaderboard_rows_dict
 
-    leaderboard["Crank"] = crank_number
-    col_order = list(leaderboard.columns.values)
-    col_order.insert(0, col_order.pop(col_order.index('Crank')))
-    leaderboard = leaderboard[col_order]
 
-    print(leaderboard)
-
-    # This is where Nick's code will go
-
+def submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id):
+    # gets run id from path of form 'test_harness_results/runs/run_aXRQm2Ox6RY7m/0021_train_323354d_testharness.csv'
+    # This is kind of brittle.
+    run_id = submission_path.split('/')[2].split('_')[1]
+    row = leaderboard_rows_dict[run_id]
+    row['githash'] = commit_id
+    response = requests.post("http://escalation.sd2e.org/leaderboard",
+                             headers={'User-Agent': 'escalation'},
+                             data=row,
+                             timeout=60
+                             )
+    if response.status_code != 200:
+        print('Error submitting leaderboard row:', row, response.text)
 
 
 def get_crank_number_from_filename(training_data_filename):
@@ -299,9 +313,15 @@ if __name__ == '__main__':
     submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths,
                                                                         crank_number,
                                                                         commit_id)
+    if submissions_paths:
+        # If there were any submissions, include the leaderboard
+        # Only one leaderboard file is made, so we can submit just by pointing one path
+        submissions_path = submissions_paths[0]
+        leaderboard_rows_dict = build_leaderboard_rows_dict(submissions_path)
     for submission_path in submissions_paths:
         print("Submitting {} to escalation server".format(submission_path))
         response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
         print("Submission result: {}".format(response_text))
+        submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
 
 # todo: round instead of truncate float
