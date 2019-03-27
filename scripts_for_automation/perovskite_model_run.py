@@ -143,6 +143,20 @@ def submit_csv_to_escalation_server(submissions_file_path, crank_number, commit_
     print("Submitted file to submissions server")
     return response, response.text
 
+def submit_leaderboard_to_escalation_server(submissions_file_path, crank_number, commit_id):
+    test_harness_results_path = submissions_file_path.rsplit("/runs/")[0]
+    leaderboard = pd.read_html(os.path.join(test_harness_results_path, 'custom_classification_leaderboard.html'))[0]
+
+    leaderboard["Crank"] = crank_number
+    col_order = list(leaderboard.columns.values)
+    col_order.insert(0, col_order.pop(col_order.index('Crank')))
+    leaderboard = leaderboard[col_order]
+
+    print(leaderboard)
+
+    # This is where Nick's code will go
+
+
 
 def get_crank_number_from_filename(training_data_filename):
     # Gets the challenge problem iteration number from the training data
