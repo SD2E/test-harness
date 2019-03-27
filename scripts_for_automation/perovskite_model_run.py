@@ -14,8 +14,8 @@ from harness.test_harness_class import TestHarness
 from version import VERSION
 from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
 
-
 import warnings
+
 warnings.filterwarnings("ignore")
 
 PREDICTED_OUT = "predicted_out"
@@ -69,6 +69,7 @@ def select_which_predictions_to_submit(predictions_df):
     # use binarized predictions, predict as 4
     subset = predictions_df.loc[predictions_df[PREDICTED_OUT] == 1, :]
     subset.loc[:, PREDICTED_OUT] = 4
+    # @nleiby is this next line needed, given that predictions are already sorted by ranking in the test harness before it outputs?
     subset.sort_values(by=SCORE, inplace=True)
     return subset.head(NUM_PREDICTIONS)
 
@@ -110,12 +111,8 @@ def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, crank_
 
 
 def submit_csv_to_escalation_server(submissions_file_path, crank_number, commit_id):
-    print()
-
     test_harness_results_path = submissions_file_path.rsplit("/runs/")[0]
     this_run_results_path = submissions_file_path.rsplit("/", 1)[0]
-
-    print(os.listdir(test_harness_results_path))
 
     leaderboard = pd.read_html(os.path.join(test_harness_results_path, 'custom_classification_leaderboard.html'))[0]
     leaderboard_entry_for_this_run = leaderboard.loc[leaderboard["Run ID"] == this_run_results_path.rsplit("/run_")[1]]
@@ -123,9 +120,6 @@ def submit_csv_to_escalation_server(submissions_file_path, crank_number, commit_
     model_name = leaderboard_entry_for_this_run["Model Name"].values[0]
     model_author = leaderboard_entry_for_this_run["Model Author"].values[0]
     model_description = leaderboard_entry_for_this_run["Model Description"].values[0]
-    print(model_name)
-    print(model_author)
-    print(model_description)
 
     response = requests.post("http://escalation.sd2e.org/submission",
                              headers={'User-Agent': 'escalation'},
@@ -207,7 +201,8 @@ def get_manifest_from_gitlab_api(commit_id, auth_token):
     # this is the API call for the versioned data repository.  It gets the raw data file.
     # 202 is the project id, derived from a previous call to the projects endpoint
     # we have hard code the file we are fetching (manifest/perovskite.manifest.yml), and vary the commit id to fetch
-    gitlab_manifest_url = 'https://gitlab.sd2e.org/api/v4/projects/202/repository/files/manifest%2fperovskite.manifest.yml/raw?ref={}'.format(commit_id)
+    gitlab_manifest_url = \
+        'https://gitlab.sd2e.org/api/v4/projects/202/repository/files/manifest%2fperovskite.manifest.yml/raw?ref={}'.format(commit_id)
     response = requests.get(gitlab_manifest_url, headers=headers)
     if response.status_code == 404:
         raise KeyError("File perovskite manifest not found from Gitlab API for commit {}".format(commit_id))
