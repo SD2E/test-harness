@@ -144,7 +144,7 @@ def submit_csv_to_escalation_server(submissions_file_path, crank_number, commit_
     return response, response.text
 
 
-def build_leaderboard_rows_dict(submissions_file_path):
+def build_leaderboard_rows_dict(submissions_file_path, crank_number):
     """
     :param submissions_file_path: a file path string
     :return: As dict keyed by run_id, valued with the row from the leaderboard
@@ -317,7 +317,7 @@ if __name__ == '__main__':
         # If there were any submissions, include the leaderboard
         # Only one leaderboard file is made, so we can submit just by pointing one path
         submissions_path = submissions_paths[0]
-        leaderboard_rows_dict = build_leaderboard_rows_dict(submissions_path)
+        leaderboard_rows_dict = build_leaderboard_rows_dict(submissions_path, crank_number)
     for submission_path in submissions_paths:
         print("Submitting {} to escalation server".format(submission_path))
         response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
