@@ -77,7 +77,7 @@ def select_which_predictions_to_submit(predictions_df):
 def submit_all_predictions(predictions_df):
     # use binarized predictions, predict as 4
     all_preds = predictions_df.copy()
-    all_preds.loc[all_preds[PREDICTED_OUT] == 1] = 4
+    all_preds.loc[all_preds[PREDICTED_OUT] == 1, PREDICTED_OUT] = 4
     return all_preds
 
 
