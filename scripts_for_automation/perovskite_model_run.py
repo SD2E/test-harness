@@ -74,6 +74,13 @@ def select_which_predictions_to_submit(predictions_df):
     return subset.head(NUM_PREDICTIONS)
 
 
+def submit_all_predictions(predictions_df):
+    # use binarized predictions, predict as 4
+    all_preds = predictions_df.copy()
+    all_preds.loc[all_preds[PREDICTED_OUT] == 1] = 4
+    return all_preds
+
+
 def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, crank_number, commit_id):
     submissions_paths = []
     for prediction_path in prediction_csv_paths:
@@ -89,7 +96,8 @@ def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, crank_
         df = df.filter(columns.keys())
         df = df.rename(columns=columns)
         df['dataset'] = crank_number
-        selected_predictions = select_which_predictions_to_submit(df)
+        # selected_predictions = select_which_predictions_to_submit(df)
+        selected_predictions = submit_all_predictions(df)
 
         # fix formatting
         # truncate floats to 5 digits

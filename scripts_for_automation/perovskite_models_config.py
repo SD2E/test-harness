@@ -6,9 +6,9 @@ from harness.th_model_instances.baseline_models.classification_baselines import 
 MODELS_TO_RUN = \
     [
         baseline_prior,
-        # baseline_stratified,
-        # baseline_uniform,
-        # weighted_logistic_classifier,
-        # random_forest_classification,
-        # support_vector_radial_basis_classifier
+        baseline_stratified,
+        baseline_uniform,
+        weighted_logistic_classifier,
+        random_forest_classification,
+        support_vector_radial_basis_classifier
     ]
