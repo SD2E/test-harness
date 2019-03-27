@@ -18,7 +18,9 @@ from scripts_for_automation.perovskite_model_run import (get_crank_number_from_f
                                                          build_submissions_csvs_from_test_harness_output,
                                                          get_prediction_csvs, AUTH_TOKEN, get_manifest_from_gitlab_api,
                                                          get_git_hash_at_versioned_data_master_tip,
-                                                         get_training_and_stateset_filenames)
+                                                         get_training_and_stateset_filenames,
+                                                         build_leaderboard_rows_dict,
+                                                         submit_leaderboard_to_escalation_server)
 
 
 if __name__ == '__main__':
@@ -62,9 +64,17 @@ if __name__ == '__main__':
     submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths,
                                                                         crank_number,
                                                                         commit_id)
+
+    if submissions_paths:
+        # If there were any submissions, include the leaderboard
+        # Only one leaderboard file is made, so we can submit just by pointing one path
+        submissions_path = submissions_paths[0]
+        leaderboard_rows_dict = build_leaderboard_rows_dict(submissions_path, crank_number)
     for submission_path in submissions_paths:
         print("Submitting {} to escalation server".format(submission_path))
         response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
         print("Submission result: {}".format(response_text))
+        submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
+
 
 
