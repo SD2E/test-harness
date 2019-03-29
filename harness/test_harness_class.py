@@ -39,8 +39,6 @@ DEFAULT_DATA_PATH = os.path.join(PWD, 'versioned_data/asap/')
 # TODO: add filelock or writing-scheduler so leaderboards are not overwritten at the same time. Might need to use SQL
 # TODO: by having the ability to "add" multiple models to the TestHarness object, you can allow for visualizations or \
 # TODO: summary stats for a certain group of runs by adding arguments to the execute_runs method!
-# TODO: potentially move sparse column code to run_classes.py so LOO can use it as well easily
-
 
 def make_list_if_not_list(obj):
     if not isinstance(obj, list):
@@ -388,18 +386,12 @@ class TestHarness:
             if isinstance(pred_df, pd.DataFrame):
                 pred_df["unchanged_{}".format(col)] = pred_df[col]
 
-        # TODO sparse_cols for untested data
-        # TODO move sparse col code to run_classes.py
-        if sparse_cols_to_use is not None:
-            train_df, feature_cols_to_use = self._make_sparse_cols(train_df, sparse_cols_to_use, feature_cols_to_use)
-            test_df = self._make_sparse_cols(test_df, sparse_cols_to_use)
-
         test_harness_model = function_that_returns_TH_model(**dict_of_function_parameters)
 
         # This is the one and only time _BaseRun is invoked
         run_object = _BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
                               feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize, feature_extraction,
-                              pred_df, loo_dict)
+                              pred_df, sparse_cols_to_use, loo_dict)
 
         # tracking the run_ids of all the runs that were kicked off in this TestHarness instance
         # TODO: take into account complications when dealing with LOO runs. e.g. do we want to keep a list of LOO Ids as well (if yes, how).
@@ -547,7 +539,7 @@ class TestHarness:
             test_df_to_output.to_csv('{}/{}'.format(output_path, 'testing_data.csv'), index=False)
 
             if run_object.was_untested_data_predicted is not False:
-                pred_cols_to_output = test_cols_to_output + [run_object.rankings_col]
+                pred_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.rankings_col]
                 prediction_data_to_output = run_object.untested_data_predictions[pred_cols_to_output].copy()
                 for col in unchanged_index_cols:
                     prediction_data_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
@@ -590,28 +582,3 @@ class TestHarness:
 
     def print_leaderboards(self):
         pass
-
-    # If there are categorical columns that need to be made sparse, make them, and update the feature_cols_to_use
-    def _make_sparse_cols(self, df, sparse_col_names, feature_cols_to_use=None):
-        """
-        Take in a dataframe with the name of the columns that require construction of sparse columns.
-        Update the feature columns to use list with the new sparse column construction.
-        Drop the column that was made sparse from the list of features to use.
-        :param df: input dataframe
-        :param sparse_col_names: names of columns that need to be made sparse
-        :param feature_cols_to_use: list of all features to use that needs to be updated
-        :return: updated dataframe and feature columns to use
-        """
-        for col, col_data in df.iteritems():
-            if str(col) in sparse_col_names:
-                col_data = pd.get_dummies(col_data, prefix=col)
-                df = df.join(col_data)
-                if feature_cols_to_use:
-                    feature_cols_to_use.remove(col)
-                    feature_cols_to_use.extend([col for col in col_data.columns])
-        if feature_cols_to_use:
-            return df, feature_cols_to_use
-        else:
-            return df
-
-        # TODO: Put in a check to never normalize the sparse data category
