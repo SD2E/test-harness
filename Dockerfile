@@ -30,6 +30,7 @@ ADD scripts_for_automation/perovskite_test_harness.py /scripts_for_automation/
 ADD scripts_for_automation/perovskite_model_run.py /scripts_for_automation/
 ADD scripts_for_automation/perovskite_models_config.py /scripts_for_automation/
 ADD harness/ /harness/
+ADD / /
 
 ENV PYTHONPATH "${PYTHONPATH}:/scripts/"
 ENV PYTHONPATH "${PYTHONPATH}:/test-harness/"

@@ -1,29 +1,19 @@
-import time
-import eli5
-import rfpimp
-import warnings
-import pandas as pd
-import numpy as np
-from math import sqrt, fabs
 from datetime import datetime
+from math import sqrt
+import time
+import warnings
+
+import numpy as np
 from sklearn import preprocessing
-from eli5.sklearn import PermutationImportance
 from sklearn.exceptions import DataConversionWarning
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
 from sklearn.metrics import average_precision_score
 from sklearn.metrics import mean_squared_error, r2_score
+
 from harness.unique_id import get_id
 from harness.utils.names import Names
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
 from harness.test_harness_class import is_list_of_strings
-
-import shap
-import BlackBoxAuditing as BBA
-from operator import itemgetter
-from BlackBoxAuditing.model_factories.SKLearnModelVisitor import SKLearnModelVisitor
-
-import matplotlib.pyplot as plt
-import os
 
 
 class _BaseRun:
@@ -39,6 +29,8 @@ class _BaseRun:
         else:
             raise TypeError("test_harness_model must be a ClassificationModel or a RegressionModel")
         self.test_harness_model = test_harness_model
+        self.model_name = test_harness_model.model_name
+        self.model_author = test_harness_model.model_author
         self.model_description = test_harness_model.model_description
         self.model_stack_trace = test_harness_model.stack_trace
         self.training_data = training_data
@@ -64,9 +56,7 @@ class _BaseRun:
         self.time_ran = datetime.now().strftime("%H:%M:%S")
         self.metrics_dict = {}
         self.normalization_scaler_object = None
-        self.shap_values = None
-        self.shap_plots_dict = None
-        self.feature_importances = None
+
 
     def _normalize_dataframes(self):
         warnings.simplefilter('ignore', DataConversionWarning)
