@@ -13,6 +13,7 @@ from harness.run_classes import _BaseRun
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
 from harness.unique_id import get_id
 from harness.utils.names import Names
+from harness.utils.object_type_modifiers_and_checkers import is_list_of_strings, make_list_if_not_list
 
 plt.switch_backend('agg')
 pd.set_option('display.max_columns', 500)
@@ -39,19 +40,6 @@ DEFAULT_DATA_PATH = os.path.join(PWD, 'versioned_data/asap/')
 # TODO: add filelock or writing-scheduler so leaderboards are not overwritten at the same time. Might need to use SQL
 # TODO: by having the ability to "add" multiple models to the TestHarness object, you can allow for visualizations or \
 # TODO: summary stats for a certain group of runs by adding arguments to the execute_runs method!
-
-def make_list_if_not_list(obj):
-    if not isinstance(obj, list):
-        return [obj]
-    else:
-        return obj
-
-
-def is_list_of_strings(obj):
-    if obj and isinstance(obj, list):
-        return all(isinstance(elem, string_types) for elem in obj)
-    else:
-        return False
 
 
 # TODO: separate data description from split description

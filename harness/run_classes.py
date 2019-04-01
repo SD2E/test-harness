@@ -13,7 +13,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from harness.unique_id import get_id
 from harness.utils.names import Names
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
-from harness.test_harness_class import is_list_of_strings
+from harness.utils.object_type_modifiers_and_checkers import is_list_of_strings
 
 
 class _BaseRun:
@@ -56,7 +56,6 @@ class _BaseRun:
         self.time_ran = datetime.now().strftime("%H:%M:%S")
         self.metrics_dict = {}
         self.normalization_scaler_object = None
-
 
     def _normalize_dataframes(self):
         warnings.simplefilter('ignore', DataConversionWarning)
