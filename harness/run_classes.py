@@ -4,6 +4,7 @@ import time
 import warnings
 
 import numpy as np
+import pandas as pd
 from sklearn import preprocessing
 from sklearn.exceptions import DataConversionWarning
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
@@ -128,10 +129,10 @@ class _BaseRun:
                     self.predict_untested_data['{}_{}'.format(sparse_col, val)] = 0
 
     def train_and_test_model(self):
-        if self.normalize is not False:
+        if self.normalize:
             self._normalize_dataframes()
 
-        if self.sparse_cols_to_use is not False:
+        if self.sparse_cols_to_use:
             self._add_sparse_cols()
 
         train_df = self.training_data.copy()
