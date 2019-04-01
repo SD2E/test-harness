@@ -173,11 +173,13 @@ class _BaseRun:
 
             # creating rankings column based on the predictions. Rankings assume that a higher score is more desirable
             if self.run_type == Names.REGRESSION:
-                untested_df[self.rankings_col] = untested_df.sort_values(by=[self.predictions_col], ascending=False)[
-                                                     self.predictions_col].index + 1
+                untested_df.sort_values(by=[self.predictions_col], ascending=False, inplace=True)
+                untested_df.reset_index(inplace=True, drop=True)
+                untested_df[self.rankings_col] = untested_df.index + 1
             elif self.run_type == Names.CLASSIFICATION:
-                untested_df[self.rankings_col] = untested_df.sort_values(by=[self.predictions_col, self.prob_predictions_col],
-                                                                         ascending=[False, False])[self.predictions_col].index + 1
+                untested_df.sort_values(by=[self.predictions_col, self.prob_predictions_col], ascending=[False, False], inplace=True)
+                untested_df.reset_index(inplace=True, drop=True)
+                untested_df[self.rankings_col] = untested_df.index + 1
             else:
                 raise ValueError("self.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
 
