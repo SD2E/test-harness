@@ -17,5 +17,6 @@ class KerasClassification(ClassificationModel):
 
     # TODO: Need to update this to use Keras' predict_proba function
     def _predict_proba(self, X):
+        # this should return the probability of being in class 1 (positive class)
         probs = [x[0] for x in self.model.predict(X)]
         return probs

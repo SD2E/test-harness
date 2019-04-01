@@ -9,4 +9,5 @@ class SklearnClassification(ClassificationModel):
         return self.model.predict(X)
 
     def _predict_proba(self, X):
+        # this should return the probability of being in class 1 (positive class)
         return self.model.predict_proba(X)[:, 1]

@@ -460,9 +460,11 @@ class TestHarness:
         leaderboard = leaderboard.append(row_of_results, ignore_index=True, sort=False)
         if run_object.run_type == Names.CLASSIFICATION:
             leaderboard.sort_values(self.metric_to_sort_classification_results_by, inplace=True, ascending=False)
+            leaderboard.reset_index(inplace=True, drop=True)
         elif run_object.run_type == Names.REGRESSION:
             # print(leaderboard[self.metric_to_sort_regression_results_by].value_counts(dropna=False))
             leaderboard.sort_values(self.metric_to_sort_regression_results_by, inplace=True, ascending=False)
+            leaderboard.reset_index(inplace=True, drop=True)
         else:
             raise TypeError("run_object.run_type must equal '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
         leaderboard.reset_index(inplace=True, drop=True)
