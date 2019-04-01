@@ -176,17 +176,17 @@ class _BaseRun:
             # creating rankings column based on the predictions. Rankings assume that a higher score is more desirable
             if self.run_type == Names.REGRESSION:
                 untested_df.sort_values(by=[self.predictions_col], ascending=False, inplace=True)
-                untested_df.reset_index(inplace=True, drop=True)
-                untested_df[self.rankings_col] = untested_df.index + 1
             elif self.run_type == Names.CLASSIFICATION:
                 # assuming binary classification, predictions of class 1 are ranked higher than class 0,
                 # and the probability of a sample being in class 1 is used as the secondary column for ranking.
                 # currently the _predict_proba methods in test harness model classes return the probability of a sample being in class 1
                 untested_df.sort_values(by=[self.predictions_col, self.prob_predictions_col], ascending=[False, False], inplace=True)
-                untested_df.reset_index(inplace=True, drop=True)
-                untested_df[self.rankings_col] = untested_df.index + 1
             else:
                 raise ValueError("self.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
+            # resetting index to match sorted values, so the index can be used as a ranking.
+            untested_df.reset_index(inplace=True, drop=True)
+            # adding 1 to rankings so they start from 1 instead of 0.
+            untested_df[self.rankings_col] = untested_df.index + 1
 
             print(("Prediction time of untested data was: {}".format(time.time() - prediction_start_time)))
             # Saving untested predictions
