@@ -73,6 +73,10 @@ def select_which_predictions_to_submit(predictions_df, all_or_subset='subset'):
     all_preds.loc[all_preds[PREDICTED_OUT] == 0, PREDICTED_OUT] = 1
     all_preds.sort_values(by=RANKING, ascending=True, inplace=True)
     all_preds.reset_index(inplace=True, drop=True)
+
+    # drop ranking column to match file format of the submission server
+    all_preds.drop(axis=1, columns=RANKING, inplace=True)
+
     if all_or_subset == 'subset':
         return all_preds.head(NUM_PREDICTIONS)
     elif all_or_subset == 'all':
