@@ -130,6 +130,18 @@ in sd2e-community depending on your challenge problem:
 1. Protein Design: `/sd2e-community/protein-design/test-harness-outputs`
 2. Perovskites: tbd
 
+## Developing for the Test Harness
+
+### Version bumping and deploying the app
+
+1) Update the version in `version.py` per semantic versioning rules
+2) Update `CHANGELOG.md` with a description explaining the changes (can reference Gitlab issues for details)
+3) Update version number in `test-harness/test-harness-app/_lib/CONTAINER_IMAGE`
+3) Update version number in `test-harness/app.ini`
+
+### Testing
+
+WRITE ME
 
 ## todo
 
