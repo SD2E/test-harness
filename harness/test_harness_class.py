@@ -13,6 +13,7 @@ from harness.run_classes import _BaseRun
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
 from harness.unique_id import get_id
 from harness.utils.names import Names
+from harness.utils.object_type_modifiers_and_checkers import is_list_of_strings, make_list_if_not_list
 
 plt.switch_backend('agg')
 pd.set_option('display.max_columns', 500)
@@ -39,19 +40,6 @@ DEFAULT_DATA_PATH = os.path.join(PWD, 'versioned_data/asap/')
 # TODO: add filelock or writing-scheduler so leaderboards are not overwritten at the same time. Might need to use SQL
 # TODO: by having the ability to "add" multiple models to the TestHarness object, you can allow for visualizations or \
 # TODO: summary stats for a certain group of runs by adding arguments to the execute_runs method!
-
-def make_list_if_not_list(obj):
-    if not isinstance(obj, list):
-        return [obj]
-    else:
-        return obj
-
-
-def is_list_of_strings(obj):
-    if obj and isinstance(obj, list):
-        return all(isinstance(elem, string_types) for elem in obj)
-    else:
-        return False
 
 
 # TODO: separate data description from split description
@@ -146,6 +134,7 @@ class TestHarness:
                               data_and_split_description, col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
                               feature_extraction, predict_untested_data, sparse_cols_to_use)
 
+    # TODO: add sparse cols to leave one out
     def run_leave_one_out(self, function_that_returns_TH_model, dict_of_function_parameters, data, data_description, grouping,
                           grouping_description, cols_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
                           feature_cols_to_normalize=None, feature_extraction=False):
@@ -520,11 +509,15 @@ class TestHarness:
 
             unchanged_index_cols = ["unchanged_{}".format(x) for x in run_object.index_cols]
 
-            train_cols_to_output = unchanged_index_cols
+            # creating list of cols to output for train, test, and pred outputs
+            train_cols_to_output = unchanged_index_cols + [run_object.col_to_predict]
             if run_object.run_type == Names.CLASSIFICATION:
-                test_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.prob_predictions_col]
+                test_cols_to_output = train_cols_to_output + [run_object.predictions_col, run_object.prob_predictions_col]
+                pred_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.prob_predictions_col,
+                                                              run_object.rankings_col]
             elif run_object.run_type == Names.REGRESSION:
                 test_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.residuals_col]
+                pred_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.rankings_col]
             else:
                 raise ValueError("run_object.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
 
@@ -539,11 +532,11 @@ class TestHarness:
             test_df_to_output.to_csv('{}/{}'.format(output_path, 'testing_data.csv'), index=False)
 
             if run_object.was_untested_data_predicted is not False:
-                pred_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.rankings_col]
                 prediction_data_to_output = run_object.untested_data_predictions[pred_cols_to_output].copy()
                 for col in unchanged_index_cols:
                     prediction_data_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
                 prediction_data_to_output.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
+
         if run_object.feature_extraction is not False:
             from harness.feature_extraction import FeatureExtractor
             assert isinstance(feature_extractor, FeatureExtractor), \

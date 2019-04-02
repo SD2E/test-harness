@@ -4,6 +4,7 @@ import time
 import warnings
 
 import numpy as np
+import pandas as pd
 from sklearn import preprocessing
 from sklearn.exceptions import DataConversionWarning
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
@@ -13,7 +14,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from harness.unique_id import get_id
 from harness.utils.names import Names
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
-from harness.test_harness_class import is_list_of_strings
+from harness.utils.object_type_modifiers_and_checkers import is_list_of_strings
 
 
 class _BaseRun:
@@ -56,7 +57,6 @@ class _BaseRun:
         self.time_ran = datetime.now().strftime("%H:%M:%S")
         self.metrics_dict = {}
         self.normalization_scaler_object = None
-
 
     def _normalize_dataframes(self):
         warnings.simplefilter('ignore', DataConversionWarning)
@@ -129,10 +129,10 @@ class _BaseRun:
                     self.predict_untested_data['{}_{}'.format(sparse_col, val)] = 0
 
     def train_and_test_model(self):
-        if self.normalize is not False:
+        if self.normalize:
             self._normalize_dataframes()
 
-        if self.sparse_cols_to_use is not False:
+        if self.sparse_cols_to_use:
             self._add_sparse_cols()
 
         train_df = self.training_data.copy()
@@ -148,6 +148,7 @@ class _BaseRun:
         testing_start_time = time.time()
         test_df.loc[:, self.predictions_col] = self.test_harness_model._predict(test_df[self.feature_cols_to_use])
         if self.run_type == Names.CLASSIFICATION:
+            # _predict_proba currently returns the probability of class = 1
             test_df.loc[:, self.prob_predictions_col] = self.test_harness_model._predict_proba(test_df[self.feature_cols_to_use])
         elif self.run_type == Names.REGRESSION:
             test_df[self.residuals_col] = test_df[self.col_to_predict] - test_df[self.predictions_col]
@@ -165,24 +166,29 @@ class _BaseRun:
 
             untested_df.loc[:, self.predictions_col] = self.test_harness_model._predict(untested_df[self.feature_cols_to_use])
             if self.run_type == Names.CLASSIFICATION:
-                untested_df.loc[:, self.prob_predictions_col] = \
-                    self.test_harness_model._predict_proba(untested_df[self.feature_cols_to_use])
+                # _predict_proba currently returns the probability of class = 1
+                untested_df.loc[:, self.prob_predictions_col] = self.test_harness_model._predict_proba(
+                    untested_df[self.feature_cols_to_use])
 
             # IDEA: remove all columns except for self.index_cols and self.predictions_col. This is already done in test_harness_class.py,
             # IDEA: but if it's done here the extra columns wouldn't have to be stored in the run_object either.
 
             # creating rankings column based on the predictions. Rankings assume that a higher score is more desirable
             if self.run_type == Names.REGRESSION:
-                untested_df[self.rankings_col] = untested_df.sort_values(by=[self.predictions_col], ascending=False)[
-                                                     self.predictions_col].index + 1
+                untested_df.sort_values(by=[self.predictions_col], ascending=False, inplace=True)
             elif self.run_type == Names.CLASSIFICATION:
-                untested_df[self.rankings_col] = untested_df.sort_values(by=[self.predictions_col, self.prob_predictions_col],
-                                                                         ascending=[False, False])[self.predictions_col].index + 1
+                # assuming binary classification, predictions of class 1 are ranked higher than class 0,
+                # and the probability of a sample being in class 1 is used as the secondary column for ranking.
+                # currently the _predict_proba methods in test harness model classes return the probability of a sample being in class 1
+                untested_df.sort_values(by=[self.predictions_col, self.prob_predictions_col], ascending=[False, False], inplace=True)
             else:
                 raise ValueError("self.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
+            # resetting index to match sorted values, so the index can be used as a ranking.
+            untested_df.reset_index(inplace=True, drop=True)
+            # adding 1 to rankings so they start from 1 instead of 0.
+            untested_df[self.rankings_col] = untested_df.index + 1
 
             print(("Prediction time of untested data was: {}".format(time.time() - prediction_start_time)))
-            untested_df.sort_values(self.predictions_col, inplace=True, ascending=False)
             # Saving untested predictions
             self.untested_data_predictions = untested_df.copy()
         else:
