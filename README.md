@@ -131,6 +131,18 @@ in sd2e-community depending on your challenge problem:
 2. Perovskites: tbd
 
 
+## todo
+
+To protect against breaking the test harness app: The best idea I have is to eventually have auto-deployer infra on Jenkins deploying the app on every merge to master.  It would try to deploy a dev app every time a merge request is made, and hopefully run tests on our dev path.  That way we’d catch errors before deploy to the prd version (edited) 
+That’s not actually that hard to do once we have dev-escalation and I can set up a dev-test-harness-app
+Ideally we’d set a rule on the repo that doesn’t allow merge to master without a merge request approver, and we can just put a merge request checklist in that asks if that test was successful.
+I think that’s a decent balance between automation and process/rules
+
+Implement merge request rules:
+1. Version has been bumped
+2. Changelog has been updated
+3. Version tags on master
+4. Someone has approved the merge request
 
 
 
