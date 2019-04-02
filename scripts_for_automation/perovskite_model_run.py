@@ -20,6 +20,7 @@ warnings.filterwarnings("ignore")
 
 PREDICTED_OUT = "predicted_out"
 SCORE = "score"
+RANKING = "ranking"
 # how many predictions from the test harness to send to submissions server
 NUM_PREDICTIONS = 100
 
@@ -70,7 +71,8 @@ def select_which_predictions_to_submit(predictions_df, all_or_subset='subset'):
     all_preds = predictions_df.copy()
     all_preds.loc[all_preds[PREDICTED_OUT] == 1, PREDICTED_OUT] = 4
     all_preds.loc[all_preds[PREDICTED_OUT] == 0, PREDICTED_OUT] = 1
-    all_preds.sort_values(by=[PREDICTED_OUT, SCORE], ascending=[False, False])
+    all_preds.sort_values(by=RANKING, ascending=True, inplace=True)
+    all_preds.reset_index(inplace=True, drop=True)
     if all_or_subset == 'subset':
         return all_preds.head(NUM_PREDICTIONS)
     elif all_or_subset == 'all':
@@ -89,7 +91,8 @@ def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, crank_
                    "_rxn_M_organic": "_rxn_M_organic",
                    "_rxn_M_acid": "_rxn_M_acid",
                    "binarized_crystalscore_predictions": PREDICTED_OUT,
-                   "binarized_crystalscore_prob_predictions": SCORE}
+                   "binarized_crystalscore_prob_predictions": SCORE,
+                   "binarized_crystalscore_rankings": RANKING}
         df = pd.read_csv(prediction_path, comment='#')
         df = df.filter(columns.keys())
         df = df.rename(columns=columns)
