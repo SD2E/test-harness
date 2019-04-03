@@ -83,20 +83,39 @@ class FeatureExtractor:
         import warnings
         warnings.filterwarnings('ignore')
 
+        
+        #######
         features = self.base_run_instance.feature_cols_to_use
-        classifier = self.base_run_instance.test_harness_model
-        train_X = self.base_run_instance.training_data[features]
-        test_X = self.base_run_instance.testing_data[features]
-
-        shap.initjs()
-        # f = lambda x: classifier._predict_proba(x)[:,1]
-        f = classifier._predict_proba
+        
+        train_X = self.base_run_instance.training_data[features].copy()
+        test_X = self.base_run_instance.testing_data[features].copy()
+        
         train_X_df = pd.DataFrame(data=train_X, columns=features)
-        # train_X_df = self.training_data.copy()
-        med = train_X_df.median().values.reshape((1, train_X_df.shape[1]))
-        explainer = shap.KernelExplainer(f, med)
         test_X_df = pd.DataFrame(data=test_X, columns=features)
-        # test_X_df = self.testing_data.copy()
+
+        # rather than use the whole training set to estimate expected values, we summarize with
+        # a set of weighted kmeans, each weighted by the number of points they represent. (from shap notebook)
+        X_train_summary = shap.kmeans(train_X, 10)
+
+
+        shap.initjs()      
+        
+        explainer = None
+        
+        if self.base_run_instance.run_type==Names.CLASSIFICATION:
+            
+            print("CLASSIFICATION PATH")
+            
+            f = self.base_run_instance.test_harness_model._predict_proba
+            med = train_X_df.median().values.reshape((1, train_X_df.shape[1]))
+            explainer = shap.KernelExplainer(f, med)
+        elif self.base_run_instance.run_type==Names.REGRESSION:
+            
+            print("REGRESSION PATH")
+            
+            explainer = shap.KernelExplainer(self.base_run_instance.test_harness_model._predict, X_train_summary)
+        
+        
         shap_values = explainer.shap_values(test_X_df)
 
         # store shap_values so they can be accessed and output by TestHarness class
