@@ -269,26 +269,28 @@ def get_git_hash_at_versioned_data_master_tip(auth_token):
 
 
 def get_training_and_stateset_filenames(manifest):
+    """
+    Takes a manifest and finds the perovskite data file and stateset file.
+    If there is more than one, returns the highest crank number available
+    :param manifest: dict of perovskite manifest file
+    :return: paths to perovskite_data_file and stateset_file
+    """
     files_of_interest = {
-        'perovskitedata': None,
-        'stateset': None
+        'perovskitedata': [],
+        'stateset': []
     }
-    print(files_of_interest.items())
     for file_name in manifest['files']:
-        for file_type, existing_filename in files_of_interest.items():
+        for file_type, existing_filenames in files_of_interest.items():
             if file_name.endswith('{}.csv'.format(file_type)):
-                if existing_filename:
-                    raise KeyError(
-                        "More than one file found in manifest of type {}.  Manifest files: {}".format(
-                            file_type,
-                            manifest['files'])
-                    )
-                else:
-                    files_of_interest[file_type] = file_name
-                    break
-    for file_type, existing_filename in files_of_interest.items():
-        assert existing_filename is not None, "No file found in manifest for type {}".format(file_type)
-    return files_of_interest['perovskitedata'], files_of_interest['stateset']
+                existing_filenames.append(file_name)
+
+    for file_type, existing_filenames in files_of_interest.items():
+        assert len(existing_filenames) > 0, "No file found in manifest for type {}".format(file_type)
+    # get the files of interest with the highest crank number, assert crank numbers are equal
+    perovskite_data_file = sorted(files_of_interest['perovskitedata'], reverse=True)[0]
+    stateset_file = sorted(files_of_interest['stateset'], reverse=True)[0]
+    assert get_crank_number_from_filename(stateset_file) == get_crank_number_from_filename(perovskite_data_file)
+    return perovskite_data_file, stateset_file
 
 
 if __name__ == '__main__':

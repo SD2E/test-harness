@@ -25,6 +25,9 @@ RUN pip install eli5
 RUN pip install hyperas
 RUN pip install pyyaml
 RUN pip install shap
+# we need a more modern version of pandas than is included in the base image
+RUN pip uninstall --yes pandas
+RUN pip install pandas==0.24.1
 
 ADD scripts_for_automation/perovskite_test_harness.py /scripts_for_automation/
 ADD scripts_for_automation/perovskite_model_run.py /scripts_for_automation/
