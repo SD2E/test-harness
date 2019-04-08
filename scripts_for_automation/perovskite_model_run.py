@@ -30,8 +30,8 @@ AUTH_TOKEN = '4a8751b83c9744234367b52c58f4c46a53f5d0e0225da3f9c32ed238b7f82a69'
 
 
 def get_git_commit_id():
-    # get information from the git repo about the user and the current commit
-    repo = git.Repo(Path(__file__).resolve().parents[1])
+    # using Path(__file__).parents[1] to get the path of the directory immediately above this file's directory
+    repo = git.Repo(Path(__file__).parents[1])
     git_sha = repo.head.object.hexsha
     return git_sha[0:7]
 
