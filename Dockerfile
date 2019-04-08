@@ -26,6 +26,7 @@ RUN pip install eli5
 RUN pip install hyperas
 RUN pip install pyyaml
 RUN pip install shap
+RUN pip install gitpython
 # we need a more modern version of pandas than is included in the base image
 RUN pip uninstall --yes pandas
 RUN pip install pandas==0.24.1
