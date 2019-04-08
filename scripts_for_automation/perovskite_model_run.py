@@ -15,6 +15,7 @@ from version import VERSION
 from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
 
 import warnings
+import git
 
 warnings.filterwarnings("ignore")
 
@@ -26,6 +27,13 @@ NUM_PREDICTIONS = 100
 
 # todo: oops, committed this.  Need to revoke, but leaving for testing
 AUTH_TOKEN = '4a8751b83c9744234367b52c58f4c46a53f5d0e0225da3f9c32ed238b7f82a69'
+
+
+def get_git_commit_id():
+    # using Path(__file__).parents[1] to get the path of the directory immediately above this file's directory
+    repo = git.Repo(Path(__file__).parents[1])
+    git_sha = repo.head.object.hexsha
+    return git_sha[0:7]
 
 
 # compute md5 hash using small chunks
@@ -142,7 +150,8 @@ def submit_csv_to_escalation_server(submissions_file_path, crank_number, commit_
                                    # todo: add check to make sure that notes doesn't contain any commas
                                    'notes': "Model Author: {}; "
                                             "Model Description: {}; "
-                                            "Submitted at {}".format(model_author, model_description,
+                                            "Test Harness Hash: {}; "
+                                            "Submitted at {}".format(model_author, model_description, get_git_commit_id(),
                                                                      datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"))},
                              files={'csvfile': open(submissions_file_path, 'rb')},
                              # timeout=60
@@ -308,7 +317,7 @@ if __name__ == '__main__':
                      comment='#',
                      low_memory=False)
 
-    state_set = pd.read_csv(os.path.join(VERSIONED_DATA, 'perovskite/stateset/0021.stateset.csv'),
+    state_set = pd.read_csv(os.path.join(VERSIONED_DATA, 'perovskite/stateset/0021.v1.stateset.csv'),
                             comment='#',
                             low_memory=False)
 
