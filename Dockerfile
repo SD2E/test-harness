@@ -4,6 +4,7 @@ ENV LD_LIBRARY_PATH "/opt/conda/lib/:$LD_LIBRARY_PATH"
 ENV LD_LIBRARY_PATH "/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH"
 ENV LD_LIBRARY_PATH "/usr/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH"
 ENV LD_LIBRARY_PATH "/usr/local/cuda-8.0/targets/x86_64-linux/lib/stubs/:$LD_LIBRARY_PATH"
+ENV HDF5_USE_FILE_LOCKING FALSE
 
 RUN apt-get update
 RUN apt-get --assume-yes install libgl1
