@@ -16,6 +16,7 @@ from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
 
 import warnings
 import git
+import re
 
 warnings.filterwarnings("ignore")
 
@@ -313,21 +314,41 @@ def get_crank_specific_training_and_stateset_filenames(manifest, specific_crank_
     """
     Takes a manifest and finds the perovskite data file and stateset file associated with a specific crank number.
     :param manifest: dict of perovskite manifest file
-    :param specific_crank_number: int of the crank number you want filenames for
-    :return: paths to perovskite_data_file and stateset_file for the specific_crank_number
+    :param specific_crank_number: string that looks like "0022", representing the crank number you want filenames for
+    :return: paths to perovskitedata_file and stateset_file for the specific_crank_number
     """
     files_of_interest = get_all_training_and_stateset_filenames(manifest)
 
-    # get the files of interest with the highest crank number, assert crank numbers are equal
-    perovskite_data_file = [x for x in files_of_interest['perovskitedata'] if
-                            int(x.rsplit("perovskitedata/")[1].rsplit(".")[0]) == specific_crank_number][0]
-    stateset_file = [x for x in files_of_interest['stateset'] if
-                     int(x.rsplit("stateset/")[1].rsplit(".")[0]) == specific_crank_number][0]
-    assert get_crank_number_from_filename(stateset_file) == get_crank_number_from_filename(perovskite_data_file)
-    return perovskite_data_file, stateset_file
+    perovskitedata_files = [x for x in files_of_interest['perovskitedata'] if get_crank_number_from_filename(x) == specific_crank_number]
+    stateset_files = [x for x in files_of_interest['stateset'] if get_crank_number_from_filename(x) == specific_crank_number]
+
+    if len(perovskitedata_files) == 0:
+        raise ValueError("The specific_crank_number that was passed in does not exist in any listed perovskitedata file in the manifest. "
+                         "Make sure your value for specific_crank_number is of the format '0019' and exists in the manifest.")
+    elif len(perovskitedata_files) > 1:
+        raise ValueError("It appears that the manifest has multiple perovskitedata files with the same specific_crank_number."
+                         "There is likely an issue with the manifest.")
+    else:
+        perovskitedata_file = perovskitedata_files[0]
+
+    if len(stateset_files) == 0:
+        raise ValueError("The specific_crank_number that was passed in does not exist in any listed stateset file in the manifest. "
+                         "Make sure your value for specific_crank_number is of the format '0019' and exists in the manifest.")
+    elif len(stateset_files) > 1:
+        raise ValueError("It appears that the manifest has multiple stateset files with the same specific_crank_number."
+                         "There is likely an issue with the manifest.")
+    else:
+        stateset_file = stateset_files[0]
+
+    assert get_crank_number_from_filename(stateset_file) == get_crank_number_from_filename(perovskitedata_file)
+    return perovskitedata_file, stateset_file
 
 
 def run_cranks(versioned_data_path, cranks="latest"):
+    # the re.compile.match part of the assert ensures that the string passed in follows the format of four integers in a string
+    assert (cranks == "latest") or (cranks == "all") or (re.compile("^[0-9][0-9][0-9][0-9]$").match(cranks)), \
+        "cranks must equal 'latest', 'all', or a string of format '0021' that represents a specific crank."
+
     manifest_file = os.path.join(versioned_data_path, "manifest/perovskite.manifest.yml")
     with open(manifest_file) as f:
         manifest_dict = yaml.load(f)
@@ -336,12 +357,6 @@ def run_cranks(versioned_data_path, cranks="latest"):
 
     if cranks == "latest":
         training_data_filename, state_set_filename = get_latest_training_and_stateset_filenames(manifest_dict)
-        assert get_crank_number_from_filename(training_data_filename) == get_crank_number_from_filename(state_set_filename)
-        training_data_path = os.path.join(perovskite_data_folder_path, training_data_filename)
-        state_set_path = os.path.join(perovskite_data_folder_path, state_set_filename)
-        crank_runner(training_data_path, state_set_path)
-    elif isinstance(cranks, int):
-        training_data_filename, state_set_filename = get_crank_specific_training_and_stateset_filenames(manifest_dict, cranks)
         assert get_crank_number_from_filename(training_data_filename) == get_crank_number_from_filename(state_set_filename)
         training_data_path = os.path.join(perovskite_data_folder_path, training_data_filename)
         state_set_path = os.path.join(perovskite_data_folder_path, state_set_filename)
@@ -357,7 +372,11 @@ def run_cranks(versioned_data_path, cranks="latest"):
             state_set_path = os.path.join(perovskite_data_folder_path, state_set_filename)
             crank_runner(training_data_path, state_set_path)
     else:
-        raise ValueError("crank must be an int, 'all', or 'latest'.")
+        training_data_filename, state_set_filename = get_crank_specific_training_and_stateset_filenames(manifest_dict, cranks)
+        assert get_crank_number_from_filename(training_data_filename) == get_crank_number_from_filename(state_set_filename)
+        training_data_path = os.path.join(perovskite_data_folder_path, training_data_filename)
+        state_set_path = os.path.join(perovskite_data_folder_path, state_set_filename)
+        crank_runner(training_data_path, state_set_path)
 
 
 def crank_runner(training_data_path, state_set_path):
@@ -399,7 +418,7 @@ if __name__ == '__main__':
     print()
     assert os.path.isdir(VERSIONED_DATASETS), "The path you gave for VERSIONED_DATA does not exist."
 
-    # set cranks equal to "latest", "all", or an integer representing a specific crank number
+    # set cranks equal to "latest", "all", or a string of format '0021' representing a specific crank number
     run_cranks(VERSIONED_DATASETS, cranks="latest")
 
 # todo: round instead of truncate float
