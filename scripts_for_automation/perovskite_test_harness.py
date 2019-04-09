@@ -18,7 +18,7 @@ from scripts_for_automation.perovskite_model_run import (get_crank_number_from_f
                                                          build_submissions_csvs_from_test_harness_output,
                                                          get_prediction_csvs, AUTH_TOKEN, get_manifest_from_gitlab_api,
                                                          get_git_hash_at_versioned_data_master_tip,
-                                                         get_training_and_stateset_filenames,
+                                                         get_latest_training_and_stateset_filenames,
                                                          build_leaderboard_rows_dict,
                                                          submit_leaderboard_to_escalation_server)
 
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     # todo: shutils make copy of the file to local dir, use that
     # do we need to make sure we can't write/mess up any files here?
     # It'd sure be nice to have a read-only service account...
-    training_data_filename, stateset_filename = get_training_and_stateset_filenames(perovskite_manifest)
+    training_data_filename, stateset_filename = get_latest_training_and_stateset_filenames(perovskite_manifest)
     print(training_data_filename, stateset_filename)
     training_data_df = pd.read_csv(os.path.join(versioned_data_dir, perovskite_project_dir, training_data_filename),
                                    comment='#',
