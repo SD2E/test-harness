@@ -346,7 +346,7 @@ def get_crank_specific_training_and_stateset_filenames(manifest, specific_crank_
 
 def run_cranks(versioned_data_path, cranks="latest"):
     # the re.compile.match part of the assert ensures that the string passed in follows the format of four integers in a string
-    assert (cranks == "latest") or (cranks == "all") or (re.compile("^[0-9][0-9][0-9][0-9]$").match(cranks)), \
+    assert (cranks == "latest") or (cranks == "all") or (re.compile("^[0-9]{4}$").match(cranks)), \
         "cranks must equal 'latest', 'all', or a string of format '0021' that represents a specific crank."
 
     manifest_file = os.path.join(versioned_data_path, "manifest/perovskite.manifest.yml")
