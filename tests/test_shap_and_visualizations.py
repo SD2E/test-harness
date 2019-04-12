@@ -85,6 +85,12 @@ def main():
                   cols_to_predict='stabilityscore_cnn_calibrated_2classes',
                   feature_cols_to_use=toy_feature_cols, normalize=True, feature_cols_to_normalize=toy_feature_cols,
                   feature_extraction=Names.SHAP_AUDIT, predict_untested_data=False)
+    
+    th.run_custom(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, training_data=toy_train,
+                  testing_data=toy_test, data_and_split_description="testing shap on toy datasets",
+                  cols_to_predict='stabilityscore_cnn_calibrated',
+                  feature_cols_to_use=toy_feature_cols, normalize=True, feature_cols_to_normalize=toy_feature_cols,
+                  feature_extraction=Names.SHAP_AUDIT, predict_untested_data=False)
 
 
 if __name__ == '__main__':
