@@ -13,6 +13,7 @@ from sklearn.model_selection import train_test_split
 from harness.test_harness_class import TestHarness
 from version import VERSION
 from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
+from harness.utils.object_type_modifiers_and_checkers import make_list_if_not_list
 
 import warnings
 import git
@@ -277,6 +278,12 @@ def get_git_hash_at_versioned_data_master_tip(auth_token):
     tip_commit_id = gitlab_master_branch_metadata["id"][:7]
     return tip_commit_id
 
+def is_list_of_crank_strings(obj):
+    if obj and isinstance(obj, list):
+        # re.compile.match ensures that the string passed in follows the format of four integers in a string
+        return all(re.compile("^[0-9]{4}$").match(elem) for elem in obj)
+    else:
+        return False
 
 def get_all_training_and_stateset_filenames(manifest):
     """
@@ -345,10 +352,6 @@ def get_crank_specific_training_and_stateset_filenames(manifest, specific_crank_
 
 
 def run_cranks(versioned_data_path, cranks="latest"):
-    # the re.compile.match part of the assert ensures that the string passed in follows the format of four integers in a string
-    assert (cranks == "latest") or (cranks == "all") or (re.compile("^[0-9]{4}$").match(cranks)), \
-        "cranks must equal 'latest', 'all', or a string of format '0021' that represents a specific crank."
-
     manifest_file = os.path.join(versioned_data_path, "manifest/perovskite.manifest.yml")
     with open(manifest_file) as f:
         manifest_dict = yaml.load(f)
@@ -357,22 +360,26 @@ def run_cranks(versioned_data_path, cranks="latest"):
 
     if cranks == "latest":
         training_data_filename, state_set_filename = get_latest_training_and_stateset_filenames(manifest_dict)
-        assert get_crank_number_from_filename(training_data_filename) == get_crank_number_from_filename(state_set_filename)
-        training_data_path = os.path.join(perovskite_data_folder_path, training_data_filename)
-        state_set_path = os.path.join(perovskite_data_folder_path, state_set_filename)
-        crank_runner(training_data_path, state_set_path)
+        zipped = zip([training_data_filename], [state_set_filename])
     elif cranks == "all":
         all_files_dict = get_all_training_and_stateset_filenames(manifest_dict)
         perovskitedata_files = sorted(all_files_dict['perovskitedata'], reverse=False)
         stateset_files = sorted(all_files_dict['stateset'], reverse=False)
         zipped = zip(perovskitedata_files, stateset_files)
-        for training_data_filename, state_set_filename in zipped:
-            assert get_crank_number_from_filename(training_data_filename) == get_crank_number_from_filename(state_set_filename)
-            training_data_path = os.path.join(perovskite_data_folder_path, training_data_filename)
-            state_set_path = os.path.join(perovskite_data_folder_path, state_set_filename)
-            crank_runner(training_data_path, state_set_path)
     else:
-        training_data_filename, state_set_filename = get_crank_specific_training_and_stateset_filenames(manifest_dict, cranks)
+        cranks = make_list_if_not_list(cranks)
+        assert is_list_of_crank_strings(cranks), \
+            "cranks must equal 'latest', 'all', or a string (or list of strings) of format '0021' that represent(s) a specific crank."
+        print("Will run the following {} cranks: {}".format(len(cranks), cranks))
+
+        zipped = []
+        for c in cranks:
+            training_data_filename, state_set_filename = get_crank_specific_training_and_stateset_filenames(manifest_dict, c)
+            zipped.append((training_data_filename, state_set_filename))
+
+    # todo: figure out how to print a zip object without altering the object itself
+    # print("\nPassing these perovskitedata and stateset files to the crank_runner:\n{}\n".format(list(zipped.copy())))
+    for training_data_filename, state_set_filename in zipped:
         assert get_crank_number_from_filename(training_data_filename) == get_crank_number_from_filename(state_set_filename)
         training_data_path = os.path.join(perovskite_data_folder_path, training_data_filename)
         state_set_path = os.path.join(perovskite_data_folder_path, state_set_filename)
@@ -396,16 +403,16 @@ def crank_runner(training_data_path, state_set_path):
     submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths,
                                                                         crank_number,
                                                                         commit_id)
-    if submissions_paths:
-        # If there were any submissions, include the leaderboard
-        # Only one leaderboard file is made, so we can submit just by pointing one path
-        submissions_path = submissions_paths[0]
-        leaderboard_rows_dict = build_leaderboard_rows_dict(submissions_path, crank_number)
-    for submission_path in submissions_paths:
-        print("Submitting {} to escalation server".format(submission_path))
-        response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
-        print("Submission result: {}".format(response_text))
-        submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
+    # if submissions_paths:
+    #     # If there were any submissions, include the leaderboard
+    #     # Only one leaderboard file is made, so we can submit just by pointing one path
+    #     submissions_path = submissions_paths[0]
+    #     leaderboard_rows_dict = build_leaderboard_rows_dict(submissions_path, crank_number)
+    # for submission_path in submissions_paths:
+    #     print("Submitting {} to escalation server".format(submission_path))
+    #     response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
+    #     print("Submission result: {}".format(response_text))
+    #     submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
 
 
 if __name__ == '__main__':
@@ -419,6 +426,6 @@ if __name__ == '__main__':
     assert os.path.isdir(VERSIONED_DATASETS), "The path you gave for VERSIONED_DATA does not exist."
 
     # set cranks equal to "latest", "all", or a string of format '0021' representing a specific crank number
-    run_cranks(VERSIONED_DATASETS, cranks="latest")
+    run_cranks(VERSIONED_DATASETS, cranks=["0015", "0019"])
 
 # todo: round instead of truncate float
