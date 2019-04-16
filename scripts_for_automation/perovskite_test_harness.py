@@ -20,15 +20,22 @@ from scripts_for_automation.perovskite_model_run import (get_crank_number_from_f
                                                          get_git_hash_at_versioned_data_master_tip,
                                                          get_latest_training_and_stateset_filenames,
                                                          build_leaderboard_rows_dict,
-                                                         submit_leaderboard_to_escalation_server)
+                                                         submit_leaderboard_to_escalation_server,
+                                                         ESCALATION_SERVER, ESCALATION_SERVER_DEV)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--commit', help='First 7 characters of versioned data commit hash')
+    parser.add_argument('--env', help='Which env of Escalation (dev/prd) should this run in', default='dev')
     parser.add_argument('--gitlab_auth', help='gitlab auth token (see readme)')
 
     args = parser.parse_args()
+
+    escalation_servers = {'prd': ESCALATION_SERVER, 'dev': ESCALATION_SERVER_DEV}
+    assert args.env in escalation_servers, "Env must be one of {dev, prd}"
+    env_specific_escalation_server = escalation_servers[args.env]
+
     commit_id = args.commit or get_git_hash_at_versioned_data_master_tip(AUTH_TOKEN)
 
     # auth_token = args.gitlab_auth or get_auth_token()
@@ -70,11 +77,17 @@ if __name__ == '__main__':
         # Only one leaderboard file is made, so we can submit just by pointing one path
         submissions_path = submissions_paths[0]
         leaderboard_rows_dict = build_leaderboard_rows_dict(submissions_path, crank_number)
-    for submission_path in submissions_paths:
-        print("Submitting {} to escalation server".format(submission_path))
-        response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
-        print("Submission result: {}".format(response_text))
-        submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
+        for submission_path in submissions_paths:
+            print("Submitting {} to escalation server".format(submission_path))
+            response, response_text = submit_csv_to_escalation_server(submission_path,
+                                                                      crank_number,
+                                                                      commit_id,
+                                                                      escalation_server=env_specific_escalation_server)
+            print("Submission result: {}".format(response_text))
+            submit_leaderboard_to_escalation_server(leaderboard_rows_dict,
+                                                    submission_path,
+                                                    commit_id,
+                                                    escalation_server=env_specific_escalation_server)
 
 
 
