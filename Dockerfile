@@ -37,6 +37,7 @@ ADD scripts_for_automation/perovskite_models_config.py /scripts_for_automation/
 ADD harness/ /harness/
 # Niall does not think it's a good idea to have the "ADD / /" line
 # he says that line will probably "add your entire machine to the vm including os"
+# But we can clearly see it's needed to import the version file in setup.py
 ADD / /
 
 ENV PYTHONPATH "${PYTHONPATH}:/scripts/"
