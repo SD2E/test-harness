@@ -3,7 +3,6 @@ FROM gzynda/tacc-maverick-ml:latest
 ENV LD_LIBRARY_PATH "/opt/conda/lib/:$LD_LIBRARY_PATH"
 ENV LD_LIBRARY_PATH "/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH"
 ENV LD_LIBRARY_PATH "/usr/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH"
-ENV LD_LIBRARY_PATH "/usr/local/cuda-8.0/targets/x86_64-linux/lib/stubs/:$LD_LIBRARY_PATH"
 ENV HDF5_USE_FILE_LOCKING FALSE
 
 RUN apt-get update
@@ -35,7 +34,7 @@ ADD scripts_for_automation/perovskite_test_harness.py /scripts_for_automation/
 ADD scripts_for_automation/perovskite_model_run.py /scripts_for_automation/
 ADD scripts_for_automation/perovskite_models_config.py /scripts_for_automation/
 ADD harness/ /harness/
-#ADD / /
+ADD / /
 
 ENV PYTHONPATH "${PYTHONPATH}:/scripts/"
 ENV PYTHONPATH "${PYTHONPATH}:/test-harness/"
