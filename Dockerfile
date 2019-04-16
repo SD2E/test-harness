@@ -1,5 +1,6 @@
 FROM gzynda/tacc-maverick-ml:latest
 
+# we might need to remove all the LD_LIBRARY_PATH lines at some point
 ENV LD_LIBRARY_PATH "/opt/conda/lib/:$LD_LIBRARY_PATH"
 ENV LD_LIBRARY_PATH "/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH"
 ENV LD_LIBRARY_PATH "/usr/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH"
@@ -34,6 +35,8 @@ ADD scripts_for_automation/perovskite_test_harness.py /scripts_for_automation/
 ADD scripts_for_automation/perovskite_model_run.py /scripts_for_automation/
 ADD scripts_for_automation/perovskite_models_config.py /scripts_for_automation/
 ADD harness/ /harness/
+# Niall does not think it's a good idea to have the "ADD / /" line
+# he says that line will probably "add your entire machine to the vm including os"
 ADD / /
 
 ENV PYTHONPATH "${PYTHONPATH}:/scripts/"
