@@ -404,16 +404,16 @@ def crank_runner(training_data_path, state_set_path):
     submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths,
                                                                         crank_number,
                                                                         commit_id)
-    # if submissions_paths:
-    #     # If there were any submissions, include the leaderboard
-    #     # Only one leaderboard file is made, so we can submit just by pointing one path
-    #     submissions_path = submissions_paths[0]
-    #     leaderboard_rows_dict = build_leaderboard_rows_dict(submissions_path, crank_number)
-    # for submission_path in submissions_paths:
-    #     print("Submitting {} to escalation server".format(submission_path))
-    #     response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
-    #     print("Submission result: {}".format(response_text))
-    #     submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
+    if submissions_paths:
+        # If there were any submissions, include the leaderboard
+        # Only one leaderboard file is made, so we can submit just by pointing one path
+        submissions_path = submissions_paths[0]
+        leaderboard_rows_dict = build_leaderboard_rows_dict(submissions_path, crank_number)
+    for submission_path in submissions_paths:
+        print("Submitting {} to escalation server".format(submission_path))
+        response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
+        print("Submission result: {}".format(response_text))
+        submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
 
 
 if __name__ == '__main__':
