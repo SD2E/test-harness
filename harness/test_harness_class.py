@@ -388,6 +388,7 @@ class TestHarness:
 
         # call run object methods
         start = time.time()
+        print('\u25BC' * 100)
         print('Starting run at time {}'.format(datetime.now().strftime("%H:%M:%S")))
         run_object.train_and_test_model()
         run_object.calculate_metrics()
@@ -418,7 +419,8 @@ class TestHarness:
             self._output_run_files(run_object, run_id_folder_path, True, feature_extractor)
 
         end = time.time()
-        print('Run finished at {}'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
+        print('Run finished at {}.'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
+        print('\u25B2' * 100)
         print()
 
     def _update_leaderboard(self, run_object):
@@ -474,7 +476,6 @@ class TestHarness:
             leaderboard.to_csv(csv_path, index=False)
 
     def _create_row_entry(self, run_object):
-        print(run_object.run_id)
         row_values = {Names.RUN_ID: run_object.run_id, Names.DATE: run_object.date_ran, Names.TIME: run_object.time_ran,
                       Names.SAMPLES_IN_TRAIN: run_object.metrics_dict[Names.SAMPLES_IN_TRAIN],
                       Names.SAMPLES_IN_TEST: run_object.metrics_dict[Names.SAMPLES_IN_TEST],

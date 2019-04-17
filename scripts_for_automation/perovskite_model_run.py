@@ -126,7 +126,6 @@ def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, crank_
                                                  username]) + '.csv'
         submissions_file_path = os.path.join(os.path.dirname(prediction_path), submission_template_filename)
 
-        print(submissions_file_path)
         selected_predictions.to_csv(submissions_file_path, index=False)
         submissions_paths.append(submissions_file_path)
     return submissions_paths
@@ -199,7 +198,6 @@ def get_crank_number_from_filename(training_data_filename):
 
 
 def run_configured_test_harness_models_on_perovskites(train_set, state_set):
-    print("Starting test harness initial perovskites run")
     all_cols = train_set.columns.tolist()
     # don't worry about _calc_ columns for now, but it's in the code so they get included once the data is available
     feature_cols = [c for c in all_cols if ("_rxn_" in c) or ("_feat_" in c) or ("_calc_" in c)]
@@ -278,12 +276,14 @@ def get_git_hash_at_versioned_data_master_tip(auth_token):
     tip_commit_id = gitlab_master_branch_metadata["id"][:7]
     return tip_commit_id
 
+
 def is_list_of_crank_strings(obj):
     if obj and isinstance(obj, list):
         # re.compile.match ensures that the string passed in follows the format of four integers in a string
         return all(re.compile("^[0-9]{4}$").match(elem) for elem in obj)
     else:
         return False
+
 
 def get_all_training_and_stateset_filenames(manifest):
     """
@@ -370,7 +370,7 @@ def run_cranks(versioned_data_path, cranks="latest"):
         cranks = make_list_if_not_list(cranks)
         assert is_list_of_crank_strings(cranks), \
             "cranks must equal 'latest', 'all', or a string (or list of strings) of format '0021' that represent(s) a specific crank."
-        print("Will run the following {} cranks: {}".format(len(cranks), cranks))
+        print("Will run the following {} cranks: {}\n".format(len(cranks), cranks))
 
         zipped = []
         for c in cranks:
@@ -388,9 +388,10 @@ def run_cranks(versioned_data_path, cranks="latest"):
 
 def crank_runner(training_data_path, state_set_path):
     crank_number = get_crank_number_from_filename(training_data_path)
-    print("Running Crank {}\n".format(crank_number))
-    print(training_data_path)
-    print(state_set_path)
+    print("\nRunning Crank {}".format(crank_number))
+    print("Crank {} Training Data Path: {}".format(crank_number, training_data_path))
+    print("Crank {} State Set Path: {}".format(crank_number, state_set_path))
+    print()
 
     training_data = pd.read_csv(training_data_path, comment='#', low_memory=False)
     state_set = pd.read_csv(state_set_path, comment='#', low_memory=False)
@@ -426,6 +427,6 @@ if __name__ == '__main__':
     assert os.path.isdir(VERSIONED_DATASETS), "The path you gave for VERSIONED_DATA does not exist."
 
     # set cranks equal to "latest", "all", or a string of format '0021' representing a specific crank number
-    run_cranks(VERSIONED_DATASETS, cranks=["0015", "0019"])
+    run_cranks(VERSIONED_DATASETS, cranks="latest")
 
 # todo: round instead of truncate float
