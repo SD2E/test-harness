@@ -330,8 +330,9 @@ def get_crank_specific_training_and_stateset_filenames(manifest, specific_crank_
     stateset_files = [x for x in files_of_interest['stateset'] if get_crank_number_from_filename(x) == specific_crank_number]
 
     if len(perovskitedata_files) == 0:
-        raise ValueError("The specific_crank_number that was passed in does not exist in any listed perovskitedata file in the manifest. "
-                         "Make sure your value for specific_crank_number is of the format '0019' and exists in the manifest.")
+        raise ValueError("The specific_crank_number ({}) that was passed in does not exist in any listed "
+                         "perovskitedata file in the manifest. Make sure your value for specific_crank_number "
+                         "is of the format '0019' and exists in the manifest.".format(specific_crank_number))
     elif len(perovskitedata_files) > 1:
         raise ValueError("It appears that the manifest has multiple perovskitedata files with the same specific_crank_number."
                          "There is likely an issue with the manifest.")
@@ -377,8 +378,7 @@ def run_cranks(versioned_data_path, cranks="latest"):
             training_data_filename, state_set_filename = get_crank_specific_training_and_stateset_filenames(manifest_dict, c)
             training_state_tuples.append((training_data_filename, state_set_filename))
 
-    # todo: figure out how to print a zip object without altering the object itself
-    # print("\nPassing these perovskitedata and stateset files to the crank_runner:\n{}\n".format(list(training_state_tuples.copy())))
+    print("\ntraining_state_tuples being passed to crank_runner:\n{}\n".format(list(training_state_tuples.copy())))
     for training_data_filename, state_set_filename in training_state_tuples:
         assert get_crank_number_from_filename(training_data_filename) == get_crank_number_from_filename(state_set_filename)
         training_data_path = os.path.join(perovskite_data_folder_path, training_data_filename)
