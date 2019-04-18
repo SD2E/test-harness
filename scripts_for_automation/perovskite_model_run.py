@@ -361,12 +361,12 @@ def run_cranks(versioned_data_path, cranks="latest"):
 
     if cranks == "latest":
         training_data_filename, state_set_filename = get_latest_training_and_stateset_filenames(manifest_dict)
-        training_state_tuples = zip([training_data_filename], [state_set_filename])
+        training_state_tuples = list(zip([training_data_filename], [state_set_filename]))
     elif cranks == "all":
         all_files_dict = get_all_training_and_stateset_filenames(manifest_dict)
         perovskitedata_files = sorted(all_files_dict['perovskitedata'], reverse=False)
         stateset_files = sorted(all_files_dict['stateset'], reverse=False)
-        training_state_tuples = zip(perovskitedata_files, stateset_files)
+        training_state_tuples = list(zip(perovskitedata_files, stateset_files))
     else:
         cranks = make_list_if_not_list(cranks)
         assert is_list_of_crank_strings(cranks), \
@@ -378,7 +378,7 @@ def run_cranks(versioned_data_path, cranks="latest"):
             training_data_filename, state_set_filename = get_crank_specific_training_and_stateset_filenames(manifest_dict, c)
             training_state_tuples.append((training_data_filename, state_set_filename))
 
-    print("\ntraining_state_tuples being passed to crank_runner:\n{}\n".format(list(training_state_tuples.copy())))
+    print("\ntraining_state_tuples being passed to crank_runner:\n{}\n".format(training_state_tuples.copy()))
     for training_data_filename, state_set_filename in training_state_tuples:
         assert get_crank_number_from_filename(training_data_filename) == get_crank_number_from_filename(state_set_filename)
         training_data_path = os.path.join(perovskite_data_folder_path, training_data_filename)
