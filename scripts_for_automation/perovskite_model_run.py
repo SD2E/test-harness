@@ -360,26 +360,26 @@ def run_cranks(versioned_data_path, cranks="latest"):
 
     if cranks == "latest":
         training_data_filename, state_set_filename = get_latest_training_and_stateset_filenames(manifest_dict)
-        zipped = zip([training_data_filename], [state_set_filename])
+        training_state_tuples = zip([training_data_filename], [state_set_filename])
     elif cranks == "all":
         all_files_dict = get_all_training_and_stateset_filenames(manifest_dict)
         perovskitedata_files = sorted(all_files_dict['perovskitedata'], reverse=False)
         stateset_files = sorted(all_files_dict['stateset'], reverse=False)
-        zipped = zip(perovskitedata_files, stateset_files)
+        training_state_tuples = zip(perovskitedata_files, stateset_files)
     else:
         cranks = make_list_if_not_list(cranks)
         assert is_list_of_crank_strings(cranks), \
             "cranks must equal 'latest', 'all', or a string (or list of strings) of format '0021' that represent(s) a specific crank."
         print("Will run the following {} cranks: {}\n".format(len(cranks), cranks))
 
-        zipped = []
+        training_state_tuples = []
         for c in cranks:
             training_data_filename, state_set_filename = get_crank_specific_training_and_stateset_filenames(manifest_dict, c)
-            zipped.append((training_data_filename, state_set_filename))
+            training_state_tuples.append((training_data_filename, state_set_filename))
 
     # todo: figure out how to print a zip object without altering the object itself
-    # print("\nPassing these perovskitedata and stateset files to the crank_runner:\n{}\n".format(list(zipped.copy())))
-    for training_data_filename, state_set_filename in zipped:
+    # print("\nPassing these perovskitedata and stateset files to the crank_runner:\n{}\n".format(list(training_state_tuples.copy())))
+    for training_data_filename, state_set_filename in training_state_tuples:
         assert get_crank_number_from_filename(training_data_filename) == get_crank_number_from_filename(state_set_filename)
         training_data_path = os.path.join(perovskite_data_folder_path, training_data_filename)
         state_set_path = os.path.join(perovskite_data_folder_path, state_set_filename)

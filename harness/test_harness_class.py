@@ -388,6 +388,7 @@ class TestHarness:
 
         # call run object methods
         start = time.time()
+        # this adds a line of downward arrows/carets to signify the beginning of the model run
         print('\u25BC' * 100)
         print('Starting run at time {}'.format(datetime.now().strftime("%H:%M:%S")))
         run_object.train_and_test_model()
@@ -420,6 +421,7 @@ class TestHarness:
 
         end = time.time()
         print('Run finished at {}.'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
+        # this adds a line of upward arrows/carets to signify the end of of the model run
         print('\u25B2' * 100)
         print()
 
