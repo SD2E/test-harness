@@ -13,6 +13,7 @@ from sklearn.model_selection import train_test_split
 from harness.test_harness_class import TestHarness
 from version import VERSION
 from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
+from harness.utils.object_type_modifiers_and_checkers import make_list_if_not_list
 
 import warnings
 import git
@@ -125,7 +126,6 @@ def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, crank_
                                                  username]) + '.csv'
         submissions_file_path = os.path.join(os.path.dirname(prediction_path), submission_template_filename)
 
-        print(submissions_file_path)
         selected_predictions.to_csv(submissions_file_path, index=False)
         submissions_paths.append(submissions_file_path)
     return submissions_paths
@@ -198,7 +198,6 @@ def get_crank_number_from_filename(training_data_filename):
 
 
 def run_configured_test_harness_models_on_perovskites(train_set, state_set):
-    print("Starting test harness initial perovskites run")
     all_cols = train_set.columns.tolist()
     # don't worry about _calc_ columns for now, but it's in the code so they get included once the data is available
     feature_cols = [c for c in all_cols if ("_rxn_" in c) or ("_feat_" in c) or ("_calc_" in c)]
@@ -278,6 +277,14 @@ def get_git_hash_at_versioned_data_master_tip(auth_token):
     return tip_commit_id
 
 
+def is_list_of_crank_strings(obj):
+    if obj and isinstance(obj, list):
+        # re.compile.match ensures that the string passed in follows the format of four integers in a string
+        return all(re.compile("^[0-9]{4}$").match(elem) for elem in obj)
+    else:
+        return False
+
+
 def get_all_training_and_stateset_filenames(manifest):
     """
     Takes a manifest and finds all the perovskitedata and stateset files listed inside
@@ -323,8 +330,9 @@ def get_crank_specific_training_and_stateset_filenames(manifest, specific_crank_
     stateset_files = [x for x in files_of_interest['stateset'] if get_crank_number_from_filename(x) == specific_crank_number]
 
     if len(perovskitedata_files) == 0:
-        raise ValueError("The specific_crank_number that was passed in does not exist in any listed perovskitedata file in the manifest. "
-                         "Make sure your value for specific_crank_number is of the format '0019' and exists in the manifest.")
+        raise ValueError("The specific_crank_number ({}) that was passed in does not exist in any listed "
+                         "perovskitedata file in the manifest. Make sure your value for specific_crank_number "
+                         "is of the format '0019' and exists in the manifest.".format(specific_crank_number))
     elif len(perovskitedata_files) > 1:
         raise ValueError("It appears that the manifest has multiple perovskitedata files with the same specific_crank_number."
                          "There is likely an issue with the manifest.")
@@ -345,10 +353,6 @@ def get_crank_specific_training_and_stateset_filenames(manifest, specific_crank_
 
 
 def run_cranks(versioned_data_path, cranks="latest"):
-    # the re.compile.match part of the assert ensures that the string passed in follows the format of four integers in a string
-    assert (cranks == "latest") or (cranks == "all") or (re.compile("^[0-9]{4}$").match(cranks)), \
-        "cranks must equal 'latest', 'all', or a string of format '0021' that represents a specific crank."
-
     manifest_file = os.path.join(versioned_data_path, "manifest/perovskite.manifest.yml")
     with open(manifest_file) as f:
         manifest_dict = yaml.load(f)
@@ -357,22 +361,25 @@ def run_cranks(versioned_data_path, cranks="latest"):
 
     if cranks == "latest":
         training_data_filename, state_set_filename = get_latest_training_and_stateset_filenames(manifest_dict)
-        assert get_crank_number_from_filename(training_data_filename) == get_crank_number_from_filename(state_set_filename)
-        training_data_path = os.path.join(perovskite_data_folder_path, training_data_filename)
-        state_set_path = os.path.join(perovskite_data_folder_path, state_set_filename)
-        crank_runner(training_data_path, state_set_path)
+        training_state_tuples = list(zip([training_data_filename], [state_set_filename]))
     elif cranks == "all":
         all_files_dict = get_all_training_and_stateset_filenames(manifest_dict)
         perovskitedata_files = sorted(all_files_dict['perovskitedata'], reverse=False)
         stateset_files = sorted(all_files_dict['stateset'], reverse=False)
-        zipped = zip(perovskitedata_files, stateset_files)
-        for training_data_filename, state_set_filename in zipped:
-            assert get_crank_number_from_filename(training_data_filename) == get_crank_number_from_filename(state_set_filename)
-            training_data_path = os.path.join(perovskite_data_folder_path, training_data_filename)
-            state_set_path = os.path.join(perovskite_data_folder_path, state_set_filename)
-            crank_runner(training_data_path, state_set_path)
+        training_state_tuples = list(zip(perovskitedata_files, stateset_files))
     else:
-        training_data_filename, state_set_filename = get_crank_specific_training_and_stateset_filenames(manifest_dict, cranks)
+        cranks = make_list_if_not_list(cranks)
+        assert is_list_of_crank_strings(cranks), \
+            "cranks must equal 'latest', 'all', or a string (or list of strings) of format '0021' that represent(s) a specific crank."
+        print("Will run the following {} cranks: {}\n".format(len(cranks), cranks))
+
+        training_state_tuples = []
+        for c in cranks:
+            training_data_filename, state_set_filename = get_crank_specific_training_and_stateset_filenames(manifest_dict, c)
+            training_state_tuples.append((training_data_filename, state_set_filename))
+
+    print("\ntraining_state_tuples being passed to crank_runner:\n{}\n".format(training_state_tuples.copy()))
+    for training_data_filename, state_set_filename in training_state_tuples:
         assert get_crank_number_from_filename(training_data_filename) == get_crank_number_from_filename(state_set_filename)
         training_data_path = os.path.join(perovskite_data_folder_path, training_data_filename)
         state_set_path = os.path.join(perovskite_data_folder_path, state_set_filename)
@@ -381,9 +388,10 @@ def run_cranks(versioned_data_path, cranks="latest"):
 
 def crank_runner(training_data_path, state_set_path):
     crank_number = get_crank_number_from_filename(training_data_path)
-    print("Running Crank {}\n".format(crank_number))
-    print(training_data_path)
-    print(state_set_path)
+    print("\nRunning Crank {}".format(crank_number))
+    print("Crank {} Training Data Path: {}".format(crank_number, training_data_path))
+    print("Crank {} State Set Path: {}".format(crank_number, state_set_path))
+    print()
 
     training_data = pd.read_csv(training_data_path, comment='#', low_memory=False)
     state_set = pd.read_csv(state_set_path, comment='#', low_memory=False)
