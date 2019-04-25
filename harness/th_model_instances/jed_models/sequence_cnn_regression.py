@@ -12,8 +12,8 @@ import os
 
 
 class KerasRegressionTwoDimensional(KerasRegression):
-    def __init__(self, model, model_description, epochs=25, batch_size=128, verbose=0):
-        super(KerasRegressionTwoDimensional, self).__init__(model, model_description)
+    def __init__(self, model, model_author, model_description, epochs=25, batch_size=128, verbose=0):
+        super(KerasRegressionTwoDimensional, self).__init__(model, model_author, model_description)
         self.epochs = epochs
         self.batch_size = batch_size
         self.verbose = verbose
@@ -53,6 +53,7 @@ def sequence_only_cnn(max_residues, padding):
     model = Model(inputs=amino_inputs, outputs=model)
     model.compile(optimizer='adam', loss='mse')
 
-    mr = KerasRegressionTwoDimensional(model=model, model_description='Sequence CNN regressor: 400x5->200x9->100x17->80->40->1',
-                                       batch_size=128, epochs=25)
-    return mr
+    th_model = KerasRegressionTwoDimensional(model=model, model_author="Jed",
+                                             model_description='Sequence CNN regressor: 400x5->200x9->100x17->80->40->1',
+                                             batch_size=128, epochs=25)
+    return th_model

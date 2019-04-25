@@ -13,5 +13,6 @@ def support_vector_radial_basis_classifier():
                                probability=True
                                )
     th_model = SklearnClassification(model=support_vector_model,
+                                     model_author="Zhi",
                                      model_description="svm with radial basis function")
     return th_model

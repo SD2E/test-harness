@@ -1,16 +1,19 @@
+from datetime import datetime
 import os
 import json
 import time
+
 import pandas as pd
 import matplotlib.pyplot as plt
-from harness.unique_id import get_id
 from six import string_types
-from datetime import datetime
-from statistics import mean, pstdev
+from statistics import mean
 from sklearn.externals import joblib
+
 from harness.run_classes import _BaseRun
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
+from harness.unique_id import get_id
 from harness.utils.names import Names
+from harness.utils.object_type_modifiers_and_checkers import is_list_of_strings, make_list_if_not_list
 
 plt.switch_backend('agg')
 pd.set_option('display.max_columns', 500)
@@ -37,28 +40,14 @@ DEFAULT_DATA_PATH = os.path.join(PWD, 'versioned_data/asap/')
 # TODO: add filelock or writing-scheduler so leaderboards are not overwritten at the same time. Might need to use SQL
 # TODO: by having the ability to "add" multiple models to the TestHarness object, you can allow for visualizations or \
 # TODO: summary stats for a certain group of runs by adding arguments to the execute_runs method!
-# TODO: potentially move sparse column code to run_classes.py so LOO can use it as well easily
-
-
-def make_list_if_not_list(obj):
-    if not isinstance(obj, list):
-        return [obj]
-    else:
-        return obj
-
-
-def is_list_of_strings(obj):
-    if obj and isinstance(obj, list):
-        return all(isinstance(elem, string_types) for elem in obj)
-    else:
-        return False
 
 
 # TODO: separate data description from split description
 class TestHarness:
-    def __init__(self, output_location=os.path.dirname(os.path.realpath(__file__))):
+    def __init__(self, output_location=os.path.dirname(os.path.realpath(__file__)), output_csvs_of_leaderboards=False):
         # Note: loo stands for leave-one-out
         self.output_path = output_location
+        self.output_csvs_of_leaderboards = output_csvs_of_leaderboards
         self.results_folder_path = os.path.join(self.output_path, 'test_harness_results')
         self.runs_folder_path = os.path.join(self.results_folder_path, 'runs')
         if not os.path.exists(self.results_folder_path):
@@ -76,7 +65,7 @@ class TestHarness:
         self.metric_to_sort_classification_results_by = Names.AVERAGE_PRECISION
         self.metric_to_sort_regression_results_by = Names.R_SQUARED
 
-        custom_cols_1 = [Names.RUN_ID, Names.DATE, Names.TIME]
+        custom_cols_1 = [Names.RUN_ID, Names.DATE, Names.TIME, Names.MODEL_NAME, Names.MODEL_AUTHOR]
         custom_cols_2 = [Names.SAMPLES_IN_TRAIN, Names.SAMPLES_IN_TEST, Names.MODEL_DESCRIPTION, Names.COLUMN_PREDICTED,
                          Names.NUM_FEATURES_USED, Names.DATA_AND_SPLIT_DESCRIPTION, Names.NORMALIZED, Names.NUM_FEATURES_NORMALIZED,
                          Names.FEATURE_EXTRACTION, Names.WAS_UNTESTED_PREDICTED]
@@ -107,10 +96,9 @@ class TestHarness:
                                                  Names.RFPIMP_PERMUTATION,
                                                  Names.BBA_AUDIT,
                                                  Names.SHAP_AUDIT]
+        self.list_of_this_instance_run_ids = []
 
     # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
-    # TODO: make feature_extraction options something like: "BBA", "permutation", and "custom", where custom means that
-    # TODO: it's not a black box feature tool, but rather a specific one defined inside of the TestHarnessModel object
     def run_custom(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                    data_and_split_description, cols_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
                    feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None):
@@ -146,6 +134,7 @@ class TestHarness:
                               data_and_split_description, col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
                               feature_extraction, predict_untested_data, sparse_cols_to_use)
 
+    # TODO: add sparse cols to leave one out
     def run_leave_one_out(self, function_that_returns_TH_model, dict_of_function_parameters, data, data_description, grouping,
                           grouping_description, cols_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
                           feature_cols_to_normalize=None, feature_extraction=False):
@@ -231,6 +220,7 @@ class TestHarness:
 
             # summary results are calculated here, and summary leaderboards are updated
             summary_values = {Names.LOO_ID: loo_id, Names.DATE: date_loo_ran, Names.TIME: time_loo_ran,
+                              Names.MODEL_NAME: dummy_th_model.model_name, Names.MODEL_AUTHOR: dummy_th_model.model_author,
                               Names.MODEL_DESCRIPTION: dummy_th_model.model_description, Names.COLUMN_PREDICTED: col,
                               Names.NUM_FEATURES_USED: len(feature_cols_to_use), Names.DATA_DESCRIPTION: data_description,
                               Names.GROUPING_DESCRIPTION: grouping_description, Names.NORMALIZED: normalize,
@@ -265,6 +255,9 @@ class TestHarness:
 
                 # overwrite old leaderboard with updated leaderboard
                 summary_leaderboard.to_html(html_path, index=False, classes=summary_leaderboard_name)
+                if self.output_csvs_of_leaderboards is True:
+                    csv_path = os.path.join(self.results_folder_path, "{}.csv".format(summary_leaderboard_name))
+                    summary_leaderboard.to_csv(csv_path, index=False)
 
             elif task_type == "Regression":
                 detailed_leaderboard_name = Names.LOO_FULL_REG_LBOARD
@@ -297,6 +290,9 @@ class TestHarness:
 
                 # overwrite old leaderboard with updated leaderboard
                 summary_leaderboard.to_html(html_path, index=False, classes=summary_leaderboard_name)
+                if self.output_csvs_of_leaderboards is True:
+                    csv_path = os.path.join(self.results_folder_path, "{}.csv".format(summary_leaderboard_name))
+                    summary_leaderboard.to_csv(csv_path, index=False)
 
             else:
                 raise TypeError("task_type must be 'Classification' or 'Regression'.")
@@ -379,26 +375,31 @@ class TestHarness:
             if isinstance(pred_df, pd.DataFrame):
                 pred_df["unchanged_{}".format(col)] = pred_df[col]
 
-        # TODO sparse_cols for untested data
-        # TODO move sparse col code to run_classes.py
-        if sparse_cols_to_use is not None:
-            train_df, feature_cols_to_use = self._make_sparse_cols(train_df, sparse_cols_to_use, feature_cols_to_use)
-            test_df = self._make_sparse_cols(test_df, sparse_cols_to_use)
-
         test_harness_model = function_that_returns_TH_model(**dict_of_function_parameters)
 
-        # This is the one and only time _BaseRun is invoked:
+        # This is the one and only time _BaseRun is invoked
         run_object = _BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
                               feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize, feature_extraction,
-                              pred_df, loo_dict)
+                              pred_df, sparse_cols_to_use, loo_dict)
+
+        # tracking the run_ids of all the runs that were kicked off in this TestHarness instance
+        # TODO: take into account complications when dealing with LOO runs. e.g. do we want to keep a list of LOO Ids as well (if yes, how).
+        self.list_of_this_instance_run_ids.append(run_object.run_id)
 
         # call run object methods
         start = time.time()
+        # this adds a line of downward arrows/carets to signify the beginning of the model run
+        print('\u25BC' * 100)
         print('Starting run at time {}'.format(datetime.now().strftime("%H:%M:%S")))
         run_object.train_and_test_model()
         run_object.calculate_metrics()
+
         if run_object.feature_extraction is not False:
-            run_object.feature_extraction_method(method=run_object.feature_extraction)
+            from harness.feature_extraction import FeatureExtractor
+            feature_extractor = FeatureExtractor(base_run_instance=run_object)
+            feature_extractor.feature_extraction_method(method=run_object.feature_extraction)
+        else:
+            feature_extractor = None
 
         # output results of run object by updating the appropriate leaderboard(s) and writing files to disk
 
@@ -409,17 +410,19 @@ class TestHarness:
         if run_object.loo_dict is False:
             run_id_folder_path = os.path.join(self.runs_folder_path, '{}_{}'.format("run", run_object.run_id))
             os.makedirs(run_id_folder_path)
-            self._output_run_files(run_object, run_id_folder_path, output_data_csvs=True)
+            self._output_run_files(run_object, run_id_folder_path, True, feature_extractor)
         else:
             loo_id = run_object.loo_dict['loo_id']
             loo_path = os.path.join(self.runs_folder_path, '{}_{}'.format("loo", loo_id))
             os.makedirs(loo_path, exist_ok=True)
             run_id_folder_path = os.path.join(loo_path, '{}_{}'.format("run", run_object.run_id))
             os.makedirs(run_id_folder_path)
-            self._output_run_files(run_object, run_id_folder_path, output_data_csvs=True)
+            self._output_run_files(run_object, run_id_folder_path, True, feature_extractor)
 
         end = time.time()
-        print('Run finished at {}'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
+        print('Run finished at {}.'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
+        # this adds a line of upward arrows/carets to signify the end of of the model run
+        print('\u25B2' * 100)
         print()
 
     def _update_leaderboard(self, run_object):
@@ -470,12 +473,15 @@ class TestHarness:
 
         # overwrite old leaderboard with updated leaderboard
         leaderboard.to_html(html_path, index=False, classes=leaderboard_name)
+        if self.output_csvs_of_leaderboards is True:
+            csv_path = os.path.join(self.results_folder_path, "{}.csv".format(leaderboard_name))
+            leaderboard.to_csv(csv_path, index=False)
 
     def _create_row_entry(self, run_object):
-        print(run_object.run_id)
         row_values = {Names.RUN_ID: run_object.run_id, Names.DATE: run_object.date_ran, Names.TIME: run_object.time_ran,
                       Names.SAMPLES_IN_TRAIN: run_object.metrics_dict[Names.SAMPLES_IN_TRAIN],
                       Names.SAMPLES_IN_TEST: run_object.metrics_dict[Names.SAMPLES_IN_TEST],
+                      Names.MODEL_NAME: run_object.model_name, Names.MODEL_AUTHOR: run_object.model_author,
                       Names.MODEL_DESCRIPTION: run_object.model_description, Names.COLUMN_PREDICTED: run_object.col_to_predict,
                       Names.NUM_FEATURES_USED: run_object.metrics_dict[Names.NUM_FEATURES_USED],
                       Names.DATA_AND_SPLIT_DESCRIPTION: run_object.data_and_split_description, Names.NORMALIZED: run_object.normalize,
@@ -498,7 +504,7 @@ class TestHarness:
             raise ValueError("run_object.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
         return row_of_results
 
-    def _output_run_files(self, run_object, output_path, output_data_csvs=True):
+    def _output_run_files(self, run_object, output_path, output_data_csvs=True, feature_extractor=None):
         if output_data_csvs:
             # using index_cols and prediction/ranking cols to only output subset of dataframe.
             # using unchanged_index_cols to get names of columns that were created in execute_run for later output.
@@ -506,11 +512,15 @@ class TestHarness:
 
             unchanged_index_cols = ["unchanged_{}".format(x) for x in run_object.index_cols]
 
-            train_cols_to_output = unchanged_index_cols
+            # creating list of cols to output for train, test, and pred outputs
+            train_cols_to_output = unchanged_index_cols + [run_object.col_to_predict]
             if run_object.run_type == Names.CLASSIFICATION:
-                test_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.prob_predictions_col]
+                test_cols_to_output = train_cols_to_output + [run_object.predictions_col, run_object.prob_predictions_col]
+                pred_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.prob_predictions_col,
+                                                              run_object.rankings_col]
             elif run_object.run_type == Names.REGRESSION:
                 test_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.residuals_col]
+                pred_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.rankings_col]
             else:
                 raise ValueError("run_object.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
 
@@ -525,13 +535,16 @@ class TestHarness:
             test_df_to_output.to_csv('{}/{}'.format(output_path, 'testing_data.csv'), index=False)
 
             if run_object.was_untested_data_predicted is not False:
-                pred_cols_to_output = test_cols_to_output + [run_object.rankings_col]
                 prediction_data_to_output = run_object.untested_data_predictions[pred_cols_to_output].copy()
                 for col in unchanged_index_cols:
                     prediction_data_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
                 prediction_data_to_output.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
+
         if run_object.feature_extraction is not False:
-            run_object.feature_importances.to_csv('{}/{}'.format(output_path, 'feature_importances.csv'), index=False)
+            from harness.feature_extraction import FeatureExtractor
+            assert isinstance(feature_extractor, FeatureExtractor), \
+                "feature_extractor must be a FeatureExtractor object when run_object.feature_extraction is not False."
+            feature_extractor.feature_importances.to_csv('{}/{}'.format(output_path, 'feature_importances.csv'), index=False)
             if run_object.feature_extraction == Names.SHAP_AUDIT:
                 shap_path = os.path.join(output_path, 'SHAP')
                 if not os.path.exists(shap_path):
@@ -539,8 +552,8 @@ class TestHarness:
                 dependence_path = os.path.join(shap_path, 'feature_dependence_plots')
                 if not os.path.exists(dependence_path):
                     os.makedirs(dependence_path)
-                run_object.shap_values.to_csv('{}/{}'.format(shap_path, 'shap_values.csv'), index=False)
-                for name, plot in run_object.shap_plots_dict.items():
+                feature_extractor.shap_values.to_csv('{}/{}'.format(shap_path, 'shap_values.csv'), index=False)
+                for name, plot in feature_extractor.shap_plots_dict.items():
                     if "dependence_plot" in name:
                         plot.savefig(os.path.join(dependence_path, name), bbox_inches="tight")
                     else:
@@ -565,28 +578,3 @@ class TestHarness:
 
     def print_leaderboards(self):
         pass
-
-    # If there are categorical columns that need to be made sparse, make them, and update the feature_cols_to_use
-    def _make_sparse_cols(self, df, sparse_col_names, feature_cols_to_use=None):
-        """
-        Take in a dataframe with the name of the columns that require construction of sparse columns.
-        Update the feature columns to use list with the new sparse column construction.
-        Drop the column that was made sparse from the list of features to use.
-        :param df: input dataframe
-        :param sparse_col_names: names of columns that need to be made sparse
-        :param feature_cols_to_use: list of all features to use that needs to be updated
-        :return: updated dataframe and feature columns to use
-        """
-        for col, col_data in df.iteritems():
-            if str(col) in sparse_col_names:
-                col_data = pd.get_dummies(col_data, prefix=col)
-                df = df.join(col_data)
-                if feature_cols_to_use:
-                    feature_cols_to_use.remove(col)
-                    feature_cols_to_use.extend([col for col in col_data.columns])
-        if feature_cols_to_use:
-            return df, feature_cols_to_use
-        else:
-            return df
-
-        # TODO: Put in a check to never normalize the sparse data category

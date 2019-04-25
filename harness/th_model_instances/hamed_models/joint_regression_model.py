@@ -10,8 +10,8 @@ from keras.regularizers import l2
 
 
 class KerasJointRegression(KerasRegression):
-    def __init__(self, model, model_description, epochs=25, batch_size=1000, verbose=0):
-        super(KerasJointRegression, self).__init__(model, model_description)
+    def __init__(self, model, model_author, model_description, epochs=25, batch_size=1000, verbose=0):
+        super(KerasJointRegression, self).__init__(model, model_author, model_description)
         self.epochs = epochs
         self.batch_size = batch_size
         self.verbose = verbose
@@ -71,5 +71,5 @@ def joint_network(max_residues, padding, num_rosetta_inputs=113):
     # we're not trying to compare a metric across different datasets
     merged_model.compile(optimizer='adam', loss='mse', metrics=['mean_squared_error'])
 
-    th_model = KerasJointRegression(model=merged_model, model_description='Joint Model', batch_size=128, epochs=25)
+    th_model = KerasJointRegression(model=merged_model, model_author="Hamed", model_description='Joint Model', batch_size=128, epochs=25)
     return th_model

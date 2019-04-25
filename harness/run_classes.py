@@ -1,33 +1,26 @@
-import time
-import rfpimp
-import warnings
-import pandas as pd
-import numpy as np
-from math import sqrt, fabs
 from datetime import datetime
+from math import sqrt
+import time
+import warnings
+
+import numpy as np
+import pandas as pd
 from sklearn import preprocessing
-from eli5.sklearn import PermutationImportance
 from sklearn.exceptions import DataConversionWarning
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
 from sklearn.metrics import average_precision_score
 from sklearn.metrics import mean_squared_error, r2_score
+
 from harness.unique_id import get_id
 from harness.utils.names import Names
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
-
-import shap
-import BlackBoxAuditing as BBA
-from operator import itemgetter
-from BlackBoxAuditing.model_factories.SKLearnModelVisitor import SKLearnModelVisitor
-import matplotlib.pyplot as plt
-
-plt.switch_backend('agg')
+from harness.utils.object_type_modifiers_and_checkers import is_list_of_strings
 
 
 class _BaseRun:
     def __init__(self, test_harness_model, training_data, testing_data, data_and_split_description,
                  col_to_predict, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
-                 feature_extraction, predict_untested_data=False, loo_dict=False):
+                 feature_extraction, predict_untested_data=False, sparse_cols_to_use=None, loo_dict=False):
         if isinstance(test_harness_model, ClassificationModel):
             self.run_type = Names.CLASSIFICATION
             self.prob_predictions_col = "{}_prob_predictions".format(col_to_predict)
@@ -37,6 +30,8 @@ class _BaseRun:
         else:
             raise TypeError("test_harness_model must be a ClassificationModel or a RegressionModel")
         self.test_harness_model = test_harness_model
+        self.model_name = test_harness_model.model_name
+        self.model_author = test_harness_model.model_author
         self.model_description = test_harness_model.model_description
         self.model_stack_trace = test_harness_model.stack_trace
         self.training_data = training_data
@@ -49,6 +44,7 @@ class _BaseRun:
         self.feature_cols_to_normalize = feature_cols_to_normalize
         self.feature_extraction = feature_extraction
         self.predict_untested_data = predict_untested_data
+        self.sparse_cols_to_use = sparse_cols_to_use
         self.predictions_col = "{}_predictions".format(col_to_predict)
         self.rankings_col = "{}_rankings".format(col_to_predict)
         self.run_id = get_id()
@@ -61,9 +57,6 @@ class _BaseRun:
         self.time_ran = datetime.now().strftime("%H:%M:%S")
         self.metrics_dict = {}
         self.normalization_scaler_object = None
-        self.shap_values = None
-        self.shap_plots_dict = None
-        self.feature_importances = None
 
     def _normalize_dataframes(self):
         warnings.simplefilter('ignore', DataConversionWarning)
@@ -96,152 +89,51 @@ class _BaseRun:
             untested_df[self.feature_cols_to_normalize] = scaler.transform(untested_df[self.feature_cols_to_normalize])
             self.predict_untested_data = untested_df.copy()
 
-    # TODO: add different options for eli5.sklearn.permutation_importance (current usage) and eli5.permutation_importance
-    def feature_extraction_method(self, method=Names.ELI5_PERMUTATION):
-        print("Starting Feature Extraction...")
-        start_time = time.time()
+    # TODO: Put in a check to never normalize the sparse data category
+    def _add_sparse_cols(self):
+        assert is_list_of_strings(self.sparse_cols_to_use), \
+            "self.sparse_cols_to_use must be a string or a list of strings when the _add_sparse_cols method is called."
 
-        if method == True:
-            method = Names.ELI5_PERMUTATION
+        # obtain all the sparse column values present in training_data, testing_data, and untested_data (if applicable)
+        for sparse_col in self.sparse_cols_to_use:
+            train_vals = set(self.training_data[sparse_col].unique())
+            test_vals = set(self.testing_data[sparse_col].unique())
+            if self.was_untested_data_predicted:
+                untested_vals = set(self.predict_untested_data[sparse_col].unique())
+            else:
+                untested_vals = set()
+            all_vals_for_this_sparse_col = set().union(train_vals, test_vals, untested_vals)
+            print(train_vals)
+            print(test_vals)
+            print(untested_vals)
+            print(all_vals_for_this_sparse_col)
 
-        if method == Names.ELI5_PERMUTATION:
-            pi_object = PermutationImportance(self.test_harness_model.model)
-            pi_object.fit(self.testing_data[self.feature_cols_to_use], self.testing_data[self.col_to_predict])
-            feature_importances_df = pd.DataFrame()
-            feature_importances_df["Feature"] = self.feature_cols_to_use
-            feature_importances_df["Importance"] = pi_object.feature_importances_
-            feature_importances_df["Importance_Std"] = pi_object.feature_importances_std_
-            feature_importances_df.sort_values(by='Importance', inplace=True, ascending=False)
-            self.feature_importances = feature_importances_df.copy()
-        elif method == Names.RFPIMP_PERMUTATION:
-            pis = rfpimp.importances(self.test_harness_model.model, self.testing_data[self.feature_cols_to_use],
-                                     self.testing_data[self.col_to_predict])
-            pis['Feature'] = pis.index
-            pis.reset_index(inplace=True, drop=True)
-            pis = pis[['Feature', 'Importance']]
-            pis.sort_values(by='Importance', inplace=True, ascending=False)
-            self.feature_importances = pis.copy()
-        elif method == "sklearn_rf_default":
-            pass  # TODO
+            # update self.feature_cols_to_use
+            self.feature_cols_to_use.remove(sparse_col)
+            self.feature_cols_to_use.extend(['{}_{}'.format(sparse_col, val) for val in all_vals_for_this_sparse_col])
 
-        elif method == Names.BBA_AUDIT:
-            data = self.perform_bba_audit(training_data=self.training_data.copy(),
-                                          testing_data=self.testing_data.copy(),
-                                          features=self.feature_cols_to_use,
-                                          classifier=self.test_harness_model.model,
-                                          col_to_predict=self.col_to_predict)
-            feature_importances_df = pd.DataFrame(data, columns=["Feature", "Importance"])
-            self.feature_importances = feature_importances_df.copy()
+            # update training data:
+            self.training_data = pd.get_dummies(self.training_data, columns=[sparse_col])
+            for val in all_vals_for_this_sparse_col.difference(train_vals):
+                self.training_data['{}_{}'.format(sparse_col, val)] = 0
 
-        elif method == Names.SHAP_AUDIT:
-            self.shap_plots_dict = {}
-            data = self.perform_shap_audit()
-            feature_importances_df = pd.DataFrame(data, columns=["Feature", "Importance"])
-            self.feature_importances = feature_importances_df.copy()
+            # update testing data:
+            self.testing_data = pd.get_dummies(self.testing_data, columns=[sparse_col])
+            for val in all_vals_for_this_sparse_col.difference(test_vals):
+                self.testing_data['{}_{}'.format(sparse_col, val)] = 0
 
-        print(("Feature Extraction time with method {0} was: {1:.2f} seconds".format(method, time.time() - start_time)))
-
-    def perform_shap_audit(self):
-        """
-        From:
-        https://slundberg.github.io/shap/notebooks/Census%20income%20classification%20with%20scikit-learn.html
-        """
-        import warnings
-        warnings.filterwarnings('ignore')
-
-        features = self.feature_cols_to_use
-        classifier = self.test_harness_model
-        train_X = self.training_data[features]
-        test_X = self.testing_data[features]
-
-        shap.initjs()
-        # f = lambda x: classifier._predict_proba(x)[:,1]
-        f = classifier._predict_proba
-        train_X_df = pd.DataFrame(data=train_X, columns=features)
-        # train_X_df = self.training_data.copy()
-        med = train_X_df.median().values.reshape((1, train_X_df.shape[1]))
-        explainer = shap.KernelExplainer(f, med)
-        test_X_df = pd.DataFrame(data=test_X, columns=features)
-        # test_X_df = self.testing_data.copy()
-        shap_values = explainer.shap_values(test_X_df)
-
-        # store shap_values so they can be accessed and output by TestHarness class
-        self.shap_values = self.training_data[self.index_cols + features].copy()
-        self.shap_values[features] = shap_values.copy()
-
-        means = []
-        totals_list = [0.0 for f in features]
-        for val_list in shap_values:
-            for i in range(0, len(val_list)):
-                totals_list[i] += fabs(val_list[i])
-        means = [(feat, total / len(shap_values)) for feat, total in zip(features, totals_list)]
-        # mean_shaps are returned for use as feature_importances
-        mean_shaps = sorted(means, key=itemgetter(1), reverse=True)
-
-        # generating plots
-        print("Generating SHAP plots!")
-
-        plt.close("all")  # close all previous pyplot figures
-
-        # Base Values vs. Model Output for first prediction
-        shap.force_plot(explainer.expected_value, shap_values[0, :], test_X_df.iloc[0, :], matplotlib=True, show=False)
-        fig = plt.gcf()  # get current figure
-        self.shap_plots_dict["example_single_sample_force_plot"] = fig
-        plt.close("all")  # close all previous pyplot figures
-
-        # TODO: figure out how to save multiple sample force plots as variable
-        # # Base Values vs. Model Output for full predictions
-        # shap.force_plot(explainer.expected_value, shap_values, train_X_df, matplotlib=True, show=False)
-        # fig = plt.gcf()      # get current figure
-        # self.shap_plots_dict["force_plot_all_samples"] = fig
-        # plt.close("all")     # close all previous pyplot figures
-
-        # Dependencies plots
-        for feature in self.feature_cols_to_use:
-            shap.dependence_plot(feature, shap_values, test_X_df, interaction_index='auto', show=False)
-            fig = plt.gcf()  # get current figure
-            self.shap_plots_dict["dependence_plot_{}".format(feature.upper())] = fig
-            plt.close("all")  # close all previous pyplot figures
-
-        # Feature importance summaries in 3 plots: dot, violin, and bar
-        shap.summary_plot(shap_values, test_X_df, show=False, plot_type="dot")
-        fig = plt.gcf()  # get current figure
-        self.shap_plots_dict["summary_dot_plot"] = fig
-        plt.close("all")  # close all previous pyplot figures
-
-        shap.summary_plot(shap_values, test_X_df, show=False, plot_type="violin")
-        fig = plt.gcf()  # get current figure
-        self.shap_plots_dict["summary_violin_plot"] = fig
-        plt.close("all")  # close all previous pyplot figures
-
-        shap.summary_plot(shap_values, test_X_df, plot_type="bar", show=False)
-        fig = plt.gcf()  # get current figure
-        self.shap_plots_dict["summary_bar_plot"] = fig
-        plt.close("all")  # close all previous pyplot figures
-
-        return mean_shaps
-
-    def perform_bba_audit(self, training_data,
-                          testing_data,
-                          features,
-                          classifier,
-                          col_to_predict):
-        combined_df = training_data.append(testing_data)
-        X = combined_df[features]
-        y = pd.DataFrame(combined_df[col_to_predict], columns=[col_to_predict])
-
-        data = BBA.data.load_testdf_only(X, y)
-        response_index = len(data[0]) - 1
-        auditor = BBA.Auditor()
-        auditor.trained_model = SKLearnModelVisitor(classifier, response_index)
-        auditor(data)
-        print("BBA AUDITOR RESULTS:\n")
-        print(auditor._audits_data["ranks"])
-        return auditor._audits_data["ranks"]
+            # update untested data:
+            if self.was_untested_data_predicted:
+                self.predict_untested_data = pd.get_dummies(self.predict_untested_data, columns=[sparse_col])
+                for val in all_vals_for_this_sparse_col.difference(untested_vals):
+                    self.predict_untested_data['{}_{}'.format(sparse_col, val)] = 0
 
     def train_and_test_model(self):
-        if self.normalize is not False:
+        if self.normalize:
             self._normalize_dataframes()
+
+        if self.sparse_cols_to_use:
+            self._add_sparse_cols()
 
         train_df = self.training_data.copy()
         test_df = self.testing_data.copy()
@@ -256,6 +148,7 @@ class _BaseRun:
         testing_start_time = time.time()
         test_df.loc[:, self.predictions_col] = self.test_harness_model._predict(test_df[self.feature_cols_to_use])
         if self.run_type == Names.CLASSIFICATION:
+            # _predict_proba currently returns the probability of class = 1
             test_df.loc[:, self.prob_predictions_col] = self.test_harness_model._predict_proba(test_df[self.feature_cols_to_use])
         elif self.run_type == Names.REGRESSION:
             test_df[self.residuals_col] = test_df[self.col_to_predict] - test_df[self.predictions_col]
@@ -273,24 +166,29 @@ class _BaseRun:
 
             untested_df.loc[:, self.predictions_col] = self.test_harness_model._predict(untested_df[self.feature_cols_to_use])
             if self.run_type == Names.CLASSIFICATION:
-                untested_df.loc[:, self.prob_predictions_col] = \
-                    self.test_harness_model._predict_proba(untested_df[self.feature_cols_to_use])
+                # _predict_proba currently returns the probability of class = 1
+                untested_df.loc[:, self.prob_predictions_col] = self.test_harness_model._predict_proba(
+                    untested_df[self.feature_cols_to_use])
 
             # IDEA: remove all columns except for self.index_cols and self.predictions_col. This is already done in test_harness_class.py,
             # IDEA: but if it's done here the extra columns wouldn't have to be stored in the run_object either.
 
             # creating rankings column based on the predictions. Rankings assume that a higher score is more desirable
             if self.run_type == Names.REGRESSION:
-                untested_df[self.rankings_col] = untested_df.sort_values(by=[self.predictions_col], ascending=False)[
-                                                     self.predictions_col].index + 1
+                untested_df.sort_values(by=[self.predictions_col], ascending=False, inplace=True)
             elif self.run_type == Names.CLASSIFICATION:
-                untested_df[self.rankings_col] = untested_df.sort_values(by=[self.predictions_col, self.prob_predictions_col],
-                                                                         ascending=[False, False])[self.predictions_col].index + 1
+                # assuming binary classification, predictions of class 1 are ranked higher than class 0,
+                # and the probability of a sample being in class 1 is used as the secondary column for ranking.
+                # currently the _predict_proba methods in test harness model classes return the probability of a sample being in class 1
+                untested_df.sort_values(by=[self.predictions_col, self.prob_predictions_col], ascending=[False, False], inplace=True)
             else:
                 raise ValueError("self.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
+            # resetting index to match sorted values, so the index can be used as a ranking.
+            untested_df.reset_index(inplace=True, drop=True)
+            # adding 1 to rankings so they start from 1 instead of 0.
+            untested_df[self.rankings_col] = untested_df.index + 1
 
             print(("Prediction time of untested data was: {}".format(time.time() - prediction_start_time)))
-            untested_df.sort_values(self.predictions_col, inplace=True, ascending=False)
             # Saving untested predictions
             self.untested_data_predictions = untested_df.copy()
         else:
