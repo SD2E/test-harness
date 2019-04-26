@@ -1,3 +1,8 @@
+"""
+ NB: This script is for local testing, and is NOT what is run by the app.
+ The test harness app runs in perovskite_test_harness.py
+ """
+
 import json
 from datetime import datetime
 import hashlib
@@ -29,6 +34,9 @@ NUM_PREDICTIONS = 100
 
 # todo: oops, committed this.  Need to revoke, but leaving for testing
 AUTH_TOKEN = '4a8751b83c9744234367b52c58f4c46a53f5d0e0225da3f9c32ed238b7f82a69'
+
+ESCALATION_SERVER_DEV = 'http://escalation-dev.sd2e.org'
+ESCALATION_SERVER = "http://escalation.sd2e.org"
 
 
 def get_git_commit_id():
@@ -131,7 +139,7 @@ def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, crank_
     return submissions_paths
 
 
-def submit_csv_to_escalation_server(submissions_file_path, crank_number, commit_id):
+def submit_csv_to_escalation_server(submissions_file_path, crank_number, commit_id, escalation_server=ESCALATION_SERVER_DEV):
     test_harness_results_path = submissions_file_path.rsplit("/runs/")[0]
     this_run_results_path = submissions_file_path.rsplit("/", 1)[0]
 
@@ -142,7 +150,7 @@ def submit_csv_to_escalation_server(submissions_file_path, crank_number, commit_
     model_author = leaderboard_entry_for_this_run["Model Author"].values[0]
     model_description = leaderboard_entry_for_this_run["Model Description"].values[0]
 
-    response = requests.post("http://escalation.sd2e.org/submission",
+    response = requests.post(escalation_server + "/submission",
                              headers={'User-Agent': 'escalation'},
                              data={'crank': crank_number,
                                    'username': "test_harness_{}".format(VERSION),
@@ -174,13 +182,13 @@ def build_leaderboard_rows_dict(submissions_file_path, crank_number):
     return leaderboard_rows_dict
 
 
-def submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id):
+def submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id, escalation_server=ESCALATION_SERVER_DEV):
     # gets run id from path of form 'test_harness_results/runs/run_aXRQm2Ox6RY7m/0021_train_323354d_testharness.csv'
     # This is kind of brittle.
     run_id = submission_path.split('/')[2].split('_')[1]
     row = leaderboard_rows_dict[run_id]
     row['githash'] = commit_id
-    response = requests.post("http://escalation.sd2e.org/leaderboard",
+    response = requests.post(escalation_server + "/leaderboard",
                              headers={'User-Agent': 'escalation'},
                              data=row,
                              timeout=60
