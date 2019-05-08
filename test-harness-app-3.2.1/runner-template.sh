@@ -17,6 +17,8 @@ fi
 #   Example: docker run centos:7 uname -a
 #            container_exec centos:7 uname -a
 GIT_HASH=${git_hash}
+ESCALATION_ENV=${env}
+
 echo "Hello, in runner template script"
 COMMAND="python /scripts_for_automation/perovskite_test_harness.py"
-container_exec ${CONTAINER_IMAGE} ${COMMAND} --commit ${GIT_HASH}
+container_exec ${CONTAINER_IMAGE} ${COMMAND} --commit ${GIT_HASH} --env ${ESCALATION_ENV}
