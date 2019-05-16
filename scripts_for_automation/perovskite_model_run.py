@@ -3,6 +3,7 @@
  The test harness app runs in perovskite_test_harness.py
  """
 
+import argparse
 import json
 from datetime import datetime
 import hashlib
@@ -360,7 +361,7 @@ def get_crank_specific_training_and_stateset_filenames(manifest, specific_crank_
     return perovskitedata_file, stateset_file
 
 
-def run_cranks(versioned_data_path, cranks="latest"):
+def run_cranks(versioned_data_path, escalation_server, cranks="latest"):
     manifest_file = os.path.join(versioned_data_path, "manifest/perovskite.manifest.yml")
     with open(manifest_file) as f:
         manifest_dict = yaml.load(f)
@@ -391,10 +392,10 @@ def run_cranks(versioned_data_path, cranks="latest"):
         assert get_crank_number_from_filename(training_data_filename) == get_crank_number_from_filename(state_set_filename)
         training_data_path = os.path.join(perovskite_data_folder_path, training_data_filename)
         state_set_path = os.path.join(perovskite_data_folder_path, state_set_filename)
-        crank_runner(training_data_path, state_set_path)
+        crank_runner(training_data_path, state_set_path, escalation_server)
 
 
-def crank_runner(training_data_path, state_set_path):
+def crank_runner(training_data_path, state_set_path, escalation_server):
     crank_number = get_crank_number_from_filename(training_data_path)
     print("\nRunning Crank {}".format(crank_number))
     print("Crank {} Training Data Path: {}".format(crank_number, training_data_path))
@@ -419,9 +420,15 @@ def crank_runner(training_data_path, state_set_path):
         leaderboard_rows_dict = build_leaderboard_rows_dict(submissions_path, crank_number)
     for submission_path in submissions_paths:
         print("Submitting {} to escalation server".format(submission_path))
-        response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
+        response, response_text = submit_csv_to_escalation_server(submission_path,
+                                                                  crank_number,
+                                                                  commit_id,
+                                                                  escalation_server)
         print("Submission result: {}".format(response_text))
-        submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
+        submit_leaderboard_to_escalation_server(leaderboard_rows_dict,
+                                                submission_path,
+                                                commit_id,
+                                                escalation_server)
 
 
 if __name__ == '__main__':
@@ -429,12 +436,23 @@ if __name__ == '__main__':
     NB: This script is for local testing, and is NOT what is run by the app.
     The test harness app runs in perovskite_test_harness.py
     """
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--env', help='Which env of Escalation (dev/prd) should this run in', default='dev')
+
+    args = parser.parse_args()
+
+    escalation_servers = {'prd': ESCALATION_SERVER, 'dev': ESCALATION_SERVER_DEV}
+    assert args.env in escalation_servers, "Env must be one of {dev, prd}"
+    env_specific_escalation_server = escalation_servers[args.env]
+    print("Running for escalation server %s" % env_specific_escalation_server)
+
     VERSIONED_DATASETS = os.path.join(Path(__file__).resolve().parents[2], 'versioned-datasets')
     print("Path to the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATASETS))
     print()
     assert os.path.isdir(VERSIONED_DATASETS), "The path you gave for VERSIONED_DATA does not exist."
 
     # set cranks equal to "latest", "all", or a string of format '0021' representing a specific crank number
-    run_cranks(VERSIONED_DATASETS, cranks="latest")
+    run_cranks(VERSIONED_DATASETS, env_specific_escalation_server, cranks="latest")
 
 # todo: round instead of truncate float
