@@ -2,13 +2,13 @@
   "name": "{{ agave.username }}-{{ app.name }}",
   "version": "{{ app.version }}",
   "executionType": "HPC",
-  "executionSystem": "hpc-tacc-maverick2-{{ agave.username }}",
+  "executionSystem": "hpc-tacc-stampede2-{{ agave.username }}",
   "parallelism": "SERIAL",
   "deploymentPath": "{{ agave.username }}/apps/{{ app.bundle }}",
   "deploymentSystem": "data-sd2e-projects-users",
   "defaultProcessorsPerNode": 1,
   "defaultNodeCount": 1,
-  "defaultQueue": "gtx",
+  "defaultQueue": "debug",
   "label": "{{ date_time.iso8601_micro }}",
   "modules": [
     "load tacc-singularity"
