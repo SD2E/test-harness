@@ -1,14 +1,18 @@
 from sklearn.semi_supervised import LabelPropagation, LabelSpreading
 from harness.th_model_classes.class_sklearn_classification import SklearnClassification
-
+import numpy as np
 def _graph_kernel(X,Y=None):
     '''
     Define a graph kernel that just returns the adjancency matrix
-    :param X: Adjacency matrix
-    :param Y: None
+    :param X: Adjacency matrix of training data
+    :param Y: Adjacency matrix of testing data
     :return: return the adjacency matrix
     '''
-    return X
+    if Y is None:
+        print("Y is none")
+        return np.nan_to_num(X)
+    else:
+        return np.nan_to_num(Y.transpose())
 
 
 def label_propagation_classification(kernel='rbf', gamma=20, n_neighbors=7,
