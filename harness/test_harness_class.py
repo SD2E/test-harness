@@ -4,7 +4,6 @@ import json
 import time
 
 import pandas as pd
-import matplotlib.pyplot as plt
 from six import string_types
 from statistics import mean
 from sklearn.externals import joblib
@@ -15,7 +14,6 @@ from harness.unique_id import get_id
 from harness.utils.names import Names
 from harness.utils.object_type_modifiers_and_checkers import is_list_of_strings, make_list_if_not_list
 
-plt.switch_backend('agg')
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)
 pd.set_option('display.max_colwidth', -1)
@@ -388,8 +386,8 @@ class TestHarness:
 
         # call run object methods
         start = time.time()
-        # this adds a line of downward arrows/carets to signify the beginning of the model run
-        print('\u25BC' * 100)
+        # # this adds a line of downward arrows/carets to signify the beginning of the model run
+        # print('\u25BC' * 100)
         print('Starting run at time {}'.format(datetime.now().strftime("%H:%M:%S")))
         run_object.train_and_test_model()
         run_object.calculate_metrics()
@@ -421,8 +419,8 @@ class TestHarness:
 
         end = time.time()
         print('Run finished at {}.'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
-        # this adds a line of upward arrows/carets to signify the end of of the model run
-        print('\u25B2' * 100)
+        # # this adds a line of upward arrows/carets to signify the end of of the model run
+        # print('\u25B2' * 100)
         print()
 
     def _update_leaderboard(self, run_object):
