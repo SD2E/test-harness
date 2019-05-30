@@ -7,8 +7,9 @@
   "deploymentPath": "{{ agave.username }}/apps/{{ app.bundle }}",
   "deploymentSystem": "data-sd2e-projects-users",
   "defaultProcessorsPerNode": 1,
+  "defaultMaxRunTime": "12:00:00",
   "defaultNodeCount": 1,
-  "defaultQueue": "debug",
+  "defaultQueue": "all",
   "label": "{{ date_time.iso8601_micro }}",
   "modules": [
     "load tacc-singularity"
