@@ -187,7 +187,18 @@ class FeatureExtractor:
         response_index = len(data[0]) - 1
         auditor = BBA.Auditor()
         auditor.trained_model = SKLearnModelVisitor(classifier, response_index)
-        auditor(data)
+        #auditor(data)
+        
+        #make a directory name for tracking the audit later
+        dir_name = "audits/{}".format(time.time())
+        auditor(data,output_dir=dir_name)
+        print('BBA audit data stored in %s'%dir_name)
+
+        #make a consistency graph, along with the consistency data
+        BBA.consistency_graph.graph_prediction_consistency(dir_name,'consistency_graph.png')
+        
+        
         print("BBA AUDITOR RESULTS:\n")
         print(auditor._audits_data["ranks"])
         return auditor._audits_data["ranks"]
+        
