@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 
 from harness.test_harness_class import TestHarness
 from version import VERSION
-from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
+from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN, add_ratio_features
 
 import warnings
 import git
@@ -226,6 +226,9 @@ def run_configured_test_harness_models_on_perovskites(train_set, state_set):
 
     col_to_predict = 'binarized_crystalscore'
 
+    print(train_set.shape)
+    train_set = add_ratio_features(train_set)
+    print(train_set.shape)
     train, test = train_test_split(train_set, test_size=0.2, random_state=5, stratify=train_set[['dataset']])
 
     # Test Harness use starts here:
@@ -233,12 +236,15 @@ def run_configured_test_harness_models_on_perovskites(train_set, state_set):
     print("initializing TestHarness object with output_location equal to {}\n".format(current_path))
     th = TestHarness(output_location=current_path, output_csvs_of_leaderboards=True)
 
-    for model in MODELS_TO_RUN:
+    for model, configs in MODELS_TO_RUN.items():
+        features_to_use = configs["features_to_use"]
+        if features_to_use is None:
+            features_to_use = feature_cols
         th.run_custom(function_that_returns_TH_model=model, dict_of_function_parameters={},
                       training_data=train,
                       testing_data=test, data_and_split_description="test run on perovskite data",
                       cols_to_predict=col_to_predict,
-                      feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
+                      feature_cols_to_use=features_to_use, normalize=True, feature_cols_to_normalize=feature_cols,
                       feature_extraction=False, predict_untested_data=state_set,
                       index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"]
                       )
@@ -396,16 +402,16 @@ def crank_runner(training_data_path, state_set_path):
     submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths,
                                                                         crank_number,
                                                                         commit_id)
-    if submissions_paths:
-        # If there were any submissions, include the leaderboard
-        # Only one leaderboard file is made, so we can submit just by pointing one path
-        submissions_path = submissions_paths[0]
-        leaderboard_rows_dict = build_leaderboard_rows_dict(submissions_path, crank_number)
-    for submission_path in submissions_paths:
-        print("Submitting {} to escalation server".format(submission_path))
-        response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
-        print("Submission result: {}".format(response_text))
-        submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
+    # if submissions_paths:
+    #     # If there were any submissions, include the leaderboard
+    #     # Only one leaderboard file is made, so we can submit just by pointing one path
+    #     submissions_path = submissions_paths[0]
+    #     leaderboard_rows_dict = build_leaderboard_rows_dict(submissions_path, crank_number)
+    # for submission_path in submissions_paths:
+    #     print("Submitting {} to escalation server".format(submission_path))
+    #     response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
+    #     print("Submission result: {}".format(response_text))
+    #     submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
 
 
 if __name__ == '__main__':
