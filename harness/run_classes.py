@@ -24,6 +24,15 @@ class _BaseRun:
         if isinstance(test_harness_model, ClassificationModel):
             self.run_type = Names.CLASSIFICATION
             self.prob_predictions_col = "{}_prob_predictions".format(col_to_predict)
+            unique_train_classes = set(training_data[col_to_predict].unique())
+            unique_test_classes = set(testing_data[col_to_predict].unique())
+            if unique_train_classes != unique_test_classes:
+                warnings.warn("The unique classes in the training_data do not match those in the testing_data. "
+                              "Perhaps you should stratify your train/test split based on your classes (col_to_predict)", Warning)
+            if len(unique_train_classes) > 2:
+                self.multiclass = True
+            else:
+                self.multiclass = False
         elif isinstance(test_harness_model, RegressionModel):
             self.run_type = Names.REGRESSION
             self.residuals_col = "{}_residuals".format(col_to_predict)
