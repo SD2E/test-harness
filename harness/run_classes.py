@@ -213,6 +213,14 @@ class _BaseRun:
         self.metrics_dict[Names.SAMPLES_IN_TEST] = len(self.testing_data_predictions)
 
         if self.run_type == Names.CLASSIFICATION:
+            # this if/else block is needed for f1 score, precision, and recall
+            if self.multiclass:
+                averaging_type = "weighted"
+            else:
+                averaging_type = "binary"
+
+            # the try/except blocks will allow AUC and Average Precision to be filled in with NaN if they can't be calculated
+            # this removes the need for special logic to check if self.multiclass is True or False
             try:
                 self.metrics_dict[Names.AUC_SCORE] = roc_auc_score(self.testing_data_predictions[self.col_to_predict],
                                                                    self.testing_data_predictions[self.prob_predictions_col])
@@ -231,11 +239,14 @@ class _BaseRun:
             self.metrics_dict[Names.BALANCED_ACCURACY] = balanced_accuracy_score(self.testing_data_predictions[self.col_to_predict],
                                                                                  self.testing_data_predictions[self.predictions_col])
             self.metrics_dict[Names.F1_SCORE] = f1_score(self.testing_data_predictions[self.col_to_predict],
-                                                         self.testing_data_predictions[self.predictions_col])
+                                                         self.testing_data_predictions[self.predictions_col],
+                                                         average=averaging_type)
             self.metrics_dict[Names.PRECISION] = precision_score(self.testing_data_predictions[self.col_to_predict],
-                                                                 self.testing_data_predictions[self.predictions_col])
+                                                                 self.testing_data_predictions[self.predictions_col],
+                                                                 average=averaging_type)
             self.metrics_dict[Names.RECALL] = recall_score(self.testing_data_predictions[self.col_to_predict],
-                                                           self.testing_data_predictions[self.predictions_col])
+                                                           self.testing_data_predictions[self.predictions_col],
+                                                           average=averaging_type)
         elif self.run_type == Names.REGRESSION:
             self.metrics_dict[Names.RMSE] = sqrt(
                 mean_squared_error(self.testing_data_predictions[self.col_to_predict], self.testing_data_predictions[self.predictions_col]))
