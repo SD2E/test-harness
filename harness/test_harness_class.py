@@ -461,7 +461,8 @@ class TestHarness:
         print()
 
         # update leaderboard with new entry (row_of_results) and sort it based on run type
-        leaderboard = leaderboard.append(row_of_results, ignore_index=True, sort=False)
+        leaderboard = leaderboard.append(row_of_results, ignore_index=True, sort=False)  # sort=False prevents columns from reordering
+        leaderboard = leaderboard.reindex(row_of_results.columns, axis=1)  # reindex will correct col order in case a new col is added
         if run_object.run_type == Names.CLASSIFICATION:
             leaderboard.sort_values(self.metric_to_sort_classification_results_by, inplace=True, ascending=False)
         elif run_object.run_type == Names.REGRESSION:
