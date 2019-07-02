@@ -56,8 +56,8 @@ class TestHarness:
             os.makedirs(self.runs_folder_path, exist_ok=True)
 
         # add metrics here:
-        self.classification_metrics = [Names.ACCURACY, Names.BALANCED_ACCURACY, Names.AUC_SCORE, Names.AVERAGE_PRECISION,
-                                       Names.F1_SCORE, Names.PRECISION, Names.RECALL]
+        self.classification_metrics = [Names.NUM_CLASSES, Names.ACCURACY, Names.BALANCED_ACCURACY, Names.AUC_SCORE,
+                                       Names.AVERAGE_PRECISION, Names.F1_SCORE, Names.PRECISION, Names.RECALL]
         self.mean_classification_metrics = ["Mean " + cm for cm in self.classification_metrics]
         self.regression_metrics = [Names.R_SQUARED, Names.RMSE]
         self.mean_regression_metrics = ["Mean " + rm for rm in self.regression_metrics]
@@ -461,7 +461,8 @@ class TestHarness:
         print()
 
         # update leaderboard with new entry (row_of_results) and sort it based on run type
-        leaderboard = leaderboard.append(row_of_results, ignore_index=True, sort=False)
+        leaderboard = leaderboard.append(row_of_results, ignore_index=True, sort=False)  # sort=False prevents columns from reordering
+        leaderboard = leaderboard.reindex(row_of_results.columns, axis=1)  # reindex will correct col order in case a new col is added
         if run_object.run_type == Names.CLASSIFICATION:
             leaderboard.sort_values(self.metric_to_sort_classification_results_by, inplace=True, ascending=False)
         elif run_object.run_type == Names.REGRESSION:
