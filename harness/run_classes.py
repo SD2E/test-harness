@@ -29,10 +29,12 @@ class _BaseRun:
             if unique_train_classes != unique_test_classes:
                 warnings.warn("The unique classes in the training_data do not match those in the testing_data. "
                               "Perhaps you should stratify your train/test split based on your classes (col_to_predict)", Warning)
-            if len(unique_train_classes) > 2:
+            num_classes = len(unique_train_classes)
+            if num_classes > 2:
                 self.multiclass = True
             else:
                 self.multiclass = False
+            self.num_classes = num_classes
         elif isinstance(test_harness_model, RegressionModel):
             self.run_type = Names.REGRESSION
             self.residuals_col = "{}_residuals".format(col_to_predict)
@@ -213,6 +215,8 @@ class _BaseRun:
         self.metrics_dict[Names.SAMPLES_IN_TEST] = len(self.testing_data_predictions)
 
         if self.run_type == Names.CLASSIFICATION:
+            self.metrics_dict[Names.NUM_CLASSES] = self.num_classes
+
             # this if/else block is needed for f1 score, precision, and recall
             if self.multiclass:
                 averaging_type = "weighted"

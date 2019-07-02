@@ -9,6 +9,7 @@ class Names:
     SAMPLES_IN_TEST = "Samples In Test"
 
     # classification metrics:
+    NUM_CLASSES = "Num Classes"
     AUC_SCORE = "AUC Score"
     ACCURACY = "Accuracy"
     BALANCED_ACCURACY = "Balanced Accuracy"
