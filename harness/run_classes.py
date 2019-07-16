@@ -16,6 +16,11 @@ from harness.utils.names import Names
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
 from harness.utils.object_type_modifiers_and_checkers import is_list_of_strings
 
+'''
+NOTE: If a class variable is going to be modified (e.g. feature_cols_to_use is modified by sparse col functionality),
+then you must make sure that a COPY of the variable is passed in! Otherwise the original variable will be modified too, leading to issues.
+'''
+
 
 class _BaseRun:
     def __init__(self, test_harness_model, training_data, testing_data, data_and_split_description,
@@ -45,17 +50,17 @@ class _BaseRun:
         self.model_author = test_harness_model.model_author
         self.model_description = test_harness_model.model_description
         self.model_stack_trace = test_harness_model.stack_trace
-        self.training_data = training_data
-        self.testing_data = testing_data
+        self.training_data = training_data.copy()
+        self.testing_data = testing_data.copy()
         self.data_and_split_description = data_and_split_description
         self.col_to_predict = col_to_predict
-        self.feature_cols_to_use = feature_cols_to_use
-        self.index_cols = index_cols
+        self.feature_cols_to_use = feature_cols_to_use[:]
+        self.index_cols = index_cols[:]
         self.normalize = normalize
-        self.feature_cols_to_normalize = feature_cols_to_normalize
+        self.feature_cols_to_normalize = feature_cols_to_normalize[:]
         self.feature_extraction = feature_extraction
         self.predict_untested_data = predict_untested_data
-        self.sparse_cols_to_use = sparse_cols_to_use
+        self.sparse_cols_to_use = sparse_cols_to_use[:]
         self.predictions_col = "{}_predictions".format(col_to_predict)
         self.rankings_col = "{}_rankings".format(col_to_predict)
         self.run_id = get_id()
@@ -114,10 +119,6 @@ class _BaseRun:
             else:
                 untested_vals = set()
             all_vals_for_this_sparse_col = set().union(train_vals, test_vals, untested_vals)
-            print(train_vals)
-            print(test_vals)
-            print(untested_vals)
-            print(all_vals_for_this_sparse_col)
 
             # update self.feature_cols_to_use
             self.feature_cols_to_use.remove(sparse_col)
