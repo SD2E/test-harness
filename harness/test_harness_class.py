@@ -27,22 +27,21 @@ HERE = os.path.realpath(__file__)
 PARENT = os.path.dirname(HERE)
 DEFAULT_DATA_PATH = os.path.join(PWD, 'versioned_data/asap/')
 
+'''
+NOTE: If a class variable is going to be modified (e.g. feature_cols_to_use is modified by sparse col functionality),
+then you must make sure that a COPY of the variable is passed in! Otherwise the original variable will be modified too, leading to issues.
+'''
 
-# TODO: think about removing the execution level
 
-
-# TODO: If model, training_data, and other params are the same, just train once for that call of run_models
 # TODO: add ran-by (user) column to leaderboards
 # TODO: add md5hashes of data to leaderboard as sorting tool
 # TODO: add cross validation
 # TODO: if test set doesn't include col_to_predict, carry out prediction instead?
 # TODO: add more checks for correct inputs using assert
 # TODO: add filelock or writing-scheduler so leaderboards are not overwritten at the same time. Might need to use SQL
-# TODO: by having the ability to "add" multiple models to the TestHarness object, you can allow for visualizations or \
-# TODO: summary stats for a certain group of runs by adding arguments to the execute_runs method!
-
-
 # TODO: separate data description from split description
+
+
 class TestHarness:
     def __init__(self, output_location=os.path.dirname(os.path.realpath(__file__)), output_csvs_of_leaderboards=False):
         # Note: loo stands for leave-one-out
@@ -379,8 +378,8 @@ class TestHarness:
 
         # This is the one and only time _BaseRun is invoked
         run_object = _BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
-                              feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize, feature_extraction,
-                              pred_df, sparse_cols_to_use, loo_dict)
+                              feature_cols_to_use[:], index_cols[:], normalize, feature_cols_to_normalize[:], feature_extraction,
+                              pred_df, sparse_cols_to_use[:], loo_dict)
 
         # tracking the run_ids of all the runs that were kicked off in this TestHarness instance
         # TODO: take into account complications when dealing with LOO runs. e.g. do we want to keep a list of LOO Ids as well (if yes, how).
