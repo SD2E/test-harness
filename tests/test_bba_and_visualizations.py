@@ -78,20 +78,14 @@ def main():
     current_path = os.getcwd()
     print("initializing TestHarness object with output_location equal to {}".format(current_path))
     print()
-    th = TestHarness(output_location=current_path)
+    th = TestHarness(output_location="/Users/janestrada/Desktop/SorelleSummerResearch/TestHarness/")
 
     th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=toy_train,
                   testing_data=toy_test, data_and_split_description="testing bba on toy datasets",
                   cols_to_predict='stabilityscore_cnn_calibrated_2classes',
                   feature_cols_to_use=toy_feature_cols, normalize=True, feature_cols_to_normalize=toy_feature_cols,
-                  feature_extraction=Names.BBA_AUDIT, predict_untested_data=False)
+                  feature_extraction=Names.BBA_AUDIT, predict_untested_data=False, interpret_complex_model=True)
     
-    th.run_custom(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, training_data=toy_train,
-                  testing_data=toy_test, data_and_split_description="testing bba on toy datasets",
-                  cols_to_predict='stabilityscore_cnn_calibrated',
-                  feature_cols_to_use=toy_feature_cols, normalize=True, feature_cols_to_normalize=toy_feature_cols,
-                  feature_extraction=Names.BBA_AUDIT, predict_untested_data=False)
-
 
 if __name__ == '__main__':
     main()

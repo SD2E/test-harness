@@ -557,7 +557,7 @@ class TestHarness:
             from harness.feature_extraction import FeatureExtractor
             assert isinstance(feature_extractor, FeatureExtractor), \
                 "feature_extractor must be a FeatureExtractor object when run_object.feature_extraction is not False."
-            feature_extractor.feature_importances.to_csv('{}/{}a'.format(output_path, 'feature_importances.csv'), index=False)
+            feature_extractor.feature_importances.to_csv('{}/{}'.format(output_path, 'feature_importances.csv'), index=False)
             if run_object.feature_extraction == Names.SHAP_AUDIT:
                 shap_path = os.path.join(output_path, 'SHAP')
                 if not os.path.exists(shap_path):
@@ -565,13 +565,20 @@ class TestHarness:
                 dependence_path = os.path.join(shap_path, 'feature_dependence_plots')
                 if not os.path.exists(dependence_path):
                     os.makedirs(dependence_path)
-                feature_extractor.shap_values.to_csv('{}/{}'.format(shap_path, 'shap_values.csv'), index=False)
+                #feature_extractor.shap_values.to_csv('{}/{}'.format(shap_path, 'shap_values.csv'), index=False)
                 for name, plot in feature_extractor.shap_plots_dict.items():
                     if "dependence_plot" in name:
                         plot.savefig(os.path.join(dependence_path, name), bbox_inches="tight")
                     else:
                         plot.savefig(os.path.join(shap_path, name), bbox_inches="tight")
             
+            if run_object.feature_extraction == Names.BBA_AUDIT:
+                bba_path = os.path.join(output_path, 'BBA')
+                if not os.path.exists(bba_path):
+                    os.makedirs(bba_path)
+                for name, plot in feature_extractor.bba_plots_dict.items():
+                    plot.savefig(os.path.join(bba_path, name),bbox_inches="tight")
+
         # model on model 
         if run_object.interpret_complex_model is True:
             import pydotplus

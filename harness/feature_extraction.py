@@ -12,6 +12,8 @@ import pandas as pd
 import rfpimp
 import shap
 
+import pandas as pd
+
 plt.switch_backend('agg')
 
 
@@ -26,6 +28,7 @@ class FeatureExtractor:
         self.shap_values = None
         self.shap_plots_dict = None
         self.feature_importances = None
+        self.bba_plots_dict = None
 
     # TODO: add different options for eli5.sklearn.permutation_importance (current usage) and eli5.permutation_importance
     def feature_extraction_method(self, method=Names.ELI5_PERMUTATION):
@@ -59,6 +62,7 @@ class FeatureExtractor:
             pass  # TODO
 
         elif method == Names.BBA_AUDIT:
+            self.bba_plots_dict = {}
             data = self.perform_bba_audit(training_data=self.base_run_instance.training_data.copy(),
                                           testing_data=self.base_run_instance.testing_data.copy(),
                                           features=self.base_run_instance.feature_cols_to_use,
@@ -119,8 +123,8 @@ class FeatureExtractor:
         shap_values = explainer.shap_values(test_X_df)
 
         # store shap_values so they can be accessed and output by TestHarness class
-        self.shap_values = self.base_run_instance.training_data[self.base_run_instance.index_cols + features].copy()
-        self.shap_values[features] = shap_values.copy()
+        # self.shap_values = self.base_run_instance.training_data[self.base_run_instance.index_cols + features].copy()
+        # self.shap_values[features] = shap_values.copy()
 
         means = []
         totals_list = [0.0 for f in features]
@@ -196,6 +200,19 @@ class FeatureExtractor:
 
         #make a consistency graph, along with the consistency data
         BBA.consistency_graph.graph_prediction_consistency(dir_name,'consistency_graph.png')
+
+        #make feature importance bar plot
+        plt.close('all')
+        bba_audit = pd.DataFrame(auditor._audits_data["ranks"],columns=['Feature','Importance'])
+        n_features = len(bba_audit['Feature'].values)
+        fig,ax = plt.subplots(figsize=[.25*n_features,1.25*n_features]) #will be longer/shorter depending of n of features
+        ax.set_title("Feature Importances for BBA Audit (Accuracy)",{"fontsize":20})
+        plt.barh(y=bba_audit['Importance'].index,width=bba_audit['Importance'],tick_label=bba_audit['Feature'])
+        plt.xlabel("Importance")
+        ax.set_yticklabels(bba_audit['Feature'],{"fontsize":16})
+        plt.show()
+        self.bba_plots_dict['bar_plot'] = plt.gcf()
+        plt.close('all')
         
         
         print("BBA AUDITOR RESULTS:\n")
