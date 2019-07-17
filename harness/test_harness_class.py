@@ -27,22 +27,21 @@ HERE = os.path.realpath(__file__)
 PARENT = os.path.dirname(HERE)
 DEFAULT_DATA_PATH = os.path.join(PWD, 'versioned_data/asap/')
 
+'''
+NOTE: If a class variable is going to be modified (e.g. feature_cols_to_use is modified by sparse col functionality),
+then you must make sure that a COPY of the variable is passed in! Otherwise the original variable will be modified too, leading to issues.
+'''
 
-# TODO: think about removing the execution level
 
-
-# TODO: If model, training_data, and other params are the same, just train once for that call of run_models
 # TODO: add ran-by (user) column to leaderboards
 # TODO: add md5hashes of data to leaderboard as sorting tool
 # TODO: add cross validation
 # TODO: if test set doesn't include col_to_predict, carry out prediction instead?
 # TODO: add more checks for correct inputs using assert
 # TODO: add filelock or writing-scheduler so leaderboards are not overwritten at the same time. Might need to use SQL
-# TODO: by having the ability to "add" multiple models to the TestHarness object, you can allow for visualizations or \
-# TODO: summary stats for a certain group of runs by adding arguments to the execute_runs method!
-
-
 # TODO: separate data description from split description
+
+
 class TestHarness:
     def __init__(self, output_location=os.path.dirname(os.path.realpath(__file__)), output_csvs_of_leaderboards=False):
         # Note: loo stands for leave-one-out
@@ -56,8 +55,8 @@ class TestHarness:
             os.makedirs(self.runs_folder_path, exist_ok=True)
 
         # add metrics here:
-        self.classification_metrics = [Names.ACCURACY, Names.BALANCED_ACCURACY, Names.AUC_SCORE, Names.AVERAGE_PRECISION,
-                                       Names.F1_SCORE, Names.PRECISION, Names.RECALL]
+        self.classification_metrics = [Names.NUM_CLASSES, Names.ACCURACY, Names.BALANCED_ACCURACY, Names.AUC_SCORE,
+                                       Names.AVERAGE_PRECISION, Names.F1_SCORE, Names.PRECISION, Names.RECALL]
         self.mean_classification_metrics = ["Mean " + cm for cm in self.classification_metrics]
         self.regression_metrics = [Names.R_SQUARED, Names.RMSE]
         self.mean_regression_metrics = ["Mean " + rm for rm in self.regression_metrics]
@@ -381,8 +380,13 @@ class TestHarness:
 
         # This is the one and only time _BaseRun is invoked
         run_object = _BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
+<<<<<<< HEAD
                               feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize, feature_extraction,
                               pred_df, sparse_cols_to_use, loo_dict,interpret_complex_model)
+=======
+                              feature_cols_to_use[:], index_cols[:], normalize, feature_cols_to_normalize[:], feature_extraction,
+                              pred_df, sparse_cols_to_use[:], loo_dict)
+>>>>>>> db6a5dc3fec823f36295de0de95765ec629ee2dd
 
         # tracking the run_ids of all the runs that were kicked off in this TestHarness instance
         # TODO: take into account complications when dealing with LOO runs. e.g. do we want to keep a list of LOO Ids as well (if yes, how).
@@ -474,7 +478,8 @@ class TestHarness:
         print()
 
         # update leaderboard with new entry (row_of_results) and sort it based on run type
-        leaderboard = leaderboard.append(row_of_results, ignore_index=True, sort=False)
+        leaderboard = leaderboard.append(row_of_results, ignore_index=True, sort=False)  # sort=False prevents columns from reordering
+        leaderboard = leaderboard.reindex(row_of_results.columns, axis=1)  # reindex will correct col order in case a new col is added
         if run_object.run_type == Names.CLASSIFICATION:
             leaderboard.sort_values(self.metric_to_sort_classification_results_by, inplace=True, ascending=False)
         elif run_object.run_type == Names.REGRESSION:

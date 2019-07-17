@@ -16,6 +16,11 @@ from harness.utils.names import Names
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
 from harness.utils.object_type_modifiers_and_checkers import is_list_of_strings
 
+'''
+NOTE: If a class variable is going to be modified (e.g. feature_cols_to_use is modified by sparse col functionality),
+then you must make sure that a COPY of the variable is passed in! Otherwise the original variable will be modified too, leading to issues.
+'''
+
 
 class _BaseRun:
     def __init__(self, test_harness_model, training_data, testing_data, data_and_split_description,
@@ -25,6 +30,17 @@ class _BaseRun:
         if isinstance(test_harness_model, ClassificationModel):
             self.run_type = Names.CLASSIFICATION
             self.prob_predictions_col = "{}_prob_predictions".format(col_to_predict)
+            unique_train_classes = set(training_data[col_to_predict].unique())
+            unique_test_classes = set(testing_data[col_to_predict].unique())
+            if unique_train_classes != unique_test_classes:
+                warnings.warn("The unique classes in the training_data do not match those in the testing_data. "
+                              "Perhaps you should stratify your train/test split based on your classes (col_to_predict)", Warning)
+            num_classes = len(unique_train_classes)
+            if num_classes > 2:
+                self.multiclass = True
+            else:
+                self.multiclass = False
+            self.num_classes = num_classes
         elif isinstance(test_harness_model, RegressionModel):
             self.run_type = Names.REGRESSION
             self.residuals_col = "{}_residuals".format(col_to_predict)
@@ -35,17 +51,17 @@ class _BaseRun:
         self.model_author = test_harness_model.model_author
         self.model_description = test_harness_model.model_description
         self.model_stack_trace = test_harness_model.stack_trace
-        self.training_data = training_data
-        self.testing_data = testing_data
+        self.training_data = training_data.copy()
+        self.testing_data = testing_data.copy()
         self.data_and_split_description = data_and_split_description
         self.col_to_predict = col_to_predict
-        self.feature_cols_to_use = feature_cols_to_use
-        self.index_cols = index_cols
+        self.feature_cols_to_use = feature_cols_to_use[:]
+        self.index_cols = index_cols[:]
         self.normalize = normalize
-        self.feature_cols_to_normalize = feature_cols_to_normalize
+        self.feature_cols_to_normalize = feature_cols_to_normalize[:]
         self.feature_extraction = feature_extraction
         self.predict_untested_data = predict_untested_data
-        self.sparse_cols_to_use = sparse_cols_to_use
+        self.sparse_cols_to_use = sparse_cols_to_use[:]
         self.predictions_col = "{}_predictions".format(col_to_predict)
         self.rankings_col = "{}_rankings".format(col_to_predict)
         self.run_id = get_id()
@@ -109,10 +125,6 @@ class _BaseRun:
             else:
                 untested_vals = set()
             all_vals_for_this_sparse_col = set().union(train_vals, test_vals, untested_vals)
-            print(train_vals)
-            print(test_vals)
-            print(untested_vals)
-            print(all_vals_for_this_sparse_col)
 
             # update self.feature_cols_to_use
             self.feature_cols_to_use.remove(sparse_col)
@@ -210,6 +222,16 @@ class _BaseRun:
         self.metrics_dict[Names.SAMPLES_IN_TEST] = len(self.testing_data_predictions)
 
         if self.run_type == Names.CLASSIFICATION:
+            self.metrics_dict[Names.NUM_CLASSES] = self.num_classes
+
+            # this if/else block is needed for f1 score, precision, and recall
+            if self.multiclass:
+                averaging_type = "weighted"
+            else:
+                averaging_type = "binary"
+
+            # the try/except blocks will allow AUC and Average Precision to be filled in with NaN if they can't be calculated
+            # this removes the need for special logic to check if self.multiclass is True or False
             try:
                 self.metrics_dict[Names.AUC_SCORE] = roc_auc_score(self.testing_data_predictions[self.col_to_predict],
                                                                    self.testing_data_predictions[self.prob_predictions_col])
@@ -228,11 +250,14 @@ class _BaseRun:
             self.metrics_dict[Names.BALANCED_ACCURACY] = balanced_accuracy_score(self.testing_data_predictions[self.col_to_predict],
                                                                                  self.testing_data_predictions[self.predictions_col])
             self.metrics_dict[Names.F1_SCORE] = f1_score(self.testing_data_predictions[self.col_to_predict],
-                                                         self.testing_data_predictions[self.predictions_col])
+                                                         self.testing_data_predictions[self.predictions_col],
+                                                         average=averaging_type)
             self.metrics_dict[Names.PRECISION] = precision_score(self.testing_data_predictions[self.col_to_predict],
-                                                                 self.testing_data_predictions[self.predictions_col])
+                                                                 self.testing_data_predictions[self.predictions_col],
+                                                                 average=averaging_type)
             self.metrics_dict[Names.RECALL] = recall_score(self.testing_data_predictions[self.col_to_predict],
-                                                           self.testing_data_predictions[self.predictions_col])
+                                                           self.testing_data_predictions[self.predictions_col],
+                                                           average=averaging_type)
         elif self.run_type == Names.REGRESSION:
             self.metrics_dict[Names.RMSE] = sqrt(
                 mean_squared_error(self.testing_data_predictions[self.col_to_predict], self.testing_data_predictions[self.predictions_col]))
