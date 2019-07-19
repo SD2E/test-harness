@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from six import string_types
 from statistics import mean
 from sklearn.externals import joblib
+from copy import copy, deepcopy
 
 from harness.run_classes import _BaseRun
 from harness.test_harness_models_abstract_classes import ClassificationModel, RegressionModel
@@ -378,8 +379,8 @@ class TestHarness:
 
         # This is the one and only time _BaseRun is invoked
         run_object = _BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
-                              feature_cols_to_use[:], index_cols[:], normalize, feature_cols_to_normalize[:], feature_extraction,
-                              pred_df, sparse_cols_to_use[:], loo_dict)
+                              copy(feature_cols_to_use), copy(index_cols), normalize, copy(feature_cols_to_normalize), feature_extraction,
+                              pred_df, copy(sparse_cols_to_use), loo_dict)
 
         # tracking the run_ids of all the runs that were kicked off in this TestHarness instance
         # TODO: take into account complications when dealing with LOO runs. e.g. do we want to keep a list of LOO Ids as well (if yes, how).
