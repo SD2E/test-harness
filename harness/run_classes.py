@@ -5,6 +5,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from copy import copy, deepcopy
 from sklearn import preprocessing
 from sklearn.exceptions import DataConversionWarning
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
@@ -55,13 +56,13 @@ class _BaseRun:
         self.testing_data = testing_data.copy()
         self.data_and_split_description = data_and_split_description
         self.col_to_predict = col_to_predict
-        self.feature_cols_to_use = feature_cols_to_use[:]
-        self.index_cols = index_cols[:]
+        self.feature_cols_to_use = copy(feature_cols_to_use)
+        self.index_cols = copy(index_cols)
         self.normalize = normalize
-        self.feature_cols_to_normalize = feature_cols_to_normalize[:]
+        self.feature_cols_to_normalize = copy(feature_cols_to_normalize)
         self.feature_extraction = feature_extraction
         self.predict_untested_data = predict_untested_data
-        self.sparse_cols_to_use = sparse_cols_to_use[:]
+        self.sparse_cols_to_use = copy(sparse_cols_to_use)
         self.predictions_col = "{}_predictions".format(col_to_predict)
         self.rankings_col = "{}_rankings".format(col_to_predict)
         self.run_id = get_id()
