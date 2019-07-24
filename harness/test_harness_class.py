@@ -97,7 +97,7 @@ class TestHarness:
                                                  Names.BBA_AUDIT,
                                                  Names.SHAP_AUDIT]
         self.list_of_this_instance_run_ids = []
-        print("\n\n")
+        print()
 
     # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
     def run_custom(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
@@ -193,7 +193,11 @@ class TestHarness:
         else:
             raise ValueError("grouping must be a list of column names in the data Dataframe, "
                              "or a Pandas Dataframe that defines custom groupings (see the Test Harness README for an example).")
-            # TODO: add example grouping dataframe to README
+            # TODO: add example grouping_df to README
+
+        print("Groupings will be made based on the following grouping_df:")
+        print(grouping_df)
+        print("\n\n")
 
         # grouping_df checks:
         # 1. "group_index" must exist as a column in grouping_df
@@ -217,7 +221,7 @@ class TestHarness:
             loo_folder_path = os.path.join(self.runs_folder_path, '{}_{}'.format("loo", loo_id))
             os.makedirs(loo_folder_path, exist_ok=False)
             data.to_csv(os.path.join(loo_folder_path, "data.csv"), index=False)
-            grouping.to_csv(os.path.join(loo_folder_path, "grouping.csv"), index=False)
+            grouping_df.to_csv(os.path.join(loo_folder_path, "grouping_df.csv"), index=False)
 
             dummy_th_model = function_that_returns_TH_model(**dict_of_function_parameters)
             if isinstance(dummy_th_model, ClassificationModel):
