@@ -97,6 +97,7 @@ class TestHarness:
                                                  Names.BBA_AUDIT,
                                                  Names.SHAP_AUDIT]
         self.list_of_this_instance_run_ids = []
+        print("\n\n")
 
     # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
     def run_custom(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
@@ -168,16 +169,48 @@ class TestHarness:
 
         assert isinstance(data, pd.DataFrame), "data must be a Pandas Dataframe"
         assert isinstance(data_description, string_types), "data_description must be a string"
-        assert isinstance(grouping, pd.DataFrame) or is_list_of_strings(
-            grouping), "grouping must be a Pandas Dataframe or a list of column names"
         assert isinstance(grouping_description, string_types), "grouping_description must be a string"
         assert is_list_of_strings(cols_to_predict), "cols_to_predict must be a string or a list of strings"
 
-        grouping = grouping.rename(columns={'name': 'topology'})
+        # if grouping is a string, turn it into a list containing that one string
+        if isinstance(grouping, string_types):
+            grouping = make_list_if_not_list(grouping)
+        # if grouping is a list of strings:
+        # 1. check if those strings exist as column names in the data Dataframe
+        # 2. then create a grouping Dataframe based on the unique values in those columns
+        data_cols = data.columns.values.tolist()
+        if is_list_of_strings(grouping):
+            # this for loop check is similar to the one for the grouping_df, but I like to have this one too for a clearer error message
+            for col_name in grouping:
+                assert (col_name in data_cols), \
+                    "{} does not exist as a column in the data Dataframe. " \
+                    "If you pass in a list of strings to the 'grouping' argument, " \
+                    "then all of those strings must exist as columns in the data Dataframe.".format(col_name)
+            grouping_df = data.groupby(by=grouping, as_index=False).first()[grouping]
+            grouping_df[Names.GROUP_INDEX] = grouping_df.index
+        elif isinstance(grouping, pd.DataFrame):
+            grouping_df = grouping.copy()
+        else:
+            raise ValueError("grouping must be a list of column names in the data Dataframe, "
+                             "or a Pandas Dataframe that defines custom groupings (see the Test Harness README for an example).")
+            # TODO: add example grouping dataframe to README
+
+        # grouping_df checks:
+        # 1. "group_index" must exist as a column in grouping_df
+        # 2. every other column in grouping_df must also be a column in the data Dataframe
+        grouping_df_cols = grouping_df.columns.values.tolist()
+        assert (Names.GROUP_INDEX in grouping_df_cols), "grouping_df must have a '{}' column.".format(Names.GROUP_INDEX)
+        cols_to_group_on = [col for col in grouping_df_cols if col != Names.GROUP_INDEX]
+        for col_name in cols_to_group_on:
+            assert (col_name in data_cols), \
+                "{} is a column in grouping_df but does not exist as a column in the data Dataframe. " \
+                "Every column in grouping_df (other than '{}') must also be a column in the data Dataframe.".format(col_name,
+                                                                                                                    Names.GROUP_INDEX)
+
+        # Append a "group_index" column to the all_data Dataframe. This column contains the group number of each row.
+        # The values of the "group_index" column are determined from the grouping Dataframe (grouping_df)
         all_data = data.copy()
-        relevant_groupings = grouping.copy()
-        relevant_groupings = relevant_groupings.loc[(relevant_groupings['dataset'].isin(all_data['dataset'])) &
-                                                    (relevant_groupings['topology'].isin(all_data['topology']))]
+        all_data = pd.merge(left=all_data, right=grouping_df, how="left", on=cols_to_group_on)
 
         for col in cols_to_predict:
             loo_id = get_id()
@@ -194,22 +227,19 @@ class TestHarness:
             else:
                 raise ValueError("function_that_returns_TH_model must return a ClassificationModel or a RegressionModel.")
 
-            for group in list(set(relevant_groupings['group_index'])):
+            # iterate through the groups (determined by "group_index" column) in the all_data Dataframe:
+            for group_index in list(set(all_data[Names.GROUP_INDEX])):
                 data_and_split_description = "{}".format(data_description)
+                group_rows = grouping_df.loc[grouping_df[Names.GROUP_INDEX] == group_index]
+                group_info = group_rows.to_dict(orient='list')
+                print("Creating test split based on {} {}, defined by: {}".format(Names.GROUP_INDEX, group_index, group_info))
                 train_split = all_data.copy()
                 test_split = all_data.copy()
-                print("Creating test split based on group {}:".format(group))
-                group_df = relevant_groupings.loc[relevant_groupings['group_index'] == group]
-                print(group_df.to_string(index=False))
-                group_info = str(list(set(group_df['dataset'])) + list(set(group_df['topology'])))
-                train_split = train_split.loc[~((train_split['dataset'].isin(group_df['dataset'])) &
-                                                (train_split['topology'].isin(group_df['topology'])))]
-                test_split = test_split.loc[(test_split['dataset'].isin(group_df['dataset'])) &
-                                            (test_split['topology'].isin(group_df['topology']))]
+                train_split = train_split.loc[train_split[Names.GROUP_INDEX] != group_index]
+                test_split = test_split.loc[test_split[Names.GROUP_INDEX] == group_index]
 
                 print("Number of samples in train split:", train_split.shape)
                 print("Number of samples in test split:", test_split.shape)
-                print()
 
                 loo_dict = {"loo_id": loo_id, "task_type": task_type, "data_description": data_description,
                             "grouping_description": grouping_description, "group_info": group_info}
@@ -284,6 +314,7 @@ class TestHarness:
                 # update leaderboard with new entry (row_of_results) and sort it based on run type
                 summary_leaderboard = summary_leaderboard.append(summary_values, ignore_index=True, sort=False)
                 sort_metric = "Mean " + self.metric_to_sort_regression_results_by
+                print("Leave-One-Out Summary Leaderboard:\n")
                 print(summary_leaderboard)
                 summary_leaderboard.sort_values(sort_metric, inplace=True, ascending=False)
                 summary_leaderboard.reset_index(inplace=True, drop=True)
@@ -388,8 +419,8 @@ class TestHarness:
 
         # call run object methods
         start = time.time()
-        # this adds a line of downward arrows/carets to signify the beginning of the model run
-        print('\u25BC' * 100)
+        # this adds a line of dashes to signify the beginning of the model run
+        print('-' * 100)
         print('Starting run at time {}'.format(datetime.now().strftime("%H:%M:%S")))
         run_object.train_and_test_model()
         run_object.calculate_metrics()
@@ -421,9 +452,9 @@ class TestHarness:
 
         end = time.time()
         print('Run finished at {}.'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
-        # this adds a line of upward arrows/carets to signify the end of of the model run
-        print('\u25B2' * 100)
-        print()
+        # this adds a line of ^ to signify the end of of the model run
+        print('^' * 100)
+        print("\n\n\n")
 
     def _update_leaderboard(self, run_object):
         # find appropriate leaderboard to update based on run_object characteristics
@@ -455,7 +486,7 @@ class TestHarness:
         row_of_results = self._create_row_entry(run_object)
         if run_object.loo_dict is not False:
             row_of_results[Names.LOO_ID] = run_object.loo_dict["loo_id"]
-            row_of_results[Names.TEST_GROUP] = run_object.loo_dict["group_info"]
+            row_of_results[Names.TEST_GROUP] = str(run_object.loo_dict["group_info"])
         print()
         print(row_of_results)
         print()
