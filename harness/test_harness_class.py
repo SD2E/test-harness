@@ -195,10 +195,6 @@ class TestHarness:
                              "or a Pandas Dataframe that defines custom groupings (see the Test Harness README for an example).")
             # TODO: add example grouping_df to README
 
-        print("Groupings will be made based on the following grouping_df:")
-        print(grouping_df)
-        print("\n\n")
-
         # grouping_df checks:
         # 1. "group_index" must exist as a column in grouping_df
         # 2. every other column in grouping_df must also be a column in the data Dataframe
