@@ -9,7 +9,7 @@ class TestHarnessModel(metaclass=ABCMeta):
         self.model_description = model_description
         # this will get the name of the function that called the TestHarnessModel object.
         # E.g. see harness/th_model_instances/hamed_models/random_forest_regression.py
-        self.model_name = inspect.stack()[1][3]
+        self.model_name = inspect.stack()[1].function
         self.stack_trace = inspect.stack()
 
     @abstractmethod
@@ -29,6 +29,7 @@ class ClassificationModel(TestHarnessModel, metaclass=ABCMeta):
 
 
 class RegressionModel(TestHarnessModel, metaclass=ABCMeta):
-    # the init is only here so the subclass isn't empty...
-    def __init__(self, model, model_author, model_description):
-        super().__init__(model, model_author, model_description)
+    pass
+    # # the init is only here so the subclass isn't empty...
+    # def __init__(self, model, model_author, model_description):
+    #     super().__init__(model, model_author, model_description)
