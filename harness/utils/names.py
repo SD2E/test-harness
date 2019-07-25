@@ -39,6 +39,7 @@ class Names:
     TEST_GROUP = "Test Group"
     DATA_DESCRIPTION = "Data Description"
     GROUPING_DESCRIPTION = "Grouping Description"
+    GROUP_INDEX = "group_index"
 
     # Leaderboards
     CUSTOM_CLASS_LBOARD = "custom_classification_leaderboard"

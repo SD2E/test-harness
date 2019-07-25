@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from harness.test_harness_class import TestHarness
 from harness.th_model_instances.hamed_models.random_forest_classification import random_forest_classification
 from harness.th_model_instances.hamed_models.random_forest_regression import random_forest_regression
+from harness.th_model_instances.hamed_models.rocklin_models import rocklins_linear_regression
 
 # At some point in your script you will need to define your data. For most cases the data will come from the `versioned_datasets` repo,
 # which is why in this example script I am pointing to the data folder in the `versioned-datasets` repo:
@@ -30,17 +31,22 @@ def main():
     col_order = list(combined_data.columns.values)
     col_order.insert(2, col_order.pop(col_order.index('dataset_original')))
     combined_data = combined_data[col_order]
-    combined_data['stabilityscore_2classes'] = combined_data['stabilityscore'] > 1
+    combined_data['stabilityscore_cnn_calibrated_2classes'] = combined_data['stabilityscore_cnn_calibrated'] > 1
+
+    # Removing proteins from the 181114_Benjamin_NTF2 library since they are very different from other libraries,
+    # and they don't have stability scores:
+    combined_data = combined_data.loc[combined_data["dataset"] != "181114_Benjamin_NTF2"]
 
     # Using a subset of the data for testing, and making custom train/test splits.
     data_RD_16k = combined_data.loc[combined_data['dataset_original'] == 'Rocklin'].copy()
-    train1, test1 = train_test_split(data_RD_16k, test_size=0.2, random_state=5, stratify=data_RD_16k[['topology', 'dataset_original']])
+    train_df, test_df = train_test_split(data_RD_16k, test_size=0.2, random_state=5, stratify=data_RD_16k[['topology', 'dataset_original']])
 
     # Grouping Dataframe read in for leave-one-out analysis.
     grouping_df = pd.read_csv(os.path.join(VERSIONED_DATA, 'protein-design/metadata/protein_groupings_by_uw.v1.metadata.csv'), comment='#',
                               low_memory=False)
     grouping_df['dataset'] = grouping_df['dataset'].replace({"longxing_untested": "t_l_untested",
                                                              "topmining_untested": "t_l_untested"})
+    grouping_df = grouping_df.rename(columns={'name': 'topology'})
 
     # list of feature columns to use and/or normalize:
     feature_cols = ['AlaCount', 'T1_absq', 'T1_netq', 'Tend_absq', 'Tend_netq', 'Tminus1_absq',
@@ -84,16 +90,20 @@ def main():
     print()
     th = TestHarness(output_location=current_path)
 
-    th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train1,
-                  testing_data=test1, data_and_split_description="example custom run on Rocklin data",
-                  cols_to_predict='stabilityscore_2classes',
-                  feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
-                  feature_extraction=False, predict_untested_data=False)
+    # custom run with a custom train/test split
+    th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train_df,
+                  testing_data=test_df, data_and_split_description="example custom run on the Rocklin dataset",
+                  cols_to_predict='stabilityscore_cnn_calibrated_2classes', feature_cols_to_use=feature_cols,
+                  index_cols=["dataset", "name"], normalize=True, feature_cols_to_normalize=feature_cols, feature_extraction=False,
+                  predict_untested_data=False)
 
-    th.run_leave_one_out(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={}, data=data_RD_16k,
-                         data_description="example leave-one-out run on Rocklin data", grouping=grouping_df,
-                         grouping_description="grouping_v1", cols_to_predict="stabilityscore", feature_cols_to_use=feature_cols,
-                         normalize=True, feature_cols_to_normalize=feature_cols, feature_extraction=False)
+    # leave_one_out run on the Rocklin dataset: will create splits of data based on the passed-in grouping and run the model on each split
+    # note that a list of column names can be passed in for grouping as well, instead of a custom grouping Dataframe
+    th.run_leave_one_out(function_that_returns_TH_model=rocklins_linear_regression, dict_of_function_parameters={}, data=data_RD_16k,
+                         data_description="example leave-one-out run on the Rocklin dataset", grouping=grouping_df,
+                         grouping_description="grouping_v1", cols_to_predict="stabilityscore_cnn_calibrated",
+                         feature_cols_to_use=feature_cols, index_cols=["dataset", "name"], normalize=True,
+                         feature_cols_to_normalize=feature_cols, feature_extraction=False)
 
 
 if __name__ == '__main__':

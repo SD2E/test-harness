@@ -13,3 +13,13 @@ def random_forest_classification(n_estimators=361, max_features='auto', criterio
                                      model_description="Random Forest: n_estimators={0}, max_features={1}, criterion={2}, min_samples_leaf={3}, n_jobs={4}".format(
                                          n_estimators, max_features, criterion, min_samples_leaf, n_jobs))
     return th_model
+
+
+def rfc_terra(n_estimators=500, n_jobs=-1):
+    # Creating an sklearn random forest classification model:
+    rfc = RandomForestClassifier(n_estimators=n_estimators, n_jobs=n_jobs)
+
+    # Creating an instance of the SklearnClassification TestHarnessModel subclass
+    th_model = SklearnClassification(model=rfc, model_author='Hamed',
+                                     model_description="Random Forest: n_estimators={0}, n_jobs={1}".format(n_estimators, n_jobs))
+    return th_model
