@@ -120,7 +120,8 @@ class TestHarness:
         for col in cols_to_predict:
             self._execute_run(function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                               data_and_split_description, col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
-                              feature_extraction, predict_untested_data, sparse_cols_to_use, interpret_complex_model=interpret_complex_model,loo_dict=False)
+                              feature_extraction, predict_untested_data, sparse_cols_to_use, loo_dict=False,
+                              interpret_complex_model=interpret_complex_model)
 
     # TODO: add sparse cols to leave one out
     def run_leave_one_out(self, function_that_returns_TH_model, dict_of_function_parameters, data, data_description, grouping,
@@ -306,8 +307,7 @@ class TestHarness:
     def _execute_run(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                      data_and_split_description, col_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
                      feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
-                     loo_dict=False,
-                     interpret_complex_model=False):
+                     loo_dict=False, interpret_complex_model=False):
         """
         1. Instantiates the TestHarnessModel object
         2. Creates a _BaseRun object and calls their train_and_test_model and calculate_metrics methods
@@ -391,16 +391,16 @@ class TestHarness:
         else:
             feature_extractor = None
 
-        #----------------------------------
-        #model on model 
+        # ----------------------------------
+        # model on model
         if interpret_complex_model:
             run_object.interpret_model(
                 complex_model=run_object.test_harness_model.model,
-                training_df=run_object.training_data, 
+                training_df=run_object.training_data,
                 feature_col=run_object.feature_cols_to_use,
-                predict_col=run_object.col_to_predict, 
+                predict_col=run_object.col_to_predict,
                 simple_model=None)
-        #----------------------------------
+        # ----------------------------------
 
         # output results of run object by updating the appropriate leaderboard(s) and writing files to disk
 
@@ -554,19 +554,19 @@ class TestHarness:
                 dependence_path = os.path.join(shap_path, 'feature_dependence_plots')
                 if not os.path.exists(dependence_path):
                     os.makedirs(dependence_path)
-                #feature_extractor.shap_values.to_csv('{}/{}'.format(shap_path, 'shap_values.csv'), index=False)
+                # feature_extractor.shap_values.to_csv('{}/{}'.format(shap_path, 'shap_values.csv'), index=False)
                 for name, plot in feature_extractor.shap_plots_dict.items():
                     if "dependence_plot" in name:
                         plot.savefig(os.path.join(dependence_path, name), bbox_inches="tight")
                     else:
                         plot.savefig(os.path.join(shap_path, name), bbox_inches="tight")
-            
+
             if run_object.feature_extraction == Names.BBA_AUDIT:
                 bba_path = os.path.join(output_path, 'BBA')
                 if not os.path.exists(bba_path):
                     os.makedirs(bba_path)
                 for name, plot in feature_extractor.bba_plots_dict.items():
-                    plot.savefig(os.path.join(bba_path, name),bbox_inches="tight")
+                    plot.savefig(os.path.join(bba_path, name), bbox_inches="tight")
 
         # model on model 
         if run_object.interpret_complex_model is True:
@@ -576,16 +576,15 @@ class TestHarness:
             if not os.path.exists(img_string_path):
                 os.makedirs(img_string_path)
             img_string = run_object.model_interpretation_img.getvalue()
-            with open(os.path.join(img_string_path,'model_interpretation_string.txt'),'w') as f:
+            with open(os.path.join(img_string_path, 'model_interpretation_string.txt'), 'w') as f:
                 f.write(img_string)
                 f.close
 
-            
             image_path = os.path.join(output_path, 'Complex_Model_Interpretation')
             if not os.path.exists(image_path):
                 os.makedirs(image_path)
             img = pydotplus.graph_from_dot_data(run_object.model_interpretation_img.getvalue())
-            img.write_png(os.path.join(image_path,'model_interpretation.png'))
+            img.write_png(os.path.join(image_path, 'model_interpretation.png'))
 
         test_file_name = os.path.join(output_path, 'model_information.txt')
         with open(test_file_name, "w") as f:
