@@ -107,20 +107,6 @@ class TestHarness:
         """
         Instantiates and runs a model on a custom train/test split
         If you pass in a list of columns to predict, a separate run will occur for each string in the list
-        :param function_that_returns_TH_model:
-        :param dict_of_function_parameters:
-        :param training_data:
-        :param testing_data:
-        :param data_and_split_description:
-        :param cols_to_predict:
-        :param feature_cols_to_use:
-        :param index_cols:
-        :param normalize:
-        :param feature_cols_to_normalize:
-        :param feature_extraction:
-        :param predict_untested_data:
-        :param sparse_cols_to_use:
-        :return:
         """
         cols_to_predict = make_list_if_not_list(cols_to_predict)
         assert is_list_of_strings(cols_to_predict), "cols_to_predict must be a string or a list of strings"
@@ -143,19 +129,6 @@ class TestHarness:
         """
         Splits the data into appropriate train/test splits according to the grouping dataframe, and then runs a separate instantiation of
         the passed-in model on each split.
-        :param function_that_returns_TH_model:
-        :param dict_of_function_parameters:
-        :param data:
-        :param data_description:
-        :param grouping:
-        :param grouping_description:
-        :param cols_to_predict:
-        :param feature_cols_to_use:
-        :param index_cols:
-        :param normalize:
-        :param feature_cols_to_normalize:
-        :param feature_extraction:
-        :return:
         """
         date_loo_ran = datetime.now().strftime("%Y-%m-%d")
         time_loo_ran = datetime.now().strftime("%H:%M:%S")
@@ -339,22 +312,6 @@ class TestHarness:
         1. Instantiates the TestHarnessModel object
         2. Creates a _BaseRun object and calls their train_and_test_model and calculate_metrics methods
         3. Calls _output_results(Run Object)
-
-        :param function_that_returns_TH_model:
-        :param dict_of_function_parameters:
-        :param training_data:
-        :param testing_data:
-        :param data_and_split_description:
-        :param col_to_predict:
-        :param feature_cols_to_use:
-        :param normalize:
-        :param index_cols:
-        :param feature_cols_to_normalize:
-        :param feature_extraction:
-        :param predict_untested_data:
-        :param sparse_cols_to_use:
-        :param loo_dict:
-        :return:
         """
 
         # Single strings are included in the assert error messages because the make_list_if_not_list function was used
