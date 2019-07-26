@@ -38,10 +38,6 @@ AUTH_TOKEN = '4a8751b83c9744234367b52c58f4c46a53f5d0e0225da3f9c32ed238b7f82a69'
 ESCALATION_SERVER_DEV = 'http://escalation-dev.sd2e.org'
 ESCALATION_SERVER = "http://escalation.sd2e.org"
 
-pd.set_option('display.max_columns', 5000)
-pd.set_option('display.width', 100000)
-pd.set_option('display.max_colwidth', -1)
-
 
 def get_git_commit_id():
     # using Path(__file__).parents[1] to get the path of the directory immediately above this file's directory
@@ -216,9 +212,6 @@ def run_configured_test_harness_models_on_perovskites(train_set, state_set):
     non_numerical_cols = (train_set.select_dtypes('object').columns.tolist())
     feature_cols = [c for c in feature_cols if c not in non_numerical_cols]
 
-    # adding "_raw_vialsite" as a feature to use by passing it in as a sparse column
-    sparse_cols = ["_raw_vialsite"]
-
     # print(set(state_set.columns.tolist()).difference(set(feature_cols)))
     # print(set(feature_cols).difference(set(state_set.columns.tolist())))
     # remove _rxn_temperatureC_actual_bulk column from feature_cols because it doesn't exist in state_set
@@ -247,20 +240,14 @@ def run_configured_test_harness_models_on_perovskites(train_set, state_set):
     print("initializing TestHarness object with output_location equal to {}\n".format(current_path))
     th = TestHarness(output_location=current_path, output_csvs_of_leaderboards=True)
 
-    print(state_set.head())
-    print()
-    print()
-
     for model in MODELS_TO_RUN:
         th.run_custom(function_that_returns_TH_model=model, dict_of_function_parameters={},
-                      training_data=train, testing_data=test,
-                      data_and_split_description="test run on perovskite data",
-                      cols_to_predict=col_to_predict, feature_cols_to_use=feature_cols,
-                      normalize=True, feature_cols_to_normalize=feature_cols,
-                      feature_extraction=False,
-                      predict_untested_data=state_set,
-                      index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"],
-                      sparse_cols_to_use=sparse_cols
+                      training_data=train,
+                      testing_data=test, data_and_split_description="test run on perovskite data",
+                      cols_to_predict=col_to_predict,
+                      feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
+                      feature_extraction=False, predict_untested_data=state_set,
+                      index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"]
                       )
 
     return th.list_of_this_instance_run_ids
@@ -425,16 +412,16 @@ def crank_runner(training_data_path, state_set_path):
     submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths,
                                                                         crank_number,
                                                                         commit_id)
-    # if submissions_paths:
-    #     # If there were any submissions, include the leaderboard
-    #     # Only one leaderboard file is made, so we can submit just by pointing one path
-    #     submissions_path = submissions_paths[0]
-    #     leaderboard_rows_dict = build_leaderboard_rows_dict(submissions_path, crank_number)
-    # for submission_path in submissions_paths:
-    #     print("Submitting {} to escalation server".format(submission_path))
-    #     response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
-    #     print("Submission result: {}".format(response_text))
-    #     submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
+    if submissions_paths:
+        # If there were any submissions, include the leaderboard
+        # Only one leaderboard file is made, so we can submit just by pointing one path
+        submissions_path = submissions_paths[0]
+        leaderboard_rows_dict = build_leaderboard_rows_dict(submissions_path, crank_number)
+    for submission_path in submissions_paths:
+        print("Submitting {} to escalation server".format(submission_path))
+        response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
+        print("Submission result: {}".format(response_text))
+        submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
 
 
 if __name__ == '__main__':
