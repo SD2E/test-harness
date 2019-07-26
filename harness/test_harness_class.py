@@ -412,18 +412,8 @@ class TestHarness:
 
         # This is the one and only time _BaseRun is invoked
         run_object = _BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
-<<<<<<< HEAD
-<<<<<<< HEAD
-                              feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize, feature_extraction,
-                              pred_df, sparse_cols_to_use, loo_dict,interpret_complex_model)
-=======
-                              feature_cols_to_use[:], index_cols[:], normalize, feature_cols_to_normalize[:], feature_extraction,
-                              pred_df, sparse_cols_to_use[:], loo_dict)
->>>>>>> db6a5dc3fec823f36295de0de95765ec629ee2dd
-=======
                               copy(feature_cols_to_use), copy(index_cols), normalize, copy(feature_cols_to_normalize), feature_extraction,
-                              pred_df, copy(sparse_cols_to_use), loo_dict)
->>>>>>> 749a3102a0db83cc48c6f5300ac0f608af4889f4
+                              pred_df, copy(sparse_cols_to_use), loo_dict, interpret_complex_model)
 
         # tracking the run_ids of all the runs that were kicked off in this TestHarness instance
         # TODO: take into account complications when dealing with LOO runs. e.g. do we want to keep a list of LOO Ids as well (if yes, how).
