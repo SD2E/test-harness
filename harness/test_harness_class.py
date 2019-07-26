@@ -102,24 +102,11 @@ class TestHarness:
     # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
     def run_custom(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                    data_and_split_description, cols_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
-                   feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None):
+                   feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
+                   interpret_complex_model=False):
         """
         Instantiates and runs a model on a custom train/test split
         If you pass in a list of columns to predict, a separate run will occur for each string in the list
-        :param function_that_returns_TH_model:
-        :param dict_of_function_parameters:
-        :param training_data:
-        :param testing_data:
-        :param data_and_split_description:
-        :param cols_to_predict:
-        :param feature_cols_to_use:
-        :param index_cols:
-        :param normalize:
-        :param feature_cols_to_normalize:
-        :param feature_extraction:
-        :param predict_untested_data:
-        :param sparse_cols_to_use:
-        :return:
         """
         cols_to_predict = make_list_if_not_list(cols_to_predict)
         assert is_list_of_strings(cols_to_predict), "cols_to_predict must be a string or a list of strings"
@@ -133,7 +120,8 @@ class TestHarness:
         for col in cols_to_predict:
             self._execute_run(function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                               data_and_split_description, col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
-                              feature_extraction, predict_untested_data, sparse_cols_to_use)
+                              feature_extraction, predict_untested_data, sparse_cols_to_use, loo_dict=False,
+                              interpret_complex_model=interpret_complex_model)
 
     # TODO: add sparse cols to leave one out
     def run_leave_one_out(self, function_that_returns_TH_model, dict_of_function_parameters, data, data_description, grouping,
@@ -142,19 +130,6 @@ class TestHarness:
         """
         Splits the data into appropriate train/test splits according to the grouping dataframe, and then runs a separate instantiation of
         the passed-in model on each split.
-        :param function_that_returns_TH_model:
-        :param dict_of_function_parameters:
-        :param data:
-        :param data_description:
-        :param grouping:
-        :param grouping_description:
-        :param cols_to_predict:
-        :param feature_cols_to_use:
-        :param index_cols:
-        :param normalize:
-        :param feature_cols_to_normalize:
-        :param feature_extraction:
-        :return:
         """
         date_loo_ran = datetime.now().strftime("%Y-%m-%d")
         time_loo_ran = datetime.now().strftime("%H:%M:%S")
@@ -332,27 +307,11 @@ class TestHarness:
     def _execute_run(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                      data_and_split_description, col_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
                      feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
-                     loo_dict=False):
+                     loo_dict=False, interpret_complex_model=False):
         """
         1. Instantiates the TestHarnessModel object
         2. Creates a _BaseRun object and calls their train_and_test_model and calculate_metrics methods
         3. Calls _output_results(Run Object)
-
-        :param function_that_returns_TH_model:
-        :param dict_of_function_parameters:
-        :param training_data:
-        :param testing_data:
-        :param data_and_split_description:
-        :param col_to_predict:
-        :param feature_cols_to_use:
-        :param normalize:
-        :param index_cols:
-        :param feature_cols_to_normalize:
-        :param feature_extraction:
-        :param predict_untested_data:
-        :param sparse_cols_to_use:
-        :param loo_dict:
-        :return:
         """
 
         # Single strings are included in the assert error messages because the make_list_if_not_list function was used
@@ -411,7 +370,7 @@ class TestHarness:
         # This is the one and only time _BaseRun is invoked
         run_object = _BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
                               copy(feature_cols_to_use), copy(index_cols), normalize, copy(feature_cols_to_normalize), feature_extraction,
-                              pred_df, copy(sparse_cols_to_use), loo_dict)
+                              pred_df, copy(sparse_cols_to_use), loo_dict, interpret_complex_model)
 
         # tracking the run_ids of all the runs that were kicked off in this TestHarness instance
         # TODO: take into account complications when dealing with LOO runs. e.g. do we want to keep a list of LOO Ids as well (if yes, how).
@@ -431,6 +390,17 @@ class TestHarness:
             feature_extractor.feature_extraction_method(method=run_object.feature_extraction)
         else:
             feature_extractor = None
+
+        # ----------------------------------
+        # model on model
+        if interpret_complex_model:
+            run_object.interpret_model(
+                complex_model=run_object.test_harness_model.model,
+                training_df=run_object.training_data,
+                feature_col=run_object.feature_cols_to_use,
+                predict_col=run_object.col_to_predict,
+                simple_model=None)
+        # ----------------------------------
 
         # output results of run object by updating the appropriate leaderboard(s) and writing files to disk
 
@@ -584,12 +554,37 @@ class TestHarness:
                 dependence_path = os.path.join(shap_path, 'feature_dependence_plots')
                 if not os.path.exists(dependence_path):
                     os.makedirs(dependence_path)
-                feature_extractor.shap_values.to_csv('{}/{}'.format(shap_path, 'shap_values.csv'), index=False)
+                # feature_extractor.shap_values.to_csv('{}/{}'.format(shap_path, 'shap_values.csv'), index=False)
                 for name, plot in feature_extractor.shap_plots_dict.items():
                     if "dependence_plot" in name:
                         plot.savefig(os.path.join(dependence_path, name), bbox_inches="tight")
                     else:
                         plot.savefig(os.path.join(shap_path, name), bbox_inches="tight")
+
+            if run_object.feature_extraction == Names.BBA_AUDIT:
+                bba_path = os.path.join(output_path, 'BBA')
+                if not os.path.exists(bba_path):
+                    os.makedirs(bba_path)
+                for name, plot in feature_extractor.bba_plots_dict.items():
+                    plot.savefig(os.path.join(bba_path, name), bbox_inches="tight")
+
+        # model on model 
+        if run_object.interpret_complex_model is True:
+            import pydotplus
+
+            img_string_path = os.path.join(output_path, 'Complex_Model_Interpretation')
+            if not os.path.exists(img_string_path):
+                os.makedirs(img_string_path)
+            img_string = run_object.model_interpretation_img.getvalue()
+            with open(os.path.join(img_string_path, 'model_interpretation_string.txt'), 'w') as f:
+                f.write(img_string)
+                f.close
+
+            image_path = os.path.join(output_path, 'Complex_Model_Interpretation')
+            if not os.path.exists(image_path):
+                os.makedirs(image_path)
+            img = pydotplus.graph_from_dot_data(run_object.model_interpretation_img.getvalue())
+            img.write_png(os.path.join(image_path, 'model_interpretation.png'))
 
         test_file_name = os.path.join(output_path, 'model_information.txt')
         with open(test_file_name, "w") as f:

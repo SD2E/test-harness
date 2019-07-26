@@ -26,7 +26,8 @@ then you must make sure that a COPY of the variable is passed in! Otherwise the 
 class _BaseRun:
     def __init__(self, test_harness_model, training_data, testing_data, data_and_split_description,
                  col_to_predict, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
-                 feature_extraction, predict_untested_data=False, sparse_cols_to_use=None, loo_dict=False):
+                 feature_extraction, predict_untested_data=False, sparse_cols_to_use=None, loo_dict=False,
+                 interpret_complex_model=False):
         if isinstance(test_harness_model, ClassificationModel):
             self.run_type = Names.CLASSIFICATION
             self.prob_predictions_col = "{}_prob_predictions".format(col_to_predict)
@@ -74,6 +75,11 @@ class _BaseRun:
         self.time_ran = datetime.now().strftime("%H:%M:%S")
         self.metrics_dict = {}
         self.normalization_scaler_object = None
+
+        #model on model
+        self.interpret_complex_model=interpret_complex_model
+        self.model_interpretation_img = None
+
 
     def _normalize_dataframes(self):
         warnings.simplefilter('ignore', DataConversionWarning)
@@ -260,3 +266,59 @@ class _BaseRun:
                                                           self.testing_data_predictions[self.predictions_col])
         else:
             raise TypeError("self.run_type must equal '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
+
+    #---------------------------------------------------------
+    # model on model 
+    def interpret_model(self,
+        complex_model,
+        training_df, 
+        feature_col,
+        predict_col, 
+        simple_model):
+        """
+        Trains an interpretable model on the predicted labels of 
+        an uninterpretable model, thus offering an approximation of
+        how the original model learned.
+
+        * complex_model must already have its model parameters defined
+        * simple_model must be defined, else it will be a default DecisionTreeClassifier
+        """
+
+        #train the complex model and get its predictions for training data
+        complex_model.fit(training_df[feature_col],training_df[predict_col])
+        predictions = complex_model.predict(training_df[feature_col])
+        #check if predicted labels are continuous. If so, change to binary
+        if len(np.unique(predictions)) > 2: #TODO: modify this to allow for multilabel classification
+            predictions = [i[0]>.5 for i in predictions]
+
+        #train simple model on predictions
+        model_interpretation_img = self.get_simple_model_image(training_df[feature_col],predictions)
+        self.model_interpretation_img = model_interpretation_img
+    
+    def get_simple_model_image(self,data_features,predicted_labels,interpretable_model=None):
+        #make interpretable model a decision tree by default
+        if interpretable_model==None:
+            from sklearn.tree import DecisionTreeClassifier
+            interpretable_model = DecisionTreeClassifier(random_state=0)
+        
+        #fit interpretable model on complex model's predicted labels
+        # NOTE: random_state param has to be passed to get consistent tree output, but is an arbitrary number
+        # How do we know which tree is the 'correct' way that the UninterpretableModel is learning?
+        interpretable_model.fit(data_features,predicted_labels)
+
+        #visualize model
+        if str(type(interpretable_model))=="<class 'sklearn.tree.tree.DecisionTreeClassifier'>":
+            from sklearn.externals.six import StringIO  
+            #from PIL import Image
+            from sklearn.tree import export_graphviz
+            import pydotplus
+            dot_data = StringIO()
+            export_graphviz(interpretable_model, out_file=dot_data,  
+                            filled=True, rounded=True,
+                            special_characters=True,
+                            feature_names=list(data_features.columns))
+            graph = pydotplus.graph_from_dot_data(dot_data.getvalue())  
+            
+            #return graph.create_png()
+            return dot_data
+    #---------------------------------------------------------
