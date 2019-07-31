@@ -78,7 +78,7 @@ def main():
     toy_feature_cols = feature_cols[:10]
 
     # TestHarness usage starts here, all code before this was just data input and pre-processing.
-    current_path = "/Users/janestrada/Desktop/SorelleSummerResearch/TestHarness/"
+    current_path = os.getcwd()
     print("initializing TestHarness object with output_location equal to {}".format(current_path))
     print()
     th = TestHarness(output_location=current_path)
