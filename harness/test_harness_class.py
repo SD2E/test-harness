@@ -126,7 +126,7 @@ class TestHarness:
     # TODO: add sparse cols to leave one out
     def run_leave_one_out(self, function_that_returns_TH_model, dict_of_function_parameters, data, data_description, grouping,
                           grouping_description, cols_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
-                          feature_cols_to_normalize=None, feature_extraction=False):
+                          feature_cols_to_normalize=None, feature_extraction=False,sparse_cols_to_use=None):
         """
         Splits the data into appropriate train/test splits according to the grouping dataframe, and then runs a separate instantiation of
         the passed-in model on each split.
@@ -221,7 +221,7 @@ class TestHarness:
 
                 self._execute_run(function_that_returns_TH_model, dict_of_function_parameters, train_split, test_split,
                                   data_and_split_description, col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
-                                  feature_extraction, False, None, loo_dict)
+                                  feature_extraction, False, sparse_cols_to_use, loo_dict)
 
             # summary results are calculated here, and summary leaderboards are updated
             summary_values = {Names.LOO_ID: loo_id, Names.DATE: date_loo_ran, Names.TIME: time_loo_ran,
