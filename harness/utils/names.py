@@ -54,3 +54,7 @@ class Names:
     RFPIMP_PERMUTATION = "rfpimp_permutation"
     SHAP_AUDIT = "shap_audit"
     BBA_AUDIT = "bba_audit"
+
+    # settings
+    NORMAL_OUTPUT = "normal"
+    VERBOSE_OUTPUT = "verbose"

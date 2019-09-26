@@ -13,7 +13,7 @@ import os
 import pandas as pd
 
 from scripts_for_automation.perovskite_model_run import (get_crank_number_from_filename,
-                                                         run_configured_test_harness_models_on_perovskites,
+                                                         run_configured_test_harness_models_on_80_20_splits,
                                                          submit_csv_to_escalation_server,
                                                          build_submissions_csvs_from_test_harness_output,
                                                          get_prediction_csvs, AUTH_TOKEN, get_manifest_from_gitlab_api,
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     print(stateset_df.head())
 
     # todo: this should return ranked predictions
-    list_of_run_ids = run_configured_test_harness_models_on_perovskites(train_set=training_data_df, state_set=stateset_df)
+    list_of_run_ids = run_configured_test_harness_models_on_80_20_splits(train_set=training_data_df, state_set=stateset_df)
 
     crank_number = get_crank_number_from_filename(training_data_filename)
     prediction_csv_paths = get_prediction_csvs(list_of_run_ids)

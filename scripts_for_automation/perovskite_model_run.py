@@ -19,6 +19,7 @@ from harness.test_harness_class import TestHarness
 from version import VERSION
 from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
 from harness.utils.object_type_modifiers_and_checkers import make_list_if_not_list
+from harness.utils.names import Names
 
 import warnings
 import git
@@ -119,7 +120,7 @@ def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, crank_
         df = df.filter(columns.keys())
         df = df.rename(columns=columns)
         df['dataset'] = crank_number
-        selected_predictions = select_which_predictions_to_submit(predictions_df=df, all_or_subset='subset')
+        selected_predictions = select_which_predictions_to_submit(predictions_df=df, all_or_subset='all')
 
         # fix formatting
         # truncate floats to 5 digits
@@ -205,7 +206,15 @@ def get_crank_number_from_filename(training_data_filename):
     return crank_number
 
 
-def run_configured_test_harness_models_on_perovskites(train_set, state_set):
+def create_leave_one_amine_out_grouping_dataframe(train_set):
+    amine_inchi_keys = train_set['_rxn_organic-inchikey'].unique()
+    amine_id_mapping = dict(zip(amine_inchi_keys, list(np.arange(0, len(amine_inchi_keys)))))
+    group_df = train_set[["dataset", "name", "_rxn_organic-inchikey", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"]]
+    group_df[Names.GROUP_INDEX] = group_df['_rxn_organic-inchikey'].apply(lambda x: amine_id_mapping[x])
+    return group_df
+
+
+def configure_input_df_for_test_harness(train_set):
     all_cols = train_set.columns.tolist()
     # don't worry about _calc_ columns for now, but it's in the code so they get included once the data is available
     feature_cols = [c for c in all_cols if ("_rxn_" in c) or ("_feat_" in c) or ("_calc_" in c)]
@@ -230,9 +239,11 @@ def run_configured_test_harness_models_on_perovskites(train_set, state_set):
     col_order = list(train_set.columns.values)
     col_order.insert(3, col_order.pop(col_order.index('binarized_crystalscore')))
     train_set = train_set[col_order]
+    return train_set, feature_cols
 
-    col_to_predict = 'binarized_crystalscore'
 
+def run_configured_test_harness_models_on_80_20_splits(train_set, state_set, col_to_predict='binarized_crystalscore'):
+    train_set, feature_cols = configure_input_df_for_test_harness(train_set)
     train, test = train_test_split(train_set, test_size=0.2, random_state=5, stratify=train_set[['dataset']])
 
     # Test Harness use starts here:
@@ -246,9 +257,36 @@ def run_configured_test_harness_models_on_perovskites(train_set, state_set):
                       testing_data=test, data_and_split_description="test run on perovskite data",
                       cols_to_predict=col_to_predict,
                       feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
-                      feature_extraction=False, predict_untested_data=state_set,
+                      feature_extraction=False,
+                      predict_untested_data=state_set,
                       index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"]
                       )
+
+    return th.list_of_this_instance_run_ids
+
+
+def run_configured_test_harness_models_on_loo_amine_data(train_set, state_set, col_to_predict='binarized_crystalscore'):
+    train_set, feature_cols = configure_input_df_for_test_harness(train_set)
+    # Test Harness use starts here:
+    current_path = os.getcwd()
+    print("initializing TestHarness object with output_location equal to {}\n".format(current_path))
+    th = TestHarness(output_location=current_path, output_csvs_of_leaderboards=True)
+    grouping_df = create_leave_one_amine_out_grouping_dataframe(train_set)
+    for model in MODELS_TO_RUN:
+        # todo- do this in a separate function with seperate leaderboard/output?
+        # not predeicting untested data here, this is evaluating on past data?
+        # todo: a list of column names can be passed in for grouping as well, instead of a custom grouping Dataframe
+        th.run_leave_one_out(function_that_returns_TH_model=model, dict_of_function_parameters={},
+                             data=train_set,
+                             data_description="Leave-one-out-amine run",
+                             grouping=grouping_df,
+                             grouping_description="amine",
+                             cols_to_predict=col_to_predict,
+                             feature_cols_to_use=feature_cols,
+                             index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"],
+                             normalize=True,
+                             feature_cols_to_normalize=feature_cols,
+                             feature_extraction=False)
 
     return th.list_of_this_instance_run_ids
 
@@ -391,10 +429,14 @@ def run_cranks(versioned_data_path, cranks="latest"):
         assert get_crank_number_from_filename(training_data_filename) == get_crank_number_from_filename(state_set_filename)
         training_data_path = os.path.join(perovskite_data_folder_path, training_data_filename)
         state_set_path = os.path.join(perovskite_data_folder_path, state_set_filename)
-        crank_runner(training_data_path, state_set_path)
+        training_data, state_set, crank_number = get_crank_files(training_data_path, state_set_path)
+        commit_id = get_git_hash_at_versioned_data_master_tip(AUTH_TOKEN)
+
+        crank_runner(training_data, state_set, crank_number, commit_id)
+        loo_crank_runner(training_data, state_set, commit_id)
 
 
-def crank_runner(training_data_path, state_set_path):
+def get_crank_files(training_data_path, state_set_path):
     crank_number = get_crank_number_from_filename(training_data_path)
     print("\nRunning Crank {}".format(crank_number))
     print("Crank {} Training Data Path: {}".format(crank_number, training_data_path))
@@ -403,11 +445,12 @@ def crank_runner(training_data_path, state_set_path):
 
     training_data = pd.read_csv(training_data_path, comment='#', low_memory=False)
     state_set = pd.read_csv(state_set_path, comment='#', low_memory=False)
+    return training_data, state_set, crank_number
 
-    list_of_run_ids = run_configured_test_harness_models_on_perovskites(training_data, state_set)
 
+def crank_runner(training_data, state_set, crank_number, commit_id):
+    list_of_run_ids = run_configured_test_harness_models_on_80_20_splits(training_data, state_set)
     # this uses current master commit on the origin
-    commit_id = get_git_hash_at_versioned_data_master_tip(AUTH_TOKEN)
     prediction_csv_paths = get_prediction_csvs(run_ids=list_of_run_ids)
     submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths,
                                                                         crank_number,
@@ -423,6 +466,24 @@ def crank_runner(training_data_path, state_set_path):
         print("Submission result: {}".format(response_text))
         submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
 
+def loo_crank_runner(training_data, state_set, crank_number, commit_id):
+    list_of_run_ids = run_configured_test_harness_models_on_loo_amine_data(training_data, state_set)
+    # this uses current master commit on the origin
+    prediction_csv_paths = get_prediction_csvs(run_ids=list_of_run_ids)
+    import ipdb; ipdb.set_trace()
+    submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths,
+                                                                        crank_number,
+                                                                        commit_id)
+    if submissions_paths:
+        # If there were any submissions, include the leaderboard
+        # Only one leaderboard file is made, so we can submit just by pointing one path
+        submissions_path = submissions_paths[0]
+        leaderboard_rows_dict = build_leaderboard_rows_dict(submissions_path, crank_number)
+    for submission_path in submissions_paths:
+        print("Submitting {} to escalation server".format(submission_path))
+        response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
+        print("Submission result: {}".format(response_text))
+        submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
 
 if __name__ == '__main__':
     """
