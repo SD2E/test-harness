@@ -273,6 +273,7 @@ def run_configured_test_harness_models_on_loo_amine_data(train_set, state_set, c
     th = TestHarness(output_location=current_path, output_csvs_of_leaderboards=True)
     grouping_df = create_leave_one_amine_out_grouping_dataframe(train_set)
     for model in MODELS_TO_RUN:
+        print("Running leave one amine out for model {}".format(model.__name__))
         # todo- do this in a separate function with seperate leaderboard/output?
         # not predeicting untested data here, this is evaluating on past data?
         # todo: a list of column names can be passed in for grouping as well, instead of a custom grouping Dataframe
@@ -432,8 +433,8 @@ def run_cranks(versioned_data_path, cranks="latest"):
         training_data, state_set, crank_number = get_crank_files(training_data_path, state_set_path)
         commit_id = get_git_hash_at_versioned_data_master_tip(AUTH_TOKEN)
 
-        crank_runner(training_data, state_set, crank_number, commit_id)
-        loo_crank_runner(training_data, state_set, commit_id)
+        # crank_runner(training_data, state_set, crank_number, commit_id)
+        loo_crank_runner(training_data, state_set, crank_number, commit_id)
 
 
 def get_crank_files(training_data_path, state_set_path):
@@ -466,6 +467,7 @@ def crank_runner(training_data, state_set, crank_number, commit_id):
         print("Submission result: {}".format(response_text))
         submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
 
+
 def loo_crank_runner(training_data, state_set, crank_number, commit_id):
     list_of_run_ids = run_configured_test_harness_models_on_loo_amine_data(training_data, state_set)
     # this uses current master commit on the origin
@@ -484,6 +486,7 @@ def loo_crank_runner(training_data, state_set, crank_number, commit_id):
         response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
         print("Submission result: {}".format(response_text))
         submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
+
 
 if __name__ == '__main__':
     """

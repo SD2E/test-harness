@@ -27,6 +27,7 @@ PWD = os.getcwd()
 HERE = os.path.realpath(__file__)
 PARENT = os.path.dirname(HERE)
 DEFAULT_DATA_PATH = os.path.join(PWD, 'versioned_data/asap/')
+OUTPUT = Names.NORMAL_OUTPUT
 
 '''
 NOTE: If a class variable is going to be modified (e.g. feature_cols_to_use is modified by sparse col functionality),
@@ -207,7 +208,10 @@ class TestHarness:
                 data_and_split_description = "{}".format(data_description)
                 group_rows = grouping_df.loc[grouping_df[Names.GROUP_INDEX] == group_index]
                 group_info = group_rows.to_dict(orient='list')
-                print("Creating test split based on {} {}, defined by: {}".format(Names.GROUP_INDEX, group_index, group_info))
+                print("Creating test split based on {} {}".format(Names.GROUP_INDEX, group_index))
+                print("example groupingdf row for the loo group: {}".format(group_rows.iloc[0]))
+                if OUTPUT == Names.VERBOSE_OUTPUT:
+                    print("Defined by: {}".format(group_info))
                 train_split = all_data.copy()
                 test_split = all_data.copy()
                 train_split = train_split.loc[train_split[Names.GROUP_INDEX] != group_index]
@@ -380,7 +384,8 @@ class TestHarness:
         start = time.time()
         # this adds a line of dashes to signify the beginning of the model run
         print('-' * 100)
-        print('Starting run at time {}'.format(datetime.now().strftime("%H:%M:%S")))
+
+        print('Starting run of model {} at time {}'.format(datetime.now().strftime("%H:%M:%S"), function_that_returns_TH_model.__name__))
         run_object.train_and_test_model()
         run_object.calculate_metrics()
 
@@ -457,9 +462,10 @@ class TestHarness:
         if run_object.loo_dict is not False:
             row_of_results[Names.LOO_ID] = run_object.loo_dict["loo_id"]
             row_of_results[Names.TEST_GROUP] = str(run_object.loo_dict["group_info"])
-        print()
-        print(row_of_results)
-        print()
+        if OUTPUT == Names.VERBOSE_OUTPUT:
+            print()
+            print(row_of_results)
+            print()
 
         # update leaderboard with new entry (row_of_results) and sort it based on run type
         leaderboard = leaderboard.append(row_of_results, ignore_index=True, sort=False)  # sort=False prevents columns from reordering
