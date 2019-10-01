@@ -461,7 +461,7 @@ def run_cranks(versioned_data_path, cranks="latest"):
         training_data, state_set, crank_number = get_crank_files(training_data_path, state_set_path)
         commit_id = get_git_hash_at_versioned_data_master_tip(AUTH_TOKEN)
 
-        # crank_runner(training_data, state_set, crank_number, commit_id)
+        crank_runner(training_data, state_set, crank_number, commit_id)
         loo_crank_runner(training_data, state_set, crank_number, commit_id)
 
 

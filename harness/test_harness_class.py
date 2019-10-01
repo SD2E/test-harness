@@ -392,7 +392,9 @@ class TestHarness:
                               pred_df, copy(sparse_cols_to_use), loo_dict, interpret_complex_model)
 
         # tracking the run_ids of all the runs that were kicked off in this TestHarness instance
-        loo_id = run_object.loo_dict.get('loo_id')
+        loo_id = None
+        if loo_dict:
+            loo_id = run_object.loo_dict.get('loo_id')
         if loo_id is not None:
             self.dict_of_instance_run_loo_ids[loo_id].append(run_object.run_id)
         else:
