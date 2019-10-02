@@ -513,6 +513,8 @@ if __name__ == '__main__':
     The test harness app runs in perovskite_test_harness.py
     """
     VERSIONED_DATASETS = os.path.join(Path(__file__).resolve().parents[2], 'versioned-datasets')
+    ESCALATION_SERVER_DEV = ESCALATION_SERVER_DEV_LOCAL
+
     print("Path to the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATASETS))
     print()
     assert os.path.isdir(VERSIONED_DATASETS), "The path you gave for VERSIONED_DATA does not exist."
