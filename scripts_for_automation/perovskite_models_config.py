@@ -6,6 +6,9 @@ from harness.th_model_instances.perovskite_models.xgboost import gradient_booste
 from harness.th_model_instances.perovskite_models.rxn_only import rxn_only_svm
 from harness.th_model_instances.perovskite_models.rxn_ratio_only import rxn_intuition_svm
 
+# NOTE: the test harness app assumes we are only doing classification in how it sets up the problem and parses the leaderboard
+# Adding any regression models here will involve some work
+
 MODELS_TO_RUN = \
     [
         baseline_uniform,
@@ -13,6 +16,6 @@ MODELS_TO_RUN = \
         rxn_only_svm,
         rxn_intuition_svm,
         random_forest_classification,
-        gradient_boosted_tree,        
+        gradient_boosted_tree,
         support_vector_radial_basis_classifier,
     ]
