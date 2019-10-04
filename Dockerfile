@@ -13,20 +13,10 @@ RUN apt-get --assume-yes install xcb
 
 RUN conda update scikit-learn
 
-# todo: combine lines to make fewer layers
 RUN pip install --upgrade pip
 RUN pip install scikit-learn --upgrade
-RUN pip install rfpimp
-RUN pip install tabulate
-RUN pip install lxml
-RUN pip install bs4
-RUN pip install hashids
-RUN pip install BlackBoxAuditing
-RUN pip install eli5
-RUN pip install hyperas
-RUN pip install pyyaml
-RUN pip install shap
-RUN pip install gitpython
+RUN pip install rfpimp tabulate lxml bs4 hashids BlackBoxAuditing eli5 shap hyperas
+RUN pip install pyyaml gitpython requests html5lib
 # we need a more modern version of pandas than is included in the base image
 RUN pip uninstall --yes pandas
 RUN pip install pandas==0.24.1
