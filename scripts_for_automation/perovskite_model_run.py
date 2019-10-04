@@ -41,13 +41,6 @@ ESCALATION_SERVER_DEV = 'http://escalation-dev.sd2e.org'
 ESCALATION_SERVER = "http://escalation.sd2e.org"
 
 
-def get_git_commit_id():
-    # using Path(__file__).parents[1] to get the path of the directory immediately above this file's directory
-    repo = git.Repo(Path(__file__).parents[1])
-    git_sha = repo.head.object.hexsha
-    return git_sha[0:7]
-
-
 # compute md5 hash using small chunks
 def md5(fname):
     hash_md5 = hashlib.md5()
@@ -163,9 +156,9 @@ def submit_csv_to_escalation_server(submissions_file_path, crank_number, commit_
                                    # todo: add check to make sure that notes doesn't contain any commas
                                    'notes': "Model Author: {}; "
                                             "Model Description: {}; "
-                                            "Test Harness Hash: {}; "
+                                            "Test Harness App Version: {}; "
                                             "Submitted at {}".format(model_author, model_description,
-                                                                     get_git_commit_id(),
+                                                                     VERSION,
                                                                      datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"))},
                              files={'csvfile': open(submissions_file_path, 'rb')},
                              # timeout=60
