@@ -9,19 +9,20 @@ pd.set_option('display.width', 10000)
 pd.set_option('display.max_colwidth', -1)
 
 
-def get_result_csvs(loo_or_run_ids, th_output_location=None, file_type = 'testing'):
+def get_result_csvs(loo_or_run_ids, th_output_location=None, file_type = Names.TESTING_DATA):
     '''
     Get result csv paths
     :param loo_or_run_ids: if a loo run, put the id of the loo run as key and the run_ids of that loo as a value
     if just a custom_run, make it a list
-    :param th_output_location: Location of results
-    :param file_type: must be either 'testing' or 'predicted'
-    :return: get the prediction/testing csv paths
+    :param th_output_location: Location of you gave to the test harness
+    :param file_type: must be in Names.OUTPUT_FILE keys
+    :return: get the output csv paths
     '''
     print(file_type)
-    assert file_type in ['testing','predicted'], 'file_type must be in ["testing", "predicted"]'
+
+    assert file_type in Names.OUTPUT_FILES, 'file_type must be in {0}'.format(Names.OUTPUT_FILES.keys())
     for item in loo_or_run_ids:
-        prediction_csv_paths = []
+        output_csv_paths = []
         if th_output_location is None:
             runs_path = os.path.join('test_harness_results', 'runs')
             previous_runs = []
@@ -29,13 +30,13 @@ def get_result_csvs(loo_or_run_ids, th_output_location=None, file_type = 'testin
                 if this_run_folder.rsplit("_")[1] in loo_or_run_ids:
                     print('{} was kicked off by this TestHarness instance. Its results will be submitted.'.format(this_run_folder))
                     if type(loo_or_run_ids)==list:
-                        prediction_csv_path = os.path.join(runs_path, this_run_folder, file_type+'_data.csv')
+                        output_csv_path = os.path.join(runs_path, this_run_folder, Names.OUTPUT_FILES[file_type])
                     else:
                         for run_id in loo_or_run_ids[item]:
-                            prediction_csv_path = os.path.join(runs_path, this_run_folder,'loo_'+item, 'run_'+run_id,file_type + '_data.csv')
-                    if os.path.exists(prediction_csv_path):
-                        print("file found: ", prediction_csv_path)
-                        prediction_csv_paths.append(prediction_csv_path)
+                            output_csv_path = os.path.join(runs_path, this_run_folder,'loo_'+item, 'run_'+run_id,Names.OUTPUT_FILES[file_type])
+                    if os.path.exists(output_csv_path):
+                        print("file found: ", output_csv_path)
+                        output_csv_paths.append(output_csv_path)
                 else:
                     previous_runs.append(this_run_folder)
             print('\nThe results for the following runs will not be submitted, '
@@ -43,14 +44,14 @@ def get_result_csvs(loo_or_run_ids, th_output_location=None, file_type = 'testin
                   '\n{}\n'.format(previous_runs))
         else:
             if type(loo_or_run_ids) == list:
-                prediction_csv_path = os.path.join(th_output_location,'test_harness_results','runs','run_'+run_id,file_type+'_data.csv')
-                prediction_csv_paths.append(prediction_csv_path)
+                output_csv_path = os.path.join(th_output_location,'test_harness_results','runs','run_'+run_id,Names.OUTPUT_FILES[file_type])
+                output_csv_paths.append(output_csv_path)
             else:
                 for run_id in loo_or_run_ids[item]:
-                    prediction_csv_path = os.path.join(th_output_location,'test_harness_results','runs','loo_'+item, 'run_' + run_id,
-                                                       file_type + '_data.csv')
-                    prediction_csv_paths.append(prediction_csv_path)
-    return prediction_csv_paths
+                    output_csv_path = os.path.join(th_output_location,'test_harness_results','runs','loo_'+item, 'run_' + run_id,
+                                                       Names.OUTPUT_FILES[file_type])
+                    output_csv_paths.append(output_csv_path)
+    return output_csv_paths
 
 def query_leaderboard(th_output_location=None,LOO=False,query={}):
     '''

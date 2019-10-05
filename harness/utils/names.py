@@ -54,3 +54,15 @@ class Names:
     RFPIMP_PERMUTATION = "rfpimp_permutation"
     SHAP_AUDIT = "shap_audit"
     BBA_AUDIT = "bba_audit"
+
+    # output file types
+    TRAINING_DATA = 'training_data'
+    TESTING_DATA = 'testing_data'
+    PREDICTED_DATA = 'predicted_data'
+    FEATURE_IMPORTANCES = 'feature_importances'
+    OUTPUT_FILES = {TRAINING_DATA:TRAINING_DATA+'.csv',
+                    TESTING_DATA:TESTING_DATA+'.csv',
+                    PREDICTED_DATA:PREDICTED_DATA+'.csv',
+                    FEATURE_IMPORTANCES:FEATURE_IMPORTANCES+'.csv'}
+
+
