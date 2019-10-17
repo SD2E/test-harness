@@ -99,7 +99,10 @@ if __name__ == '__main__':
     # this uses current master commit on the origin
     leaderboard_rows_dict = build_loo_leaderboard_results(dict_of_run_ids, crank_number)
     for run_id in leaderboard_rows_dict.keys():
-        submit_leaderboard_to_escalation_server(leaderboard_rows_dict, run_id, commit_id)
+        submit_leaderboard_to_escalation_server(leaderboard_rows_dict,
+                                                run_id,
+                                                commit_id,
+                                                escalation_server=env_specific_escalation_server)
 
 
 
