@@ -19,6 +19,7 @@ from harness.test_harness_class import TestHarness
 from version import VERSION
 from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
 from harness.utils.object_type_modifiers_and_checkers import make_list_if_not_list
+from harness.utils.names import Names
 
 import warnings
 import git
@@ -35,15 +36,9 @@ NUM_PREDICTIONS = 100
 # todo: oops, committed this.  Need to revoke, but leaving for testing
 AUTH_TOKEN = '4a8751b83c9744234367b52c58f4c46a53f5d0e0225da3f9c32ed238b7f82a69'
 
+ESCALATION_SERVER_DEV_LOCAL = 'http://127.0.0.1:5000'
 ESCALATION_SERVER_DEV = 'http://escalation-dev.sd2e.org'
 ESCALATION_SERVER = "http://escalation.sd2e.org"
-
-
-def get_git_commit_id():
-    # using Path(__file__).parents[1] to get the path of the directory immediately above this file's directory
-    repo = git.Repo(Path(__file__).parents[1])
-    git_sha = repo.head.object.hexsha
-    return git_sha[0:7]
 
 
 # compute md5 hash using small chunks
@@ -64,23 +59,24 @@ def format_truncated_float(float_number, n=5):
 
 def get_prediction_csvs(run_ids, predictions_csv_path=None):
     prediction_csv_paths = []
-    if predictions_csv_path is None:
-        runs_path = os.path.join('test_harness_results', 'runs')
-        previous_runs = []
-        for this_run_folder in os.listdir(runs_path):
-            if this_run_folder.rsplit("_")[1] in run_ids:
-                print('{} was kicked off by this TestHarness instance. Its results will be submitted.'.format(this_run_folder))
-                prediction_csv_path = os.path.join(runs_path, this_run_folder, 'predicted_data.csv')
-                if os.path.exists(prediction_csv_path):
-                    print("file found: ", prediction_csv_path)
-                    prediction_csv_paths.append(prediction_csv_path)
-            else:
-                previous_runs.append(this_run_folder)
-        print('\nThe results for the following runs will not be submitted, '
-              'because they are older runs that were not initiated by this TestHarness instance:'
-              '\n{}\n'.format(previous_runs))
-    else:
+    if predictions_csv_path is not None:
         prediction_csv_paths.append(predictions_csv_path)
+
+    runs_path = os.path.join('test_harness_results', 'runs')
+    previous_runs = []
+    for this_run_folder in os.listdir(runs_path):
+        if this_run_folder.rsplit("_")[1] in run_ids:
+            print('{} was kicked off by this TestHarness instance. Its results will be submitted.'.format(
+                this_run_folder))
+            prediction_csv_path = os.path.join(runs_path, this_run_folder, 'predicted_data.csv')
+            if os.path.exists(prediction_csv_path):
+                print("file found: ", prediction_csv_path)
+                prediction_csv_paths.append(prediction_csv_path)
+        else:
+            previous_runs.append(this_run_folder)
+    print('\nThe results for the following runs will not be submitted, '
+          'because they are older runs that were not initiated by this TestHarness instance:'
+          '\n{}\n'.format(previous_runs))
     return prediction_csv_paths
 
 
@@ -119,7 +115,7 @@ def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, crank_
         df = df.filter(columns.keys())
         df = df.rename(columns=columns)
         df['dataset'] = crank_number
-        selected_predictions = select_which_predictions_to_submit(predictions_df=df, all_or_subset='subset')
+        selected_predictions = select_which_predictions_to_submit(predictions_df=df, all_or_subset='all')
 
         # fix formatting
         # truncate floats to 5 digits
@@ -139,7 +135,8 @@ def build_submissions_csvs_from_test_harness_output(prediction_csv_paths, crank_
     return submissions_paths
 
 
-def submit_csv_to_escalation_server(submissions_file_path, crank_number, commit_id, escalation_server=ESCALATION_SERVER_DEV):
+def submit_csv_to_escalation_server(submissions_file_path, crank_number, commit_id,
+                                    escalation_server=ESCALATION_SERVER_DEV):
     test_harness_results_path = submissions_file_path.rsplit("/runs/")[0]
     this_run_results_path = submissions_file_path.rsplit("/", 1)[0]
 
@@ -159,8 +156,9 @@ def submit_csv_to_escalation_server(submissions_file_path, crank_number, commit_
                                    # todo: add check to make sure that notes doesn't contain any commas
                                    'notes': "Model Author: {}; "
                                             "Model Description: {}; "
-                                            "Test Harness Hash: {}; "
-                                            "Submitted at {}".format(model_author, model_description, get_git_commit_id(),
+                                            "Test Harness App Version: {}; "
+                                            "Submitted at {}".format(model_author, model_description,
+                                                                     VERSION,
                                                                      datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"))},
                              files={'csvfile': open(submissions_file_path, 'rb')},
                              # timeout=60
@@ -175,17 +173,35 @@ def build_leaderboard_rows_dict(submissions_file_path, crank_number):
     :return: As dict keyed by run_id, valued with the row from the leaderboard
     """
     test_harness_results_path = submissions_file_path.rsplit("/runs/")[0]
-    leaderboard = pd.read_html(os.path.join(test_harness_results_path, 'custom_classification_leaderboard.html'))[0]
+    leaderboard = pd.read_html(os.path.join(test_harness_results_path, Names.CUSTOM_CLASS_LBOARD + '.html'))[0]
     leaderboard["Dataset"] = crank_number
     leaderboard.columns = [x.lower().replace(' ', '_') for x in leaderboard.columns]
-    leaderboard_rows_dict = leaderboard.set_index('run_id', drop=False).to_dict(orient='index')
+    leaderboard_rows_dict = leaderboard.set_index(Names.RUN_ID.lower().replace(' ', '_'), drop=False).to_dict(
+        orient='index')
     return leaderboard_rows_dict
 
 
-def submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id, escalation_server=ESCALATION_SERVER_DEV):
-    # gets run id from path of form 'test_harness_results/runs/run_aXRQm2Ox6RY7m/0021_train_323354d_testharness.csv'
-    # This is kind of brittle.
-    run_id = submission_path.split('/')[2].split('_')[1]
+def build_loo_leaderboard_results(dict_of_run_ids, crank_number):
+    """
+    :param submissions_file_path: a file path string
+    :return: As dict keyed by run_id, valued with the row from the leaderboard
+    """
+    leaderboard = pd.read_html(os.path.join('test_harness_results', Names.LOO_FULL_CLASS_LBOARD + '.html'))[0]
+    leaderboard["Dataset"] = crank_number
+    # the heldout data is loaded as a stringed dict.  Find the inchikey that was held out from this string
+    leaderboard[Names.TEST_GROUP] = leaderboard[Names.TEST_GROUP].apply(
+        lambda x: re.search("\'_rxn_organic-inchikey\'\: \[\'(\S+)\'", x).groups(0)[0])
+    # todo- error check for missing inchikeys
+    leaderboard_sub_df = leaderboard[leaderboard[Names.LOO_ID].isin(dict_of_run_ids.keys())]
+    leaderboard_sub_df.columns = [x.lower().replace(' ', '_').replace('-', '_') for x in leaderboard_sub_df.columns]
+    leaderboard_rows_dict = leaderboard_sub_df.set_index(
+        Names.RUN_ID.lower().replace(' ', '_'), drop=False).to_dict(
+        orient='index')
+    return leaderboard_rows_dict
+
+
+def submit_leaderboard_to_escalation_server(leaderboard_rows_dict, run_id, commit_id,
+                                            escalation_server=ESCALATION_SERVER_DEV):
     row = leaderboard_rows_dict[run_id]
     row['githash'] = commit_id
     response = requests.post(escalation_server + "/leaderboard",
@@ -205,7 +221,16 @@ def get_crank_number_from_filename(training_data_filename):
     return crank_number
 
 
-def run_configured_test_harness_models_on_perovskites(train_set, state_set):
+def create_leave_one_amine_out_grouping_dataframe(train_set):
+    amine_inchi_keys = train_set['_rxn_organic-inchikey'].unique()
+    amine_id_mapping = dict(zip(amine_inchi_keys, list(np.arange(0, len(amine_inchi_keys)))))
+    group_df = train_set[
+        ["dataset", "name", "_rxn_organic-inchikey", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"]]
+    group_df[Names.GROUP_INDEX] = group_df['_rxn_organic-inchikey'].apply(lambda x: amine_id_mapping[x])
+    return group_df
+
+
+def configure_input_df_for_test_harness(train_set):
     all_cols = train_set.columns.tolist()
     # don't worry about _calc_ columns for now, but it's in the code so they get included once the data is available
     feature_cols = [c for c in all_cols if ("_rxn_" in c) or ("_feat_" in c) or ("_calc_" in c)]
@@ -230,9 +255,11 @@ def run_configured_test_harness_models_on_perovskites(train_set, state_set):
     col_order = list(train_set.columns.values)
     col_order.insert(3, col_order.pop(col_order.index('binarized_crystalscore')))
     train_set = train_set[col_order]
+    return train_set, feature_cols
 
-    col_to_predict = 'binarized_crystalscore'
 
+def run_configured_test_harness_models_on_80_20_splits(train_set, state_set, col_to_predict='binarized_crystalscore'):
+    train_set, feature_cols = configure_input_df_for_test_harness(train_set)
     train, test = train_test_split(train_set, test_size=0.2, random_state=5, stratify=train_set[['dataset']])
 
     # Test Harness use starts here:
@@ -246,11 +273,39 @@ def run_configured_test_harness_models_on_perovskites(train_set, state_set):
                       testing_data=test, data_and_split_description="test run on perovskite data",
                       cols_to_predict=col_to_predict,
                       feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
-                      feature_extraction=False, predict_untested_data=state_set,
+                      feature_extraction=False,
+                      predict_untested_data=state_set,
                       index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"]
                       )
 
     return th.list_of_this_instance_run_ids
+
+
+def run_configured_test_harness_models_on_loo_amine_data(train_set, state_set, col_to_predict='binarized_crystalscore'):
+    train_set, feature_cols = configure_input_df_for_test_harness(train_set)
+    # Test Harness use starts here:
+    current_path = os.getcwd()
+    print("initializing TestHarness object with output_location equal to {}\n".format(current_path))
+    th = TestHarness(output_location=current_path, output_csvs_of_leaderboards=True)
+    grouping_df = create_leave_one_amine_out_grouping_dataframe(train_set)
+    for model in MODELS_TO_RUN:
+        print("Running leave one amine out for model {}".format(model.__name__))
+        # todo- do this in a separate function with seperate leaderboard/output?
+        # not predeicting untested data here, this is evaluating on past data?
+        # todo: a list of column names can be passed in for grouping as well, instead of a custom grouping Dataframe
+        th.run_leave_one_out(function_that_returns_TH_model=model, dict_of_function_parameters={},
+                             data=train_set,
+                             data_description="Leave-one-out-amine run",
+                             grouping=grouping_df,
+                             grouping_description="amine",
+                             cols_to_predict=col_to_predict,
+                             feature_cols_to_use=feature_cols,
+                             index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"],
+                             normalize=True,
+                             feature_cols_to_normalize=feature_cols,
+                             feature_extraction=False)
+
+    return th.dict_of_instance_run_loo_ids
 
 
 def get_manifest_from_gitlab_api(commit_id, auth_token):
@@ -259,7 +314,8 @@ def get_manifest_from_gitlab_api(commit_id, auth_token):
     # 202 is the project id, derived from a previous call to the projects endpoint
     # we have hard code the file we are fetching (manifest/perovskite.manifest.yml), and vary the commit id to fetch
     gitlab_manifest_url = \
-        'https://gitlab.sd2e.org/api/v4/projects/202/repository/files/manifest%2fperovskite.manifest.yml/raw?ref={}'.format(commit_id)
+        'https://gitlab.sd2e.org/api/v4/projects/202/repository/files/manifest%2fperovskite.manifest.yml/raw?ref={}'.format(
+            commit_id)
     response = requests.get(gitlab_manifest_url, headers=headers)
     if response.status_code == 404:
         raise KeyError("File perovskite manifest not found from Gitlab API for commit {}".format(commit_id))
@@ -334,22 +390,26 @@ def get_crank_specific_training_and_stateset_filenames(manifest, specific_crank_
     """
     files_of_interest = get_all_training_and_stateset_filenames(manifest)
 
-    perovskitedata_files = [x for x in files_of_interest['perovskitedata'] if get_crank_number_from_filename(x) == specific_crank_number]
-    stateset_files = [x for x in files_of_interest['stateset'] if get_crank_number_from_filename(x) == specific_crank_number]
+    perovskitedata_files = [x for x in files_of_interest['perovskitedata'] if
+                            get_crank_number_from_filename(x) == specific_crank_number]
+    stateset_files = [x for x in files_of_interest['stateset'] if
+                      get_crank_number_from_filename(x) == specific_crank_number]
 
     if len(perovskitedata_files) == 0:
         raise ValueError("The specific_crank_number ({}) that was passed in does not exist in any listed "
                          "perovskitedata file in the manifest. Make sure your value for specific_crank_number "
                          "is of the format '0019' and exists in the manifest.".format(specific_crank_number))
     elif len(perovskitedata_files) > 1:
-        raise ValueError("It appears that the manifest has multiple perovskitedata files with the same specific_crank_number."
-                         "There is likely an issue with the manifest.")
+        raise ValueError(
+            "It appears that the manifest has multiple perovskitedata files with the same specific_crank_number."
+            "There is likely an issue with the manifest.")
     else:
         perovskitedata_file = perovskitedata_files[0]
 
     if len(stateset_files) == 0:
-        raise ValueError("The specific_crank_number that was passed in does not exist in any listed stateset file in the manifest. "
-                         "Make sure your value for specific_crank_number is of the format '0019' and exists in the manifest.")
+        raise ValueError(
+            "The specific_crank_number that was passed in does not exist in any listed stateset file in the manifest. "
+            "Make sure your value for specific_crank_number is of the format '0019' and exists in the manifest.")
     elif len(stateset_files) > 1:
         raise ValueError("It appears that the manifest has multiple stateset files with the same specific_crank_number."
                          "There is likely an issue with the manifest.")
@@ -391,10 +451,14 @@ def run_cranks(versioned_data_path, cranks="latest"):
         assert get_crank_number_from_filename(training_data_filename) == get_crank_number_from_filename(state_set_filename)
         training_data_path = os.path.join(perovskite_data_folder_path, training_data_filename)
         state_set_path = os.path.join(perovskite_data_folder_path, state_set_filename)
-        crank_runner(training_data_path, state_set_path)
+        training_data, state_set, crank_number = get_crank_files(training_data_path, state_set_path)
+        commit_id = get_git_hash_at_versioned_data_master_tip(AUTH_TOKEN)
+
+        crank_runner(training_data, state_set, crank_number, commit_id)
+        loo_crank_runner(training_data, state_set, crank_number, commit_id)
 
 
-def crank_runner(training_data_path, state_set_path):
+def get_crank_files(training_data_path, state_set_path):
     crank_number = get_crank_number_from_filename(training_data_path)
     print("\nRunning Crank {}".format(crank_number))
     print("Crank {} Training Data Path: {}".format(crank_number, training_data_path))
@@ -403,11 +467,12 @@ def crank_runner(training_data_path, state_set_path):
 
     training_data = pd.read_csv(training_data_path, comment='#', low_memory=False)
     state_set = pd.read_csv(state_set_path, comment='#', low_memory=False)
+    return training_data, state_set, crank_number
 
-    list_of_run_ids = run_configured_test_harness_models_on_perovskites(training_data, state_set)
 
+def crank_runner(training_data, state_set, crank_number, commit_id):
+    list_of_run_ids = run_configured_test_harness_models_on_80_20_splits(training_data, state_set)
     # this uses current master commit on the origin
-    commit_id = get_git_hash_at_versioned_data_master_tip(AUTH_TOKEN)
     prediction_csv_paths = get_prediction_csvs(run_ids=list_of_run_ids)
     submissions_paths = build_submissions_csvs_from_test_harness_output(prediction_csv_paths,
                                                                         crank_number,
@@ -421,7 +486,18 @@ def crank_runner(training_data_path, state_set_path):
         print("Submitting {} to escalation server".format(submission_path))
         response, response_text = submit_csv_to_escalation_server(submission_path, crank_number, commit_id)
         print("Submission result: {}".format(response_text))
-        submit_leaderboard_to_escalation_server(leaderboard_rows_dict, submission_path, commit_id)
+        # gets run id from path of form 'test_harness_results/runs/run_aXRQm2Ox6RY7m/0021_train_323354d_testharness.csv'
+        # This is kind of brittle.'
+        run_id = submission_path.split('/')[2].split('_')[1]
+        submit_leaderboard_to_escalation_server(leaderboard_rows_dict, run_id, commit_id)
+
+
+def loo_crank_runner(training_data, state_set, crank_number, commit_id):
+    dict_of_run_ids = run_configured_test_harness_models_on_loo_amine_data(training_data, state_set)
+    # this uses current master commit on the origin
+    leaderboard_rows_dict = build_loo_leaderboard_results(dict_of_run_ids, crank_number)
+    for run_id in leaderboard_rows_dict.keys():
+        submit_leaderboard_to_escalation_server(leaderboard_rows_dict, run_id, commit_id)
 
 
 if __name__ == '__main__':
@@ -430,6 +506,8 @@ if __name__ == '__main__':
     The test harness app runs in perovskite_test_harness.py
     """
     VERSIONED_DATASETS = os.path.join(Path(__file__).resolve().parents[2], 'versioned-datasets')
+    ESCALATION_SERVER_DEV = ESCALATION_SERVER_DEV_LOCAL
+
     print("Path to the locally cloned versioned-datasets repo was set to: {}".format(VERSIONED_DATASETS))
     print()
     assert os.path.isdir(VERSIONED_DATASETS), "The path you gave for VERSIONED_DATA does not exist."

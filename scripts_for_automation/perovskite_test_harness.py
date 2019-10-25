@@ -13,7 +13,7 @@ import os
 import pandas as pd
 
 from scripts_for_automation.perovskite_model_run import (get_crank_number_from_filename,
-                                                         run_configured_test_harness_models_on_perovskites,
+                                                         run_configured_test_harness_models_on_80_20_splits,
                                                          submit_csv_to_escalation_server,
                                                          build_submissions_csvs_from_test_harness_output,
                                                          get_prediction_csvs, AUTH_TOKEN, get_manifest_from_gitlab_api,
@@ -21,7 +21,9 @@ from scripts_for_automation.perovskite_model_run import (get_crank_number_from_f
                                                          get_latest_training_and_stateset_filenames,
                                                          build_leaderboard_rows_dict,
                                                          submit_leaderboard_to_escalation_server,
-                                                         ESCALATION_SERVER, ESCALATION_SERVER_DEV)
+                                                         ESCALATION_SERVER, ESCALATION_SERVER_DEV,
+                                                         run_configured_test_harness_models_on_loo_amine_data,
+                                                         build_loo_leaderboard_results)
 
 
 if __name__ == '__main__':
@@ -63,8 +65,10 @@ if __name__ == '__main__':
                               low_memory=False)
     print(stateset_df.head())
 
+    ### 80-20 SPLIT RUNS ###
+
     # todo: this should return ranked predictions
-    list_of_run_ids = run_configured_test_harness_models_on_perovskites(train_set=training_data_df, state_set=stateset_df)
+    list_of_run_ids = run_configured_test_harness_models_on_80_20_splits(train_set=training_data_df, state_set=stateset_df)
 
     crank_number = get_crank_number_from_filename(training_data_filename)
     prediction_csv_paths = get_prediction_csvs(list_of_run_ids)
@@ -84,10 +88,21 @@ if __name__ == '__main__':
                                                                       commit_id,
                                                                       escalation_server=env_specific_escalation_server)
             print("Submission result: {}".format(response_text))
+            run_id = submission_path.split('/')[2].split('_')[1]
             submit_leaderboard_to_escalation_server(leaderboard_rows_dict,
-                                                    submission_path,
+                                                    run_id,
                                                     commit_id,
                                                     escalation_server=env_specific_escalation_server)
+
+    #### LOO RUNS ###
+    dict_of_run_ids = run_configured_test_harness_models_on_loo_amine_data(training_data_df, stateset_df)
+    # this uses current master commit on the origin
+    leaderboard_rows_dict = build_loo_leaderboard_results(dict_of_run_ids, crank_number)
+    for run_id in leaderboard_rows_dict.keys():
+        submit_leaderboard_to_escalation_server(leaderboard_rows_dict,
+                                                run_id,
+                                                commit_id,
+                                                escalation_server=env_specific_escalation_server)
 
 
 

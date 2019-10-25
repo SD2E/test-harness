@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime
 import os
 import json
@@ -27,6 +28,7 @@ PWD = os.getcwd()
 HERE = os.path.realpath(__file__)
 PARENT = os.path.dirname(HERE)
 DEFAULT_DATA_PATH = os.path.join(PWD, 'versioned_data/asap/')
+OUTPUT = Names.NORMAL_OUTPUT
 
 '''
 NOTE: If a class variable is going to be modified (e.g. feature_cols_to_use is modified by sparse col functionality),
@@ -97,6 +99,7 @@ class TestHarness:
                                                  Names.BBA_AUDIT,
                                                  Names.SHAP_AUDIT]
         self.list_of_this_instance_run_ids = []
+        self.dict_of_instance_run_loo_ids = defaultdict(list)
         print()
 
     # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
@@ -203,11 +206,14 @@ class TestHarness:
                 raise ValueError("function_that_returns_TH_model must return a ClassificationModel or a RegressionModel.")
 
             # iterate through the groups (determined by "group_index" column) in the all_data Dataframe:
-            for group_index in list(set(all_data[Names.GROUP_INDEX])):
+            for i, group_index in enumerate(list(set(all_data[Names.GROUP_INDEX]))):
                 data_and_split_description = "{}".format(data_description)
                 group_rows = grouping_df.loc[grouping_df[Names.GROUP_INDEX] == group_index]
                 group_info = group_rows.to_dict(orient='list')
-                print("Creating test split based on {} {}, defined by: {}".format(Names.GROUP_INDEX, group_index, group_info))
+                print("Creating test split based on {} {}".format(Names.GROUP_INDEX, group_index))
+                print("example groupingdf row for the loo group: {}".format(group_rows.iloc[0]))
+                if OUTPUT == Names.VERBOSE_OUTPUT:
+                    print("Defined by: {}".format(group_info))
                 train_split = all_data.copy()
                 test_split = all_data.copy()
                 train_split = train_split.loc[train_split[Names.GROUP_INDEX] != group_index]
@@ -219,9 +225,22 @@ class TestHarness:
                 loo_dict = {"loo_id": loo_id, "task_type": task_type, "data_description": data_description,
                             "grouping_description": grouping_description, "group_info": group_info}
 
-                self._execute_run(function_that_returns_TH_model, dict_of_function_parameters, train_split, test_split,
-                                  data_and_split_description, col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
-                                  feature_extraction, False, sparse_cols_to_use, loo_dict)
+                self._execute_run(function_that_returns_TH_model=function_that_returns_TH_model,
+                                  dict_of_function_parameters=dict_of_function_parameters,
+                                  training_data=train_split,
+                                  testing_data=test_split,
+                                  data_and_split_description=data_and_split_description,
+                                  col_to_predict=col,
+                                  feature_cols_to_use=feature_cols_to_use,
+                                  index_cols=index_cols,
+                                  normalize=normalize,
+                                  feature_cols_to_normalize=feature_cols_to_normalize,
+                                  feature_extraction=feature_extraction,
+                                  predict_untested_data=False,
+                                  sparse_cols_to_use=sparse_cols_to_use,
+                                  loo_dict=loo_dict,
+                                  interpret_complex_model=False)
+
 
             # summary results are calculated here, and summary leaderboards are updated
             summary_values = {Names.LOO_ID: loo_id, Names.DATE: date_loo_ran, Names.TIME: time_loo_ran,
@@ -373,14 +392,20 @@ class TestHarness:
                               pred_df, copy(sparse_cols_to_use), loo_dict, interpret_complex_model)
 
         # tracking the run_ids of all the runs that were kicked off in this TestHarness instance
-        # TODO: take into account complications when dealing with LOO runs. e.g. do we want to keep a list of LOO Ids as well (if yes, how).
-        self.list_of_this_instance_run_ids.append(run_object.run_id)
+        loo_id = None
+        if loo_dict:
+            loo_id = run_object.loo_dict.get('loo_id')
+        if loo_id is not None:
+            self.dict_of_instance_run_loo_ids[loo_id].append(run_object.run_id)
+        else:
+            self.list_of_this_instance_run_ids.append(run_object.run_id)
 
         # call run object methods
         start = time.time()
         # this adds a line of dashes to signify the beginning of the model run
         print('-' * 100)
-        print('Starting run at time {}'.format(datetime.now().strftime("%H:%M:%S")))
+
+        print('Starting run of model {} at time {}'.format(datetime.now().strftime("%H:%M:%S"), function_that_returns_TH_model.__name__))
         run_object.train_and_test_model()
         run_object.calculate_metrics()
 
@@ -457,9 +482,10 @@ class TestHarness:
         if run_object.loo_dict is not False:
             row_of_results[Names.LOO_ID] = run_object.loo_dict["loo_id"]
             row_of_results[Names.TEST_GROUP] = str(run_object.loo_dict["group_info"])
-        print()
-        print(row_of_results)
-        print()
+        if OUTPUT == Names.VERBOSE_OUTPUT:
+            print()
+            print(row_of_results)
+            print()
 
         # update leaderboard with new entry (row_of_results) and sort it based on run type
         leaderboard = leaderboard.append(row_of_results, ignore_index=True, sort=False)  # sort=False prevents columns from reordering

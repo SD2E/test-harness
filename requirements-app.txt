@@ -9,3 +9,4 @@ lxml
 pyyaml
 requests
 gitpython
+html5lib
