@@ -9,8 +9,7 @@ from harness.th_model_instances.perovskite_models.rxn_ratio_only import rxn_intu
 # NOTE: the test harness app assumes we are only doing classification in how it sets up the problem and parses the leaderboard
 # Adding any regression models here will involve some work
 
-MODELS_TO_RUN = \
-    [
+MODELS_TO_RUN = [
         baseline_uniform,
         weighted_logistic_classifier,
         rxn_only_svm,

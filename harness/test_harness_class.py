@@ -126,6 +126,44 @@ class TestHarness:
                               feature_extraction, predict_untested_data, sparse_cols_to_use, loo_dict=False,
                               interpret_complex_model=interpret_complex_model)
 
+    def make_grouping_df(self, grouping, data):
+        # if grouping is a string, turn it into a list containing that one string
+        if isinstance(grouping, string_types):
+            grouping = make_list_if_not_list(grouping)
+        # if grouping is a list of strings:
+        # 1. check if those strings exist as column names in the data Dataframe
+        # 2. then create a grouping Dataframe based on the unique values in those columns
+        data_cols = data.columns.values.tolist()
+        if is_list_of_strings(grouping):
+            # this for loop check is similar to the one for the grouping_df, but I like to have this one too for a clearer error message
+            for col_name in grouping:
+                assert (col_name in data_cols), \
+                    "{} does not exist as a column in the data Dataframe. " \
+                    "If you pass in a list of strings to the 'grouping' argument, " \
+                    "then all of those strings must exist as columns in the data Dataframe.".format(col_name)
+            grouping_df = data.groupby(by=grouping, as_index=False).first()[grouping]
+            grouping_df[Names.GROUP_INDEX] = grouping_df.index
+        elif isinstance(grouping, pd.DataFrame):
+            grouping_df = grouping.copy()
+        else:
+            raise ValueError("grouping must be a list of column names in the data Dataframe, "
+                             "or a Pandas Dataframe that defines custom groupings (see the Test Harness README for an example).")
+            # TODO: add example grouping_df to README
+            # grouping_df checks:
+            # 1. "group_index" must exist as a column in grouping_df
+            # 2. every other column in grouping_df must also be a column in the data Dataframe
+        grouping_df_cols = grouping_df.columns.values.tolist()
+        assert (Names.GROUP_INDEX in grouping_df_cols), "grouping_df must have a '{}' column.".format(
+            Names.GROUP_INDEX)
+        cols_to_group_on = [col for col in grouping_df_cols if col != Names.GROUP_INDEX]
+        for col_name in cols_to_group_on:
+            assert (col_name in data_cols,
+                    "{} is a column in grouping_df but does not exist as a column in the data Dataframe. " \
+                    "Every column in grouping_df (other than '{}') must also be a column in the data Dataframe.".format(
+                        col_name,
+                        Names.GROUP_INDEX))
+        return grouping_df, data_cols, cols_to_group_on
+
     # TODO: add sparse cols to leave one out
     def run_leave_one_out(self, function_that_returns_TH_model, dict_of_function_parameters, data, data_description, grouping,
                           grouping_description, cols_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
@@ -150,40 +188,7 @@ class TestHarness:
         assert isinstance(grouping_description, string_types), "grouping_description must be a string"
         assert is_list_of_strings(cols_to_predict), "cols_to_predict must be a string or a list of strings"
 
-        # if grouping is a string, turn it into a list containing that one string
-        if isinstance(grouping, string_types):
-            grouping = make_list_if_not_list(grouping)
-        # if grouping is a list of strings:
-        # 1. check if those strings exist as column names in the data Dataframe
-        # 2. then create a grouping Dataframe based on the unique values in those columns
-        data_cols = data.columns.values.tolist()
-        if is_list_of_strings(grouping):
-            # this for loop check is similar to the one for the grouping_df, but I like to have this one too for a clearer error message
-            for col_name in grouping:
-                assert (col_name in data_cols), \
-                    "{} does not exist as a column in the data Dataframe. " \
-                    "If you pass in a list of strings to the 'grouping' argument, " \
-                    "then all of those strings must exist as columns in the data Dataframe.".format(col_name)
-            grouping_df = data.groupby(by=grouping, as_index=False).first()[grouping]
-            grouping_df[Names.GROUP_INDEX] = grouping_df.index
-        elif isinstance(grouping, pd.DataFrame):
-            grouping_df = grouping.copy()
-        else:
-            raise ValueError("grouping must be a list of column names in the data Dataframe, "
-                             "or a Pandas Dataframe that defines custom groupings (see the Test Harness README for an example).")
-            # TODO: add example grouping_df to README
-
-        # grouping_df checks:
-        # 1. "group_index" must exist as a column in grouping_df
-        # 2. every other column in grouping_df must also be a column in the data Dataframe
-        grouping_df_cols = grouping_df.columns.values.tolist()
-        assert (Names.GROUP_INDEX in grouping_df_cols), "grouping_df must have a '{}' column.".format(Names.GROUP_INDEX)
-        cols_to_group_on = [col for col in grouping_df_cols if col != Names.GROUP_INDEX]
-        for col_name in cols_to_group_on:
-            assert (col_name in data_cols), \
-                "{} is a column in grouping_df but does not exist as a column in the data Dataframe. " \
-                "Every column in grouping_df (other than '{}') must also be a column in the data Dataframe.".format(col_name,
-                                                                                                                    Names.GROUP_INDEX)
+        grouping_df, data_cols, cols_to_group_on = self.make_grouping_df(grouping, data)
 
         # Append a "group_index" column to the all_data Dataframe. This column contains the group number of each row.
         # The values of the "group_index" column are determined from the grouping Dataframe (grouping_df)
@@ -241,7 +246,6 @@ class TestHarness:
                                   loo_dict=loo_dict,
                                   interpret_complex_model=False)
 
-
             # summary results are calculated here, and summary leaderboards are updated
             summary_values = {Names.LOO_ID: loo_id, Names.DATE: date_loo_ran, Names.TIME: time_loo_ran,
                               Names.MODEL_NAME: dummy_th_model.model_name, Names.MODEL_AUTHOR: dummy_th_model.model_author,
@@ -250,89 +254,85 @@ class TestHarness:
                               Names.GROUPING_DESCRIPTION: grouping_description, Names.NORMALIZED: normalize,
                               Names.NUM_FEATURES_NORMALIZED: num_features_normalized, Names.FEATURE_EXTRACTION: feature_extraction}
             if task_type == "Classification":
-                detailed_leaderboard_name = Names.LOO_FULL_CLASS_LBOARD
-                detailed_leaderboard_path = os.path.join(self.results_folder_path, "{}.html".format(detailed_leaderboard_name))
-                detailed_leaderboard = pd.read_html(detailed_leaderboard_path)[0]
-                this_loo_results = detailed_leaderboard.loc[detailed_leaderboard[Names.LOO_ID] == loo_id]
-
-                summary_metrics = {}
-                for metric, mean_metric in zip(self.classification_metrics, self.mean_classification_metrics):
-                    summary_metrics[mean_metric] = mean(this_loo_results[metric])
-                    # TODO: add standard deviation with pstdev
-                summary_values.update(summary_metrics)
-
-                # Update summary leaderboard
-                summary_leaderboard_name = Names.LOO_SUMM_CLASS_LBOARD
-                summary_leaderboard_cols = self.loo_summarized_classification_leaderboard_cols
-                # first check if leaderboard exists and create empty leaderboard if it doesn't
-                html_path = os.path.join(self.results_folder_path, "{}.html".format(summary_leaderboard_name))
-                try:
-                    summary_leaderboard = pd.read_html(html_path)[0]
-                except (IOError, ValueError):
-                    summary_leaderboard = pd.DataFrame(columns=summary_leaderboard_cols)
-
-                # update leaderboard with new entry (row_of_results) and sort it based on run type
-                summary_leaderboard = summary_leaderboard.append(summary_values, ignore_index=True, sort=False)
-                sort_metric = "Mean " + self.metric_to_sort_classification_results_by
-                summary_leaderboard.sort_values(sort_metric, inplace=True, ascending=False)
-                summary_leaderboard.reset_index(inplace=True, drop=True)
-
-                # overwrite old leaderboard with updated leaderboard
-                summary_leaderboard.to_html(html_path, index=False, classes=summary_leaderboard_name)
-                if self.output_csvs_of_leaderboards is True:
-                    csv_path = os.path.join(self.results_folder_path, "{}.csv".format(summary_leaderboard_name))
-                    summary_leaderboard.to_csv(csv_path, index=False)
-
+                self.output_classification_leaderboard_to_csv(summary_values, loo_id)
             elif task_type == "Regression":
-                detailed_leaderboard_name = Names.LOO_FULL_REG_LBOARD
-                detailed_leaderboard_path = os.path.join(self.results_folder_path, "{}.html".format(detailed_leaderboard_name))
-                detailed_leaderboard = pd.read_html(detailed_leaderboard_path)[0]
-                this_loo_results = detailed_leaderboard.loc[detailed_leaderboard[Names.LOO_ID] == loo_id]
-
-                summary_metrics = {}
-                for metric, mean_metric in zip(self.regression_metrics, self.mean_regression_metrics):
-                    summary_metrics[mean_metric] = mean(this_loo_results[metric])
-                    # TODO: add standard deviation with pstdev
-                summary_values.update(summary_metrics)
-
-                # Update summary leaderboard
-                summary_leaderboard_name = Names.LOO_SUMM_REG_LBOARD
-                summary_leaderboard_cols = self.loo_summarized_regression_leaderboard_cols
-                # first check if leaderboard exists and create empty leaderboard if it doesn't
-                html_path = os.path.join(self.results_folder_path, "{}.html".format(summary_leaderboard_name))
-                try:
-                    summary_leaderboard = pd.read_html(html_path)[0]
-                except (IOError, ValueError):
-                    summary_leaderboard = pd.DataFrame(columns=summary_leaderboard_cols)
-
-                # update leaderboard with new entry (row_of_results) and sort it based on run type
-                summary_leaderboard = summary_leaderboard.append(summary_values, ignore_index=True, sort=False)
-                sort_metric = "Mean " + self.metric_to_sort_regression_results_by
-                print("Leave-One-Out Summary Leaderboard:\n")
-                print(summary_leaderboard)
-                summary_leaderboard.sort_values(sort_metric, inplace=True, ascending=False)
-                summary_leaderboard.reset_index(inplace=True, drop=True)
-
-                # overwrite old leaderboard with updated leaderboard
-                summary_leaderboard.to_html(html_path, index=False, classes=summary_leaderboard_name)
-                if self.output_csvs_of_leaderboards is True:
-                    csv_path = os.path.join(self.results_folder_path, "{}.csv".format(summary_leaderboard_name))
-                    summary_leaderboard.to_csv(csv_path, index=False)
-
+                self.output_regression_leaderboard_to_csv(summary_values, loo_id)
             else:
                 raise TypeError("task_type must be 'Classification' or 'Regression'.")
 
-    # TODO: replace loo_dict with type_dict --> first entry is run type --> this will allow for more types in the future
-    def _execute_run(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                     data_and_split_description, col_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
-                     feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
-                     loo_dict=False, interpret_complex_model=False):
-        """
-        1. Instantiates the TestHarnessModel object
-        2. Creates a _BaseRun object and calls their train_and_test_model and calculate_metrics methods
-        3. Calls _output_results(Run Object)
-        """
+    def output_classification_leaderboard_to_csv(self, summary_values, loo_id):
+        detailed_leaderboard_name = Names.LOO_FULL_CLASS_LBOARD
+        detailed_leaderboard_path = os.path.join(self.results_folder_path, "{}.html".format(detailed_leaderboard_name))
+        detailed_leaderboard = pd.read_html(detailed_leaderboard_path)[0]
+        this_loo_results = detailed_leaderboard.loc[detailed_leaderboard[Names.LOO_ID] == loo_id]
 
+        summary_metrics = {}
+        for metric, mean_metric in zip(self.classification_metrics, self.mean_classification_metrics):
+            summary_metrics[mean_metric] = mean(this_loo_results[metric])
+            # TODO: add standard deviation with pstdev
+        summary_values.update(summary_metrics)
+
+        # Update summary leaderboard
+        summary_leaderboard_name = Names.LOO_SUMM_CLASS_LBOARD
+        summary_leaderboard_cols = self.loo_summarized_classification_leaderboard_cols
+        # first check if leaderboard exists and create empty leaderboard if it doesn't
+        html_path = os.path.join(self.results_folder_path, "{}.html".format(summary_leaderboard_name))
+        try:
+            summary_leaderboard = pd.read_html(html_path)[0]
+        except (IOError, ValueError):
+            summary_leaderboard = pd.DataFrame(columns=summary_leaderboard_cols)
+
+        # update leaderboard with new entry (row_of_results) and sort it based on run type
+        summary_leaderboard = summary_leaderboard.append(summary_values, ignore_index=True, sort=False)
+        sort_metric = "Mean " + self.metric_to_sort_classification_results_by
+        summary_leaderboard.sort_values(sort_metric, inplace=True, ascending=False)
+        summary_leaderboard.reset_index(inplace=True, drop=True)
+
+        # overwrite old leaderboard with updated leaderboard
+        summary_leaderboard.to_html(html_path, index=False, classes=summary_leaderboard_name)
+        if self.output_csvs_of_leaderboards is True:
+            csv_path = os.path.join(self.results_folder_path, "{}.csv".format(summary_leaderboard_name))
+            summary_leaderboard.to_csv(csv_path, index=False)
+
+    def output_regression_leaderboard_to_csv(self, summary_values, loo_id):
+        detailed_leaderboard_name = Names.LOO_FULL_REG_LBOARD
+        detailed_leaderboard_path = os.path.join(self.results_folder_path, "{}.html".format(detailed_leaderboard_name))
+        detailed_leaderboard = pd.read_html(detailed_leaderboard_path)[0]
+        this_loo_results = detailed_leaderboard.loc[detailed_leaderboard[Names.LOO_ID] == loo_id]
+
+        summary_metrics = {}
+        for metric, mean_metric in zip(self.regression_metrics, self.mean_regression_metrics):
+            summary_metrics[mean_metric] = mean(this_loo_results[metric])
+            # TODO: add standard deviation with pstdev
+        summary_values.update(summary_metrics)
+
+        # Update summary leaderboard
+        summary_leaderboard_name = Names.LOO_SUMM_REG_LBOARD
+        summary_leaderboard_cols = self.loo_summarized_regression_leaderboard_cols
+        # first check if leaderboard exists and create empty leaderboard if it doesn't
+        html_path = os.path.join(self.results_folder_path, "{}.html".format(summary_leaderboard_name))
+        try:
+            summary_leaderboard = pd.read_html(html_path)[0]
+        except (IOError, ValueError):
+            summary_leaderboard = pd.DataFrame(columns=summary_leaderboard_cols)
+
+        # update leaderboard with new entry (row_of_results) and sort it based on run type
+        summary_leaderboard = summary_leaderboard.append(summary_values, ignore_index=True, sort=False)
+        sort_metric = "Mean " + self.metric_to_sort_regression_results_by
+        print("Leave-One-Out Summary Leaderboard:\n")
+        print(summary_leaderboard)
+        summary_leaderboard.sort_values(sort_metric, inplace=True, ascending=False)
+        summary_leaderboard.reset_index(inplace=True, drop=True)
+
+        # overwrite old leaderboard with updated leaderboard
+        summary_leaderboard.to_html(html_path, index=False, classes=summary_leaderboard_name)
+        if self.output_csvs_of_leaderboards is True:
+            csv_path = os.path.join(self.results_folder_path, "{}.csv".format(summary_leaderboard_name))
+            summary_leaderboard.to_csv(csv_path, index=False)
+
+    def validate_execute_run_inputs(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
+                                    data_and_split_description, col_to_predict, feature_cols_to_use, index_cols, normalize,
+                                    feature_cols_to_normalize, feature_extraction, predict_untested_data, sparse_cols_to_use):
         # Single strings are included in the assert error messages because the make_list_if_not_list function was used
         assert callable(function_that_returns_TH_model), \
             "function_that_returns_TH_model must be a function that returns a TestHarnessModel object"
@@ -358,7 +358,6 @@ class TestHarness:
             index_cols = list(index_cols)
         if isinstance(index_cols, list):
             assert is_list_of_strings(index_cols), "if index_cols is a tuple or list, it must contain only strings."
-
         # check if index_cols exist in training, testing, and prediction dataframes:
         assert (set(index_cols).issubset(training_data.columns.tolist())), \
             "the strings in index_cols are not valid columns in training_data."
@@ -368,7 +367,20 @@ class TestHarness:
             assert (set(index_cols).issubset(predict_untested_data.columns.tolist())), \
                 "the strings in index_cols are not valid columns in predict_untested_data."
 
+    # TODO: replace loo_dict with type_dict --> first entry is run type --> this will allow for more types in the future
+    def _execute_run(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
+                     data_and_split_description, col_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
+                     feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
+                     loo_dict=False, interpret_complex_model=False):
+        """
+        1. Instantiates the TestHarnessModel object
+        2. Creates a _BaseRun object and calls their train_and_test_model and calculate_metrics methods
+        3. Calls _output_results(Run Object)
+        """
         # TODO: add checks to ensure index_cols represent unique values in training, testing, and prediction dataframes
+        self.validate_execute_run_inputs(function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
+                                         data_and_split_description, col_to_predict, feature_cols_to_use, index_cols, normalize,
+                                         feature_cols_to_normalize, feature_extraction, predict_untested_data, sparse_cols_to_use)
 
         train_df, test_df = training_data.copy(), testing_data.copy()
         if isinstance(predict_untested_data, pd.DataFrame):
@@ -428,7 +440,6 @@ class TestHarness:
         # ----------------------------------
 
         # output results of run object by updating the appropriate leaderboard(s) and writing files to disk
-
         # Pandas append docs: "Columns not in this frame are added as new columns" --> don't worry about adding new leaderboard cols
 
         self._update_leaderboard(run_object)
@@ -604,7 +615,7 @@ class TestHarness:
             img_string = run_object.model_interpretation_img.getvalue()
             with open(os.path.join(img_string_path, 'model_interpretation_string.txt'), 'w') as f:
                 f.write(img_string)
-                f.close
+                f.close()
 
             image_path = os.path.join(output_path, 'Complex_Model_Interpretation')
             if not os.path.exists(image_path):
