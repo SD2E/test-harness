@@ -122,7 +122,7 @@ function container_exec() {
     then
         log "We're running under Singularity"
         # [TODO] Detect and deal if an .img has been passed it (rare)
-        singularity exec docker://${CONTAINER_IMAGE} ${COMMAND} ${PARAMS}
+        singularity exec --cleanenv docker://${CONTAINER_IMAGE} ${COMMAND} ${PARAMS}
     else
         die "_CONTAINER_ENGINE needs to be 'docker' or 'singularity' [$_CONTAINER_ENGINE]"
     fi

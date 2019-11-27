@@ -20,5 +20,5 @@ GIT_HASH=${git_hash}
 ESCALATION_ENV=${env}
 
 echo "Hello, in runner template script"
-COMMAND="python /scripts_for_automation/perovskite_test_harness.py"
+COMMAND="python -m scripts_for_automation.perovskite_test_harness"
 container_exec ${CONTAINER_IMAGE} ${COMMAND} --commit ${GIT_HASH} --env ${ESCALATION_ENV}
