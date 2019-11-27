@@ -9,9 +9,15 @@
 
 Using the appropriate version number, run 
 
+`docker build -f Dockerfile -t test-harness-app:3.3.1 ./`
+#`docker push nleiby/test-harness-app:3.3.1`
+
+
 - `docker build -f Dockerfile --force-rm -t nleiby-test-harness:3.3.1 ./`
 - Or, if your local env is clean, `docker build -f Dockerfile -t nleiby-test-harness:3.3.1 ./`
+#- Push the updated image to dockerhub
 - `apps-deploy test-harness-app-3.3.1`
+
 
 # Updating dependencies
 
