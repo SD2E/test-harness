@@ -8,33 +8,33 @@ pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)
 pd.set_option('display.max_colwidth', -1)
 
-def get_leaderboard(th_output_location=None,LOO = True,CLASS=True):
+
+def get_leaderboard(th_output_location=None, loo=True, classification=True):
     '''
-    Get the leaderboard
+    Get the leaderboard as a df
     :param th_output_location: test harness output locato
-    :param LOO: True/False -- is this a LOO Run
-    :param CLASS: True/False -- is this a Classification or Regression task
+    :param loo: True/False -- is this a LOO Run
+    :param classification: True/False -- is this a Classification or Regression task
     :return: the leaderboard in the form of a dataframe
     '''
     if th_output_location is None:
         th_output_location = os.getcwd()
     th_output_location = os.path.join(th_output_location,'test_harness_results')
 
-    if LOO:
-        if CLASS:
+    if loo:
+        if classification:
             leaderboard = pd.read_html(os.path.join(th_output_location,Names.LOO_FULL_CLASS_LBOARD+'.html'))[0]
         else:
             leaderboard = pd.read_html(os.path.join(th_output_location,Names.LOO_FULL_REG_LBOARD+'.html'))[0]
     else:
-        if CLASS:
+        if classification:
             leaderboard = pd.read_html(os.path.join(th_output_location,Names.CUSTOM_CLASS_LBOARD+'.html'))[0]
         else:
             leaderboard = pd.read_html(os.path.join(th_output_location,Names.CUSTOM_REG_LBOARD+'.html'))[0]
     return leaderboard
 
 
-
-def get_result_csvs(loo_or_run_ids, th_output_location=None, file_type = Names.TESTING_DATA):
+def get_result_csvs(loo_or_run_ids, th_output_location=None, file_type=Names.TESTING_DATA):
     '''
     Get result csv paths
     :param loo_or_run_ids: if a loo run, put the id of the loo run as key and the run_ids of that loo as a value
@@ -74,23 +74,26 @@ def get_result_csvs(loo_or_run_ids, th_output_location=None, file_type = Names.T
                     output_csv_paths.append(output_csv_path)
     return output_csv_paths
 
-def query_leaderboard(th_output_location=None,LOO=False,CLASS=False,query={}):
+
+def query_leaderboard(query, th_output_location, loo=False, classification=False):
     '''
     Method that reads in all output prediction csvs from the leaderboard
+    :param query: dictionary where keys are a column of leaderboard and values. Note that this is an AND across the conditions!
+
     :param th_output_location: path to test harness output
-    :param LOO = do you want to parse leave one out boards
-    :param query_string: dictionary where keys are a column of leaderboard and values. Note that this is an AND across the conditions!
+    :param loo: True/False -- is this a LOO Run
+    :param classification: True/False -- is this a Classification or Regression task
     :return: df_new: subset of leaderboard that matches query
     '''
     assert type(query) == dict, "query must of be of type dict. Column name must a column column in leaderboard."
-    leaderboard_df = get_leaderboard(th_output_location,LOO,CLASS)
+    leaderboard_df = get_leaderboard(th_output_location, loo, classification)
     for col in leaderboard_df.columns:
         if leaderboard_df[col].dtype == object:
-            leaderboard_df[col]=leaderboard_df[col].str.replace("'","").str.replace("[","").str.replace("]","")
-    if len(query)>0:
+            leaderboard_df[col] = leaderboard_df[col].str.replace("'", "").str.replace("[", "").str.replace("]", "")
+    if len(query) > 0:
         temp_df = leaderboard_df.copy()
         for col in query:
-            temp_df=temp_df[temp_df[col].str.contains(query[col])]
+            temp_df = temp_df[temp_df[col].str.contains(query[col])]
         return temp_df
     else:
         return leaderboard_df
@@ -106,7 +109,7 @@ if __name__ == '__main__':
 
     #Example of use of query
     query = {Names.MODEL_NAME:'random_forest',Names.TEST_GROUP:"timepoint: 5"}
-    sub_df = query_leaderboard(th_location,True,query)
+    sub_df = query_leaderboard(query, th_location, classification=True)
     print(sub_df.head(3))
 
     ##Custom Run Test
