@@ -51,7 +51,7 @@ def get_result_csvs(loo_or_run_ids, th_output_location=None, file_type = Names.T
             previous_runs = []
             for this_run_folder in os.listdir(runs_path):
                 if this_run_folder.rsplit("_")[1] in loo_or_run_ids:
-                    print('{} was kicked off by this TestHarness instance. Its results will be submitted.'.format(this_run_folder))
+                    print('{} was kicked off by this TestHarness instance. Its results will be collected.'.format(this_run_folder))
                     if type(loo_or_run_ids)==list:
                         output_csv_path = os.path.join(runs_path, this_run_folder, Names.OUTPUT_FILES[file_type])
                     else:
