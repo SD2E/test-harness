@@ -8,6 +8,31 @@ pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)
 pd.set_option('display.max_colwidth', -1)
 
+def get_leaderboard(th_output_location=None,LOO = True,CLASS=True):
+    '''
+    Get the leaderboard
+    :param th_output_location: test harness output locato
+    :param LOO: True/False -- is this a LOO Run
+    :param CLASS: True/False -- is this a Classification or Regression task
+    :return: the leaderboard in the form of a dataframe
+    '''
+    if th_output_location is None:
+        th_output_location = os.getcwd()
+    th_output_location = os.path.join(th_output_location,'test_harness_results')
+
+    if LOO:
+        if CLASS:
+            leaderboard = pd.read_html(os.path.join(th_output_location,Names.LOO_FULL_CLASS_LBOARD+'.html'))[0]
+        else:
+            leaderboard = pd.read_html(os.path.join(th_output_location,Names.LOO_FULL_REG_LBOARD+'.html'))[0]
+    else:
+        if CLASS:
+            leaderboard = pd.read_html(os.path.join(th_output_location,Names.CUSTOM_CLASS_LBOARD+'.html'))[0]
+        else:
+            leaderboard = pd.read_html(os.path.join(th_output_location,Names.CUSTOM_REG_LBOARD+'.html'))[0]
+    return leaderboard
+
+
 
 def get_result_csvs(loo_or_run_ids, th_output_location=None, file_type = Names.TESTING_DATA):
     '''
@@ -18,8 +43,6 @@ def get_result_csvs(loo_or_run_ids, th_output_location=None, file_type = Names.T
     :param file_type: must be in Names.OUTPUT_FILE keys
     :return: get the output csv paths
     '''
-    print(file_type)
-
     assert file_type in Names.OUTPUT_FILES, 'file_type must be in {0}'.format(Names.OUTPUT_FILES.keys())
     for item in loo_or_run_ids:
         output_csv_paths = []
@@ -53,7 +76,7 @@ def get_result_csvs(loo_or_run_ids, th_output_location=None, file_type = Names.T
                     output_csv_paths.append(output_csv_path)
     return output_csv_paths
 
-def query_leaderboard(th_output_location=None,LOO=False,query={}):
+def query_leaderboard(th_output_location=None,LOO=False,CLASS=False,query={}):
     '''
     Method that reads in all output prediction csvs from the leaderboard
     :param th_output_location: path to test harness output
@@ -62,15 +85,7 @@ def query_leaderboard(th_output_location=None,LOO=False,query={}):
     :return: df_new: subset of leaderboard that matches query
     '''
     assert type(query) == dict, "query must of be of type dict. Column name must a column column in leaderboard."
-    if th_output_location is None:
-        leaderboard_path = os.path('test_harness_results')
-    else:
-        leaderboard_path = os.path.join(th_output_location,'test_harness_results')
-
-    if LOO:
-        leaderboard_df = pd.read_html(os.path.join(leaderboard_path,'loo_detailed_classification_leaderboard.html'))[0]
-    else:
-        leaderboard_df = pd.read_html(os.path.join(leaderboard_path,'custom_classification_leaderboard.html'))[0]
+    leaderboard_df = get_leaderboard(th_output_location,LOO,CLASS)
     for col in leaderboard_df.columns:
         if leaderboard_df[col].dtype == object:
             leaderboard_df[col]=leaderboard_df[col].str.replace("'","").str.replace("[","").str.replace("]","")
