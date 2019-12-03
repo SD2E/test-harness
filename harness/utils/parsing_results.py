@@ -62,9 +62,7 @@ def get_result_csvs(loo_or_run_ids, th_output_location=None, file_type = Names.T
                         output_csv_paths.append(output_csv_path)
                 else:
                     previous_runs.append(this_run_folder)
-            print('\nThe results for the following runs will not be submitted, '
-                  'because they are older runs that were not initiated by this TestHarness instance:'
-                  '\n{}\n'.format(previous_runs))
+
         else:
             if type(loo_or_run_ids) == list:
                 output_csv_path = os.path.join(th_output_location,'test_harness_results','runs','run_'+run_id,Names.OUTPUT_FILES[file_type])
