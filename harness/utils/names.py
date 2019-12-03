@@ -56,9 +56,11 @@ class Names:
     BBA_AUDIT = "bba_audit"
 
 
+
     # settings
     NORMAL_OUTPUT = "normal"
     VERBOSE_OUTPUT = "verbose"
+
 
     # output file types
     TRAINING_DATA = 'training_data'
@@ -69,4 +71,5 @@ class Names:
                     TESTING_DATA:TESTING_DATA+'.csv',
                     PREDICTED_DATA:PREDICTED_DATA+'.csv',
                     FEATURE_IMPORTANCES:FEATURE_IMPORTANCES+'.csv'}
+
 
