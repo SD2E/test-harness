@@ -172,19 +172,24 @@ class TestHarness:
         cols_to_group_on = [
             col for col in grouping_df_cols if col != Names.GROUP_INDEX]
         for col_name in cols_to_group_on:
-            assert (col_name in data_cols,
-                    "{} is a column in grouping_df but does not exist as a column in the data Dataframe. "
-                    "Every column in grouping_df (other than '{}') must also be a column in the data Dataframe.".format(
-                        col_name,
-                        Names.GROUP_INDEX))
+            assert col_name in data_cols, \
+                "{} is a column in grouping_df but does not exist as a column in the data Dataframe. "\
+                "Every column in grouping_df (other than '{}') must also be a column in the data Dataframe.".format(
+                    col_name,
+                    Names.GROUP_INDEX)
         return grouping_df, data_cols, cols_to_group_on
 
     # TODO: add sparse cols to leave one out
-    def run_leave_one_out(self, function_that_returns_TH_model, dict_of_function_parameters, data, data_description, grouping,
-                          grouping_description, cols_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
-                          feature_cols_to_normalize=None, feature_extraction=False, sparse_cols_to_use=None):
+    def run_leave_one_out(self, function_that_returns_TH_model,
+                          dict_of_function_parameters, data, data_description,
+                          grouping, grouping_description, cols_to_predict,
+                          feature_cols_to_use, index_cols=("dataset", "name"),
+                          normalize=False, feature_cols_to_normalize=None,
+                          feature_extraction=False, sparse_cols_to_use=None,
+                          meta_model=False):
         """
-        Splits the data into appropriate train/test splits according to the grouping dataframe, and then runs a separate instantiation of
+        Splits the data into appropriate train/test splits according to the 
+        grouping dataframe, and then runs a separate instantiation of
         the passed-in model on each split.
         """
         date_loo_ran = datetime.now().strftime("%Y-%m-%d")
@@ -211,8 +216,10 @@ class TestHarness:
         grouping_df, data_cols, cols_to_group_on = self.make_grouping_df(
             grouping, data)
 
-        # Append a "group_index" column to the all_data Dataframe. This column contains the group number of each row.
-        # The values of the "group_index" column are determined from the grouping Dataframe (grouping_df)
+        # Append a "group_index" column to the all_data Dataframe.
+        # This column contains the group number of each row.
+        # The values of the "group_index" column are determined from the
+        # grouping Dataframe (grouping_df)
         all_data = data.copy()
         all_data = pd.merge(left=all_data, right=grouping_df,
                             how="left", on=cols_to_group_on)
@@ -275,7 +282,8 @@ class TestHarness:
                                   predict_untested_data=False,
                                   sparse_cols_to_use=sparse_cols_to_use,
                                   loo_dict=loo_dict,
-                                  interpret_complex_model=False)
+                                  interpret_complex_model=False,
+                                  meta_model=meta_model)
 
             # summary results are calculated here, and summary leaderboards are updated
             summary_values = {Names.LOO_ID: loo_id, Names.DATE: date_loo_ran, Names.TIME: time_loo_ran,
@@ -426,7 +434,7 @@ class TestHarness:
     def _execute_run(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                      data_and_split_description, col_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
                      feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
-                     loo_dict=False, interpret_complex_model=False):
+                     loo_dict=False, interpret_complex_model=False, meta_model=False):
         """
         1. Instantiates the TestHarnessModel object
         2. Creates a _BaseRun object and calls their train_and_test_model and calculate_metrics methods
@@ -455,10 +463,11 @@ class TestHarness:
             **dict_of_function_parameters)
 
         # This is the one and only time _BaseRun is invoked
+        print(test_df.columns)
         run_object = _BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
                               copy(feature_cols_to_use), copy(index_cols), normalize, copy(
                                   feature_cols_to_normalize), feature_extraction,
-                              pred_df, copy(sparse_cols_to_use), loo_dict, interpret_complex_model)
+                              pred_df, copy(sparse_cols_to_use), loo_dict, interpret_complex_model, meta_model)
 
         # tracking the run_ids of all the runs that were kicked off in this TestHarness instance
         loo_id = None

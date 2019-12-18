@@ -5,27 +5,30 @@ from harness.th_model_instances.baseline_models.classification_baselines import 
 from harness.th_model_instances.perovskite_models.xgboost import gradient_boosted_tree
 from harness.th_model_instances.perovskite_models.rxn_only import rxn_only_svm
 from harness.th_model_instances.perovskite_models.rxn_ratio_only import rxn_intuition_svm
+from harness.th_model_instances.perovskite_models.maml import maml
 
 # NOTE: the test harness app assumes we are only doing classification in how it sets up the problem and parses the leaderboard
 # Adding any regression models here will involve some work
 
+setattr(maml, 'meta_model', True)
+
 MODELS_TO_RUN = [
-    baseline_uniform,
-    weighted_logistic_classifier,
-    rxn_only_svm,
-    rxn_intuition_svm,
-    random_forest_classification,
-    gradient_boosted_tree,
-    support_vector_radial_basis_classifier,
+    # baseline_uniform,
+    # weighted_logistic_classifier,
+    # rxn_only_svm,
+    # rxn_intuition_svm,
+    # random_forest_classification,
+    # gradient_boosted_tree,
+    # support_vector_radial_basis_classifier,
 ]
 
 LOO_MODELS_TO_RUN = [
     baseline_uniform,
     weighted_logistic_classifier,
-    rxn_only_svm,
-    rxn_intuition_svm,
-    random_forest_classification,
-    gradient_boosted_tree,
-    support_vector_radial_basis_classifier,
+    # rxn_only_svm,
+    # rxn_intuition_svm,
+    # random_forest_classification,
+    # gradient_boosted_tree,
+    # support_vector_radial_basis_classifier,
 
 ]

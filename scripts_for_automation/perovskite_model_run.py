@@ -341,6 +341,9 @@ def run_configured_test_harness_models_on_loo_amine_data(train_set, state_set,
         # not predeicting untested data here, this is evaluating on past data?
         # todo: a list of column names can be passed in for grouping as well,
         # instead of a custom grouping Dataframe
+
+        meta_model = getattr(model, "meta_model", False)
+
         th.run_leave_one_out(function_that_returns_TH_model=model,
                              dict_of_function_parameters={},
                              data=train_set,
@@ -353,7 +356,8 @@ def run_configured_test_harness_models_on_loo_amine_data(train_set, state_set,
                                          "_rxn_M_organic", "_rxn_M_acid"],
                              normalize=True,
                              feature_cols_to_normalize=feature_cols,
-                             feature_extraction=False)
+                             feature_extraction=False,
+                             meta_model=meta_model)
 
     return th.dict_of_instance_run_loo_ids
 
