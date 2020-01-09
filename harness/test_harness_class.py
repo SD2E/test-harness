@@ -625,6 +625,7 @@ class TestHarness:
 
         test_file_name = os.path.join(output_path, 'model_information.txt')
         with open(test_file_name, "w") as f:
+            f.write("%s\n" % run_object.model_name)
             f.write("Feature columns used by model: \n")
             json.dump(run_object.feature_cols_to_use, f)
             f.write("\n\n\n")

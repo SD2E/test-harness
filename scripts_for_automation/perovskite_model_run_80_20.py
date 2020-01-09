@@ -36,7 +36,7 @@ NUM_PREDICTIONS = 100
 AUTH_TOKEN = '4a8751b83c9744234367b52c58f4c46a53f5d0e0225da3f9c32ed238b7f82a69'
 
 
-def run_configured_test_harness_models_on_80_20_splits(train_set, K=5, random_state=42, col_to_predict='binarized_crystalscore'):
+def run_configured_test_harness_models_on_80_20_splits(train_set, num_k=5, random_state=42, col_to_predict='binarized_crystalscore'):
 
     # Test Harness use starts here:
     current_path = os.getcwd()
@@ -44,20 +44,22 @@ def run_configured_test_harness_models_on_80_20_splits(train_set, K=5, random_st
     th = TestHarness(output_location=current_path, output_csvs_of_leaderboards=True)
 
     train_set, feature_cols = configure_input_df_for_test_harness(train_set)
-
-    kf = KFold(n_splits=K, random_state=random_state, shuffle=True)
+    kf = KFold(n_splits=num_k, random_state=random_state, shuffle=True)
     k_ind = 0
     for k_train_index, k_test_index in kf.split(train_set):
         train = train_set.iloc[k_train_index]
         test = train_set.iloc[k_test_index]
 
         for model in MODELS_TO_RUN:
-            th.run_custom(function_that_returns_TH_model=model, dict_of_function_parameters={},
+            th.run_custom(function_that_returns_TH_model=model,
+                          dict_of_function_parameters={},
                           training_data=train,
                           testing_data=test,
                           data_and_split_description="test run on perovskite data with 80/20 k fold k=%s" % k_ind,
                           cols_to_predict=col_to_predict,
-                          feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
+                          feature_cols_to_use=feature_cols,
+                          normalize=True,
+                          feature_cols_to_normalize=feature_cols,
                           feature_extraction=False,
                           index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"]
                           )
@@ -81,16 +83,10 @@ def run_cranks(versioned_data_path, ):
         training_data_path = os.path.join(perovskite_data_folder_path, training_data_filename)
         state_set_path = os.path.join(perovskite_data_folder_path, state_set_filename)
         training_data, state_set, crank_number = get_crank_files(training_data_path, state_set_path)
-        commit_id = get_git_hash_at_versioned_data_master_tip(AUTH_TOKEN)
 
-        crank_runner(training_data, state_set, crank_number, commit_id)
-        # loo_crank_runner(training_data, state_set, crank_number, commit_id)
-
-
-def crank_runner(training_data, state_set, crank_number, commit_id):
-    list_of_run_ids = run_configured_test_harness_models_on_80_20_splits(training_data, state_set)
-    # this uses current master commit on the origin
-    prediction_csv_paths = get_prediction_csvs(run_ids=list_of_run_ids)
+        list_of_run_ids = run_configured_test_harness_models_on_80_20_splits(training_data)
+        # this uses current master commit on the origin
+        prediction_csv_paths = get_prediction_csvs(run_ids=list_of_run_ids)
 
 
 if __name__ == '__main__':
