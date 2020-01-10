@@ -27,7 +27,7 @@ class _BaseRun:
     def __init__(self, test_harness_model, training_data, testing_data, data_and_split_description,
                  col_to_predict, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
                  feature_extraction, predict_untested_data=False, sparse_cols_to_use=None, loo_dict=False,
-                 interpret_complex_model=False):
+                 interpret_complex_model=False, custom_metric=False):
         if isinstance(test_harness_model, ClassificationModel):
             self.run_type = Names.CLASSIFICATION
             self.prob_predictions_col = "{}_prob_predictions".format(col_to_predict)
@@ -74,6 +74,9 @@ class _BaseRun:
         self.date_ran = datetime.now().strftime("%Y-%m-%d")
         self.time_ran = datetime.now().strftime("%H:%M:%S")
         self.metrics_dict = {}
+
+        self.custom_metric = custom_metric or []
+
         self.normalization_scaler_object = None
 
         #model on model
@@ -264,6 +267,9 @@ class _BaseRun:
                 mean_squared_error(self.testing_data_predictions[self.col_to_predict], self.testing_data_predictions[self.predictions_col]))
             self.metrics_dict[Names.R_SQUARED] = r2_score(self.testing_data_predictions[self.col_to_predict],
                                                           self.testing_data_predictions[self.predictions_col])
+            for key in self.custom_metric:
+                self.metrics_dict[key] = self.custom_metric[key](self.testing_data_predictions[self.col_to_predict],
+                                                                 self.testing_data_predictions[self.predictions_col])
         else:
             raise TypeError("self.run_type must equal '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
 
