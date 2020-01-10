@@ -511,7 +511,10 @@ class TestHarness:
 
         # update leaderboard with new entry (row_of_results) and sort it based on run type
         leaderboard = leaderboard.append(row_of_results, ignore_index=True, sort=False)  # sort=False prevents columns from reordering
-        # If a column is removed, then make sure you put NaN in that new slot
+
+        # If the custom metric is changed or removed,
+        # then make sure you put NaN in the slot that you had before so that you don't lose that column
+
         if len(set(leaderboard.columns).symmetric_difference(row_of_results.columns)) > 0:
             cols = set(leaderboard.columns).symmetric_difference(row_of_results.columns)
             for col in cols:
