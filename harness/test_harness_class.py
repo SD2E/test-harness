@@ -106,10 +106,11 @@ class TestHarness:
     def run_custom(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                    data_and_split_description, cols_to_predict, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
                    feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
-                   interpret_complex_model=False, custom_metric = False):
+                   interpret_complex_model=False, custom_metric=False):
         """
         Instantiates and runs a model on a custom train/test split
         If you pass in a list of columns to predict, a separate run will occur for each string in the list
+        :param custom_metric: dict with string keys and values are functions that take two arguuments.  Not tested with LOO runs.
         """
         cols_to_predict = make_list_if_not_list(cols_to_predict)
         assert is_list_of_strings(cols_to_predict), "cols_to_predict must be a string or a list of strings"
@@ -121,7 +122,7 @@ class TestHarness:
         if sparse_cols_to_use:
             sparse_cols_to_use = make_list_if_not_list(sparse_cols_to_use)
         if custom_metric:
-            assert isinstance(custom_metric,dict),"custom_metric must be a dict whose key is a string and value is a function"
+            assert isinstance(custom_metric, dict), "custom_metric must be a dict whose key is a string and value is a function"
             self.regression_metrics.extend(list(custom_metric.keys()))
             self.custom_regression_leaderboard_cols.extend(list(custom_metric.keys()))
 
@@ -337,7 +338,7 @@ class TestHarness:
 
     def validate_execute_run_inputs(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                                     data_and_split_description, col_to_predict, feature_cols_to_use, index_cols, normalize,
-                                    feature_cols_to_normalize, feature_extraction, predict_untested_data, sparse_cols_to_use,custom_metric):
+                                    feature_cols_to_normalize, feature_extraction, predict_untested_data, sparse_cols_to_use, custom_metric):
         # Single strings are included in the assert error messages because the make_list_if_not_list function was used
         assert callable(function_that_returns_TH_model), \
             "function_that_returns_TH_model must be a function that returns a TestHarnessModel object"
@@ -407,12 +408,10 @@ class TestHarness:
         test_harness_model = function_that_returns_TH_model(**dict_of_function_parameters)
 
 
-
-
         # This is the one and only time _BaseRun is invoked
         run_object = _BaseRun(test_harness_model, train_df, test_df, data_and_split_description, col_to_predict,
                               copy(feature_cols_to_use), copy(index_cols), normalize, copy(feature_cols_to_normalize), feature_extraction,
-                              pred_df, copy(sparse_cols_to_use), loo_dict, interpret_complex_model,custom_metric)
+                              pred_df, copy(sparse_cols_to_use), loo_dict, interpret_complex_model, custom_metric)
 
         # tracking the run_ids of all the runs that were kicked off in this TestHarness instance
         loo_id = None
@@ -512,11 +511,11 @@ class TestHarness:
 
         # update leaderboard with new entry (row_of_results) and sort it based on run type
         leaderboard = leaderboard.append(row_of_results, ignore_index=True, sort=False)  # sort=False prevents columns from reordering
-        #If a column is removed, then make sure you put NaN in that new slot
-        if len(set(leaderboard.columns).symmetric_difference(row_of_results.columns))>0:
+        # If a column is removed, then make sure you put NaN in that new slot
+        if len(set(leaderboard.columns).symmetric_difference(row_of_results.columns)) > 0:
             cols = set(leaderboard.columns).symmetric_difference(row_of_results.columns)
             for col in cols:
-                row_of_results[col]='NaN'
+                row_of_results[col] = 'NaN'
 
         leaderboard = leaderboard.reindex(row_of_results.columns, axis=1)  # reindex will correct col order in case a new col is added
         if run_object.run_type == Names.CLASSIFICATION:

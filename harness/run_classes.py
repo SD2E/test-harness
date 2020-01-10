@@ -75,7 +75,7 @@ class _BaseRun:
         self.time_ran = datetime.now().strftime("%H:%M:%S")
         self.metrics_dict = {}
 
-        self.custom_metric = custom_metric
+        self.custom_metric = custom_metric or []
 
         self.normalization_scaler_object = None
 
@@ -267,10 +267,9 @@ class _BaseRun:
                 mean_squared_error(self.testing_data_predictions[self.col_to_predict], self.testing_data_predictions[self.predictions_col]))
             self.metrics_dict[Names.R_SQUARED] = r2_score(self.testing_data_predictions[self.col_to_predict],
                                                           self.testing_data_predictions[self.predictions_col])
-            if self.custom_metric:
-                for key in self.custom_metric:
-                    self.metrics_dict[key]=self.custom_metric[key](self.testing_data_predictions[self.col_to_predict],
-                                                          self.testing_data_predictions[self.predictions_col])
+            for key in self.custom_metric:
+                self.metrics_dict[key] = self.custom_metric[key](self.testing_data_predictions[self.col_to_predict],
+                                                                 self.testing_data_predictions[self.predictions_col])
         else:
             raise TypeError("self.run_type must equal '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
 

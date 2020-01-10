@@ -1,3 +1,7 @@
+"""
+An example script showing how to invoke the test harness functions to run a random forest regression on protein stability data
+"""
+
 import os
 import pandas as pd
 from pathlib import Path
