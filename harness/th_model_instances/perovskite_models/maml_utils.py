@@ -9,23 +9,24 @@ import pandas as pd
 from copy import deepcopy
 
 
-def preprocess_chem_data(k_shot, meta_batch_size=32, num_batches=100, path="./data/chem_raw.csv", show_baselines=False, yield_five=False):
+def preprocess_chem_data(df_complete, cols_to_use, col_to_predict, k_shot, meta_batch_size=32, num_batches=100):
     # chem data is assumed binary output
 
-    df = pd.read_csv(path, usecols=cols_to_use)
-    df = df.rename(columns={split: renamed_split})
+    #df = pd.read_csv(path, usecols=cols_to_use)
+    df = df_complete[cols_to_use]
+    #df = df.rename(columns={split: renamed_split})
 
-    df[score] = [1 if val == POSITIVE else 0 for val in df[score].values]
-    amines = df[renamed_split].unique().tolist()
+    #df[score] = [1 if val == POSITIVE else 0 for val in df[score].values]
+    amines = df_complete['_rxn_organic-inchikey'].unique().tolist()
 
     # Hold out 5 amines for testing, not going to use 1805 num because I feel like that's a lot of good
     # data for #learning
-    dont_holdout = "XFYICZOIWSBQSK-UHFFFAOYSA-N"
-    num_to_holdout = 5
-    hold_out_choices = [a for a in amines if a != dont_holdout]
-    hold_out_amines = np.random.choice(hold_out_choices, size=num_to_holdout)
+    #dont_holdout = "XFYICZOIWSBQSK-UHFFFAOYSA-N"
+    #num_to_holdout = 1
+    #hold_out_choices = [a for a in amines if a != dont_holdout]
+    #hold_out_amines = np.random.choice(hold_out_choices, size=num_to_holdout)
 
-    amines = [a for a in amines if a not in hold_out_amines]
+    #amines = [a for a in amines if a not in hold_out_amines]
 
     batches = []
     for b in range(num_batches):
@@ -33,14 +34,16 @@ def preprocess_chem_data(k_shot, meta_batch_size=32, num_batches=100, path="./da
 
         for mb in range(meta_batch_size):
             # grab task
-            X = df.loc[df.amine == np.random.choice(amines)]
+            X = df_complete.loc[df_complete['_rxn_organic-inchikey']
+                                == np.random.choice(amines)]
+            X = X[cols_to_use]
 
-            y = X['_out_crystalscore'].values
-            X = X.drop(['_out_crystalscore', 'amine'], axis=1).values
+            y = df_complete['_out_crystalscore'].values
+            X = X.values
 
-            scaler = StandardScaler()
-            scaler.fit(X)
-            X = scaler.transform(X)
+            #scaler = StandardScaler()
+            # scaler.fit(X)
+            #X = scaler.transform(X)
 
             spt = np.random.choice(X.shape[0], size=k_shot, replace=False)
             qry = np.random.choice(X.shape[0], size=k_shot, replace=False)
@@ -53,48 +56,49 @@ def preprocess_chem_data(k_shot, meta_batch_size=32, num_batches=100, path="./da
         batches.append([np.array(x_spt), np.array(y_spt),
                         np.array(x_qry), np.array(y_qry)])
 
+    return batches
+
+
+def preprocess_pred_data(X, k_shot):
     assessment_batches = []
     x_spt, y_spt, x_qry, y_qry = [], [], [], []
 
-    for a in hold_out_amines:
-        # grab task
-        X = df.loc[df.amine == a]
+    y = X['_out_crystalscore'].values
+    X = X[cols_to_use].values
+    #X = X.drop(['_out_crystalscore', 'amine'], axis=1).values
+    spt = np.random.choice(X.shape[0], size=k_shot, replace=False)
+    qry = [i for i in range(len(X)) if i not in spt]
+    if len(qry) <= 5:
+        print("Warning: minimal testing data for meta-learn assessment")
 
-        y = X['_out_crystalscore'].values
-        X = X.drop(['_out_crystalscore', 'amine'], axis=1).values
-        spt = np.random.choice(X.shape[0], size=k_shot, replace=False)
-        qry = [i for i in range(len(X)) if i not in spt]
-        if len(qry) <= 5:
-            print("Warning: minimal testing data for meta-learn assessment")
+    x_s = X[spt]
+    y_s = y[spt]
+    x_q = X[qry]
+    y_q = y[qry]
 
-        x_s = X[spt]
-        y_s = y[spt]
-        x_q = X[qry]
-        y_q = y[qry]
-
-        scaler = StandardScaler()
-        scaler.fit(x_s)
-
-        x_s = scaler.transform(x_s)
-        x_q = scaler.transform(x_q)
-
-        x_spt.append(x_s)
-        y_spt.append(y_s)
-        x_qry.append(x_q)
-        y_qry.append(y_q)
+    x_spt.append(x_s)
+    y_spt.append(y_s)
+    x_qry.append(x_q)
+    y_qry.append(y_q)
 
     assessment_batches = [np.array(x_spt), np.array(
         y_spt), np.array(x_qry), np.array(y_qry)]
     # batches should have shape [num_batches, 4, meta_batch_size, k_shot, 68/1 - (68 features, 1 class values)]
     # not perfectly numpy array like, we're using some lists here
-
-    return batches, assessment_batches
+    return assessment_batches
 
 
 class MAML:
     def __init__(self):
         super().__init__()
-        input_dim = 68
+
+    def fit(self, train_df, cols):
+        self.cols_to_use, self.col_to_predict = cols
+        training_batches = preprocess_chem_data(train_df, self.cols_to_use,
+                                                self.col_to_predict, k_shot=20,
+                                                num_batches=250)
+
+        input_dim = len(self.cols_to_use)
         config = [('linear', [400, input_dim]),
                   ('relu', [True]),
                   ('linear', [300, 400]),
@@ -104,15 +108,24 @@ class MAML:
                   ('linear', [2, 200])]
 
         device = torch.device("cpu")
-        maml = Meta(config, device, update_step_test=20, update_lr=0.2)
+        self.maml = Meta(config, device, update_step_test=20, update_lr=0.2)
 
-    def fit(self, X, y):
-        training_batches, testing_batches, baseline = \
-            preprocess_chem_data(k_shot=20, num_batches=250)
-        pass
+        for step in range(10001):
+            b_num = np.random.choice(len(training_batches))
+            batch = training_batches[b_num]
+
+            x_spt, y_spt, x_qry, y_qry = torch.from_numpy(batch[0]).float(), torch.from_numpy(
+                batch[1]).long(), torch.from_numpy(batch[2]).float(), torch.from_numpy(batch[3]).long()
+
+            _ = self.maml(x_spt, y_spt, x_qry, y_qry)
 
     def predict(self, X):
-        pass
+        testing_batches = preprocess_pred_data(X, k_shot=20)
+        x_spt, y_spt, x_qry, y_qry = testing_batches[0], testing_batches[1],
+        testing_batches[2], testing_batches[3]
+        for x_spt_one, y_spt_one, x_qry_one, y_qry_one in zip(x_spt, y_spt, x_qry, y_qry):
+            test_acc, *_ = maml.finetunning(torch.from_numpy(x_spt_one).float(), torch.from_numpy(
+                y_spt_one).long(), torch.from_numpy(x_qry_one).float(), torch.from_numpy(y_qry_one).long())
 
 
 class Learner(nn.Module):
@@ -357,6 +370,7 @@ class Meta(nn.Module):
         for i in range(task_num):
 
             # 1. run the i-th task and compute loss for k=0
+            print(x_spt.size(), y_spt.size())
             logits = self.net(x_spt[i], vars=None, bn_training=True)
             loss = F.cross_entropy(logits, y_spt[i])
             grad = torch.autograd.grad(loss, self.net.parameters())
@@ -495,13 +509,14 @@ class Meta(nn.Module):
 
                 preds = pred_q.data.numpy()
                 true_y = y_qry.data.numpy()
-                mccs.append(matthews_corrcoef(true_y, preds))
-                prcs.append(precision_score(true_y, preds))
-                recalls.append(recall_score(true_y, preds))
+                #mccs.append(matthews_corrcoef(true_y, preds))
+                #prcs.append(precision_score(true_y, preds))
+                #recalls.append(recall_score(true_y, preds))
                 #aucs.append(roc_auc_score(true_y, probs.data.numpy()[:, 1]))
-                balanced_acc.append(balanced_accuracy_score(true_y, preds))
+                #balanced_acc.append(balanced_accuracy_score(true_y, preds))
 
         del net
-        accs = np.array(corrects) / querysz
+        #accs = np.array(corrects) / querysz
 
-        return accs, mccs[-1], prcs[-1], recalls[-1], balanced_acc[-1]
+        # return accs, mccs[-1], prcs[-1], recalls[-1], balanced_acc[-1]
+        return preds

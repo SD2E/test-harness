@@ -177,8 +177,14 @@ class _BaseRun:
         # Training model
         print("Starting {} training...".format(self.run_type))
         training_start_time = time.time()
-        self.test_harness_model._fit(
-            train_df[self.feature_cols_to_use], train_df[self.col_to_predict])
+
+        if self.meta_model:
+            self.test_harness_model._fit(
+                train_df, (self.feature_cols_to_use, self.col_to_predict))
+        else:
+            self.test_harness_model._fit(
+                train_df[self.feature_cols_to_use], train_df[self.col_to_predict])
+
         print(("Training time was: {0:.2f} seconds".format(
             time.time() - training_start_time)))
 
