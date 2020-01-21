@@ -503,12 +503,12 @@ def get_crank_specific_training_and_stateset_filenames(manifest,
 
 def run_cranks(versioned_data_path, cranks="latest"):
     manifest_file = os.path.join(
-        versioned_data_path, "manifest/perovskite.manifest.yml")
+        versioned_data_path, "manifest", "perovskite.manifest.yml")
     with open(manifest_file) as f:
         manifest_dict = yaml.load(f)
 
     perovskite_data_folder_path = os.path.join(
-        versioned_data_path, "data/perovskite")
+        versioned_data_path, "data", "perovskite")
 
     if cranks == "latest":
         training_data_filename, state_set_filename =\
@@ -545,9 +545,9 @@ def run_cranks(versioned_data_path, cranks="latest"):
             training_data_filename) == get_crank_number_from_filename(
                 state_set_filename)
         training_data_path = os.path.join(
-            perovskite_data_folder_path, training_data_filename)
+            perovskite_data_folder_path, training_data_filename.split('/')[0], training_data_filename.split('/')[1])
         state_set_path = os.path.join(
-            perovskite_data_folder_path, state_set_filename)
+            perovskite_data_folder_path, state_set_filename.split('/')[0], state_set_filename.split('/')[1])
         training_data, state_set, crank_number = get_crank_files(
             training_data_path, state_set_path)
         commit_id = get_git_hash_at_versioned_data_master_tip(AUTH_TOKEN)

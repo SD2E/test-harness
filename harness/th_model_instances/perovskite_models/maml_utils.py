@@ -7,6 +7,7 @@ from torch import optim
 import numpy as np
 import pandas as pd
 from copy import deepcopy
+import pickle
 
 
 def preprocess_chem_data(df_complete, cols_to_use, col_to_predict, k_shot, meta_batch_size=32, num_batches=100):
@@ -15,8 +16,10 @@ def preprocess_chem_data(df_complete, cols_to_use, col_to_predict, k_shot, meta_
     #df = pd.read_csv(path, usecols=cols_to_use)
     df = df_complete[cols_to_use]
     #df = df.rename(columns={split: renamed_split})
-
-    #df[score] = [1 if val == POSITIVE else 0 for val in df[score].values]
+    print(df_complete[col_to_predict].unique())
+    # df_complete[col_to_predict] = [1 if val ==
+    #                               4 else 0 for val in df_complete[col_to_predict].values]
+    # print(df_complete[col_to_predict].unique())
     amines = df_complete['_rxn_organic-inchikey'].unique().tolist()
 
     # Hold out 5 amines for testing, not going to use 1805 num because I feel like that's a lot of good
@@ -38,7 +41,7 @@ def preprocess_chem_data(df_complete, cols_to_use, col_to_predict, k_shot, meta_
                                 == np.random.choice(amines)]
             X = X[cols_to_use]
 
-            y = df_complete['_out_crystalscore'].values
+            y = df_complete[col_to_predict].values
             X = X.values
 
             #scaler = StandardScaler()
@@ -59,11 +62,11 @@ def preprocess_chem_data(df_complete, cols_to_use, col_to_predict, k_shot, meta_
     return batches
 
 
-def preprocess_pred_data(X, k_shot):
+def preprocess_pred_data(X, k_shot, cols_to_use, col_to_predict):
     assessment_batches = []
     x_spt, y_spt, x_qry, y_qry = [], [], [], []
 
-    y = X['_out_crystalscore'].values
+    y = X[col_to_predict].values
     X = X[cols_to_use].values
     #X = X.drop(['_out_crystalscore', 'amine'], axis=1).values
     spt = np.random.choice(X.shape[0], size=k_shot, replace=False)
@@ -93,6 +96,7 @@ class MAML:
         super().__init__()
 
     def fit(self, train_df, cols):
+
         self.cols_to_use, self.col_to_predict = cols
         training_batches = preprocess_chem_data(train_df, self.cols_to_use,
                                                 self.col_to_predict, k_shot=20,
@@ -120,12 +124,17 @@ class MAML:
             _ = self.maml(x_spt, y_spt, x_qry, y_qry)
 
     def predict(self, X):
-        testing_batches = preprocess_pred_data(X, k_shot=20)
-        x_spt, y_spt, x_qry, y_qry = testing_batches[0], testing_batches[1],
-        testing_batches[2], testing_batches[3]
+        testing_batches = preprocess_pred_data(
+            X, k_shot=20, cols_to_use=self.cols_to_use, col_to_predict=self.col_to_predict)
+        x_spt, y_spt, x_qry, y_qry = testing_batches[0], testing_batches[
+            1], testing_batches[2], testing_batches[3]
+        i = 0
         for x_spt_one, y_spt_one, x_qry_one, y_qry_one in zip(x_spt, y_spt, x_qry, y_qry):
-            test_acc, *_ = maml.finetunning(torch.from_numpy(x_spt_one).float(), torch.from_numpy(
+            preds = self.maml.finetunning(torch.from_numpy(x_spt_one).float(), torch.from_numpy(
                 y_spt_one).long(), torch.from_numpy(x_qry_one).float(), torch.from_numpy(y_qry_one).long())
+            pickle.dump(preds, open('result_{}'.format(i), 'w'))
+            i += 1
+        return preds
 
 
 class Learner(nn.Module):
@@ -370,8 +379,10 @@ class Meta(nn.Module):
         for i in range(task_num):
 
             # 1. run the i-th task and compute loss for k=0
-            print(x_spt.size(), y_spt.size())
+            #print(x_spt.size(), y_spt.size())
             logits = self.net(x_spt[i], vars=None, bn_training=True)
+            # print(logits)
+            # print(y_spt[i].shape)
             loss = F.cross_entropy(logits, y_spt[i])
             grad = torch.autograd.grad(loss, self.net.parameters())
             fast_weights = list(
