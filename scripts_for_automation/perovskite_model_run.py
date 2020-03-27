@@ -16,6 +16,7 @@ import yaml
 from sklearn.model_selection import train_test_split
 
 from harness.test_harness_class import TestHarness
+# from scripts_for_automation.perovskite_model_run_80_20 import run_configured_test_harness_models_on_80_20_splits
 from version import VERSION
 from scripts_for_automation.perovskite_models_config import MODELS_TO_RUN
 from harness.utils.object_type_modifiers_and_checkers import make_list_if_not_list
@@ -279,6 +280,38 @@ def run_configured_test_harness_models_on_80_20_splits(train_set, state_set, col
                       )
 
     return th.list_of_this_instance_run_ids
+#
+#
+# def run_configured_test_harness_models_on_80_20_splits(train_set, num_k=5, random_state=42, col_to_predict='binarized_crystalscore'):
+#
+#     # Test Harness use starts here:
+#     current_path = os.getcwd()
+#     print("initializing TestHarness object with output_location equal to {}\n".format(current_path))
+#     th = TestHarness(output_location=current_path, output_csvs_of_leaderboards=True)
+#
+#     train_set, feature_cols = configure_input_df_for_test_harness(train_set)
+#     kf = KFold(n_splits=num_k, random_state=random_state, shuffle=True)
+#     k_ind = 0
+#     for k_train_index, k_test_index in kf.split(train_set):
+#         train = train_set.iloc[k_train_index]
+#         test = train_set.iloc[k_test_index]
+#
+#         for model in MODELS_TO_RUN:
+#             th.run_custom(function_that_returns_TH_model=model,
+#                           dict_of_function_parameters={},
+#                           training_data=train,
+#                           testing_data=test,
+#                           data_and_split_description="test run on perovskite data with 80/20 k fold k=%s" % k_ind,
+#                           cols_to_predict=col_to_predict,
+#                           feature_cols_to_use=feature_cols,
+#                           normalize=True,
+#                           feature_cols_to_normalize=feature_cols,
+#                           feature_extraction=False,
+#                           index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"]
+#                           )
+#         k_ind += 1
+#     return th.list_of_this_instance_run_ids
+
 
 
 def run_configured_test_harness_models_on_loo_amine_data(train_set, state_set, col_to_predict='binarized_crystalscore'):
@@ -513,6 +546,7 @@ if __name__ == '__main__':
     assert os.path.isdir(VERSIONED_DATASETS), "The path you gave for VERSIONED_DATA does not exist."
 
     # set cranks equal to "latest", "all", or a string of format '0021' representing a specific crank number
-    run_cranks(VERSIONED_DATASETS, cranks="latest")
+    run_cranks(VERSIONED_DATASETS, cranks="0044")
+    # run_cranks(VERSIONED_DATASETS, cranks="latest")
 
-# todo: round instead of truncate float
+
