@@ -266,14 +266,15 @@ def run_configured_test_harness_models_on_80_20_splits(train_set, state_set, col
     # Test Harness use starts here:
     current_path = os.getcwd()
     print("initializing TestHarness object with output_location equal to {}\n".format(current_path))
+    # In some cases there are columns that exist in the perovskite data and not state set, and vice versa.
+    overlapping_columns = list(set(feature_cols).intersection(set(state_set.columns)))
     th = TestHarness(output_location=current_path, output_csvs_of_leaderboards=True)
-
     for model in MODELS_TO_RUN:
         th.run_custom(function_that_returns_TH_model=model, dict_of_function_parameters={},
                       training_data=train,
                       testing_data=test, data_and_split_description="test run on perovskite data",
                       cols_to_predict=col_to_predict,
-                      feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
+                      feature_cols_to_use=overlapping_columns, normalize=True, feature_cols_to_normalize=overlapping_columns,
                       feature_extraction=False,
                       predict_untested_data=state_set,
                       index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"]
@@ -546,7 +547,7 @@ if __name__ == '__main__':
     assert os.path.isdir(VERSIONED_DATASETS), "The path you gave for VERSIONED_DATA does not exist."
 
     # set cranks equal to "latest", "all", or a string of format '0021' representing a specific crank number
-    run_cranks(VERSIONED_DATASETS, cranks="0044")
+    run_cranks(VERSIONED_DATASETS, cranks="0043")
     # run_cranks(VERSIONED_DATASETS, cranks="latest")
 
 
