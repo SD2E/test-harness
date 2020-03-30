@@ -49,6 +49,7 @@ if __name__ == '__main__':
     print(perovskite_manifest)
     perovskite_project_dir = perovskite_manifest['project name']
     # versioned_data_dir = get_versioned_data_dir()
+    # versioned_data_dir = "/Users/nick.leiby/repos/versioned-datasets/data"
     versioned_data_dir = '/work/projects/SD2E-Community/prod/data/versioned-dataframes/'
 
     # todo: shutils make copy of the file to local dir, use that
@@ -66,7 +67,6 @@ if __name__ == '__main__':
     print(stateset_df.head())
 
     ### 80-20 SPLIT RUNS ###
-
     # todo: this should return ranked predictions
     list_of_run_ids = run_configured_test_harness_models_on_80_20_splits(train_set=training_data_df, state_set=stateset_df)
 

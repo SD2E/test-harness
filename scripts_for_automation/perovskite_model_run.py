@@ -261,14 +261,18 @@ def configure_input_df_for_test_harness(train_set):
 
 
 def run_configured_test_harness_models_on_80_20_splits(train_set, state_set, col_to_predict='binarized_crystalscore'):
+    # todo: this drop is defensive against bad inputs, but it happens silently.
+    train_set = train_set.dropna(axis=1)
     train_set, feature_cols = configure_input_df_for_test_harness(train_set)
+    # todo: this is defensive against cases where the state set columns and train set don't agree-
+    # don't want to train on columns we won't have access to for testing.  This shouldn't happen, but it does sometimes
+    overlapping_columns = list(set(feature_cols).intersection(set(state_set.columns)))
     train, test = train_test_split(train_set, test_size=0.2, random_state=5, stratify=train_set[['dataset']])
 
     # Test Harness use starts here:
     current_path = os.getcwd()
     print("initializing TestHarness object with output_location equal to {}\n".format(current_path))
     # In some cases there are columns that exist in the perovskite data and not state set, and vice versa.
-    overlapping_columns = list(set(feature_cols).intersection(set(state_set.columns)))
     th = TestHarness(output_location=current_path, output_csvs_of_leaderboards=True)
     for model in MODELS_TO_RUN:
         th.run_custom(function_that_returns_TH_model=model, dict_of_function_parameters={},
@@ -279,44 +283,13 @@ def run_configured_test_harness_models_on_80_20_splits(train_set, state_set, col
                       feature_extraction=False,
                       predict_untested_data=state_set,
                       index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"]
-                      )
-
+                          )
     return th.list_of_this_instance_run_ids
-#
-#
-# def run_configured_test_harness_models_on_80_20_splits(train_set, num_k=5, random_state=42, col_to_predict='binarized_crystalscore'):
-#
-#     # Test Harness use starts here:
-#     current_path = os.getcwd()
-#     print("initializing TestHarness object with output_location equal to {}\n".format(current_path))
-#     th = TestHarness(output_location=current_path, output_csvs_of_leaderboards=True)
-#
-#     train_set, feature_cols = configure_input_df_for_test_harness(train_set)
-#     kf = KFold(n_splits=num_k, random_state=random_state, shuffle=True)
-#     k_ind = 0
-#     for k_train_index, k_test_index in kf.split(train_set):
-#         train = train_set.iloc[k_train_index]
-#         test = train_set.iloc[k_test_index]
-#
-#         for model in MODELS_TO_RUN:
-#             th.run_custom(function_that_returns_TH_model=model,
-#                           dict_of_function_parameters={},
-#                           training_data=train,
-#                           testing_data=test,
-#                           data_and_split_description="test run on perovskite data with 80/20 k fold k=%s" % k_ind,
-#                           cols_to_predict=col_to_predict,
-#                           feature_cols_to_use=feature_cols,
-#                           normalize=True,
-#                           feature_cols_to_normalize=feature_cols,
-#                           feature_extraction=False,
-#                           index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"]
-#                           )
-#         k_ind += 1
-#     return th.list_of_this_instance_run_ids
-
 
 
 def run_configured_test_harness_models_on_loo_amine_data(train_set, state_set, col_to_predict='binarized_crystalscore'):
+    # todo: this drop is defensive against bad inputs, but it happens silently.
+    train_set = train_set.dropna(axis=1)
     train_set, feature_cols = configure_input_df_for_test_harness(train_set)
     # Test Harness use starts here:
     current_path = os.getcwd()
