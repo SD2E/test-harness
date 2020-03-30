@@ -189,11 +189,12 @@ def build_loo_leaderboard_results(dict_of_run_ids, crank_number):
     """
     leaderboard = pd.read_html(os.path.join('test_harness_results', Names.LOO_FULL_CLASS_LBOARD + '.html'))[0]
     leaderboard["Dataset"] = crank_number
-    # the heldout data is loaded as a stringed dict.  Find the inchikey that was held out from this string
-    leaderboard[Names.TEST_GROUP] = leaderboard[Names.TEST_GROUP].apply(
-        lambda x: re.search("\'_rxn_organic-inchikey\'\: \[\'(\S+)\'", x).groups(0)[0])
-    # todo- error check for missing inchikeys
     leaderboard_sub_df = leaderboard[leaderboard[Names.LOO_ID].isin(dict_of_run_ids.keys())]
+    # the heldout data is loaded as a stringed dict.  Find the inchikey that was held out from this string
+    leaderboard_sub_df[Names.TEST_GROUP] = leaderboard_sub_df[Names.TEST_GROUP].apply(
+        lambda x: re.search("\'_rxn_organic-inchikey\'\: \[\'(\S+)\'", x).groups(0)[0])
+
+    # todo- error check for missing inchikeys
     leaderboard_sub_df.columns = [x.lower().replace(' ', '_').replace('-', '_') for x in leaderboard_sub_df.columns]
     leaderboard_rows_dict = leaderboard_sub_df.set_index(
         Names.RUN_ID.lower().replace(' ', '_'), drop=False).to_dict(

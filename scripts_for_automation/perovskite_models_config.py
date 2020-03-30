@@ -16,5 +16,5 @@ MODELS_TO_RUN = [
         rxn_intuition_svm,
         random_forest_classification,
         gradient_boosted_tree,
-        support_vector_radial_basis_classifier,
+        # support_vector_radial_basis_classifier,
     ]

@@ -34,7 +34,7 @@ class RxnRatioOnlySVM(SklearnClassification):
     def predict_proba(self,X):
         X = proc_data(X)   
         return self.svm.predict_proba(X)
-    
+
 def rxn_intuition_svm():
     model = RxnRatioOnlySVM()
     return SklearnClassification(model=model,
