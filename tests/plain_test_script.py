@@ -18,7 +18,7 @@ def err(y,y_hat):
 def main():
     # Reading in data from versioned-datasets repo.
     # Using the versioned-datasets repo is probably what most people want to do, but you can read in your data however you like.
-    protein_data = pd.read_csv('/Users/meslami/Documents/GitRepos/test-harness/example_scripts/Data_Sharing_Demo/rocklin_dataset_simplified.csv',
+    protein_data = pd.read_csv('test-harness/example_scripts/Data_Sharing_Demo/rocklin_dataset_simplified.csv',
                                 comment='#', low_memory=False, nrows = 100)
 
 
@@ -28,7 +28,7 @@ def main():
     protein_data.insert(12, classification_prediction_col, protein_data[regression_prediction_col] > 1)
     feature_columns = protein_data.columns.values.tolist()[13:]
 
-    th = TestHarness(output_location='/Users/meslami/Documents/GitRepos/test-harness/tests')
+    th = TestHarness(output_location='test-harness/tests')
 
     train_df, test_df = train_test_split(protein_data, test_size=0.2, random_state=5, stratify=protein_data['topology'])
 
