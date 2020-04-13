@@ -12,8 +12,8 @@ from harness.th_model_instances.perovskite_models.rxn_ratio_only import rxn_intu
 MODELS_TO_RUN = [
         baseline_uniform,
         weighted_logistic_classifier,
-        rxn_only_svm,
-        # rxn_intuition_svm,
+        # rxn_only_svm,
+        rxn_intuition_svm,
         random_forest_classification,
         gradient_boosted_tree,
         support_vector_radial_basis_classifier,
