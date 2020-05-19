@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from pathlib import Path
-from sklearn.externals import joblib
+import joblib
 from tests.check_harness_outputs_vs_inputs import compare_cols_of_two_equally_shaped_dataframes
 
 

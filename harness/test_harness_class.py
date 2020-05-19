@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from six import string_types
 from statistics import mean
-from sklearn.externals import joblib
+import joblib
 from copy import copy, deepcopy
 
 from harness.run_classes import _BaseRun
