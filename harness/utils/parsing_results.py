@@ -43,42 +43,28 @@ def get_result_csv_paths(loo_or_run_ids, th_output_location=None, file_type=Name
     if just a custom_run, make it a list
     :param th_output_location: Location of you gave to the test harness
     :param file_type: must be in Names.OUTPUT_FILE keys
-    :return: get the output csv paths
+    :return: get the output csv paths in the form of a dictionary. have the loo/run ids as values for the paths. Format is:
+            output_csv_paths[path]['run_id']['loo_id']. Note that path is the actual path while run_id and loo_id are the literal terms.
     '''
     assert file_type in Names.OUTPUT_FILES, 'file_type must be in {0}'.format(Names.OUTPUT_FILES.keys())
     for item in loo_or_run_ids:
-        output_csv_paths = []
-        if th_output_location is None:
-            runs_path = os.path.join('test_harness_results', 'runs')
-            previous_runs = []
-            for this_run_folder in os.listdir(runs_path):
-                if this_run_folder.rsplit("_")[1] in loo_or_run_ids:
-                    print('{} was kicked off by this TestHarness instance. Its results will be collected.'.format(this_run_folder))
-                    if type(loo_or_run_ids)==list:
-                        output_csv_path = os.path.join(runs_path, this_run_folder, Names.OUTPUT_FILES[file_type])
-                    else:
-                        for run_id in loo_or_run_ids[item]:
-                            output_csv_path = os.path.join(runs_path, this_run_folder,'loo_'+item, 'run_'+run_id,Names.OUTPUT_FILES[file_type])
-                    if os.path.exists(output_csv_path):
-                        print("file found: ", output_csv_path)
-                        output_csv_paths.append(output_csv_path)
-                else:
-                    previous_runs.append(this_run_folder)
-
+        output_csv_paths = {}
+        if type(loo_or_run_ids) == list:
+            output_csv_path = os.path.join(th_output_location,'test_harness_results','runs','run_'+item,Names.OUTPUT_FILES[file_type])
+            output_csv_paths[output_csv_path]={}
+            output_csv_paths[output_csv_path]['run_id'] = item
         else:
-            if type(loo_or_run_ids) == list:
-                output_csv_path = os.path.join(th_output_location,'test_harness_results','runs','run_'+item,Names.OUTPUT_FILES[file_type])
-                output_csv_paths.append(output_csv_path)
-            else:
-                for run_id in loo_or_run_ids[item]:
-                    output_csv_path = os.path.join(th_output_location,'test_harness_results','runs','loo_'+item, 'run_' + run_id,
-                                                       Names.OUTPUT_FILES[file_type])
-                    output_csv_paths.append(output_csv_path)
+            for run_id in loo_or_run_ids[item]:
+                output_csv_path = os.path.join(th_output_location,'test_harness_results','runs','loo_'+item, 'run_' + run_id,
+                                                   Names.OUTPUT_FILES[file_type])
+                output_csv_paths[output_csv_path] = {}
+                output_csv_paths[output_csv_path]['run_id']= run_id
+                output_csv_paths[output_csv_path]['loo_id'] = item
     return output_csv_paths
 
 
 
-def get_incorrect_classification_results_query(query, th_output_location, loo=False, file_type=Names.TESTING_DATA):
+def get_classification_results_query(query, th_output_location, loo=False, file_type=Names.TESTING_DATA, correct=True):
     '''
     This method queries the leaderboard, retrieves the files of the associated run_ids, subsets that
     :param query: query to subset the leaderboard
@@ -86,6 +72,7 @@ def get_incorrect_classification_results_query(query, th_output_location, loo=Fa
     :param loo: Boolean. If a leave one out runn.
     :param classification: Boolean. True if classification
     :param file_type: one of the output of the files
+    :param correct: Boolean, if True, get correct classsification results, if False get incorrect
     :return:
     '''
     df_leaderboard_sub = query_leaderboard(query=query,th_output_location=th_output_location,loo=loo,classification=True)
@@ -98,34 +85,13 @@ def get_incorrect_classification_results_query(query, th_output_location, loo=Fa
     dfs = []
     for path in paths:
         df = pd.read_csv(path)
-        df = df.loc[~(df[col_to_predict[0]] == df[col_to_predict[0]+'_predictions'])]
-        df['path']=path
-        dfs.append(df)
-    df_all = pd.concat(dfs)
-    return df_all
-
-def get_correct_classification_results_query(query, th_output_location, loo=False, file_type=Names.TESTING_DATA):
-    '''
-    This method queries the leaderboard, retrieves the files of the associated run_ids, subsets that
-    :param query: query to subset the leaderboard
-    :param th_output_location: path to output location
-    :param loo: Boolean. If a leave one out runn.
-    :param classification: Boolean. True if classification
-    :param file_type: one of the output of the files
-    :return:
-    '''
-    df_leaderboard_sub = query_leaderboard(query=query,th_output_location=th_output_location,loo=loo,classification=True)
-    col_to_predict = df_leaderboard_sub[Names.COLUMN_PREDICTED].unique()
-    if len(col_to_predict)>1:
-        raise RuntimeError('This function can only be used when you have a single predicted column. You currently have {0}'.format(len(col_to_predict)))
-    print("Column to predict",col_to_predict)
-
-    paths = get_result_csv_paths_query(query=query,th_output_location=th_output_location,loo=loo,file_type=file_type,classification=True)
-    dfs = []
-    for path in paths:
-        df = pd.read_csv(path)
-        df = df.loc[(df[col_to_predict[0]] == df[col_to_predict[0]+'_predictions'])]
-        df['path']=path
+        if correct:
+            df = df.loc[(df[col_to_predict[0]] == df[col_to_predict[0]+'_predictions'])]
+        else:
+            df = df.loc[~(df[col_to_predict[0]] == df[col_to_predict[0] + '_predictions'])]
+        if loo:
+            df['loo_id'] = paths[path]['loo_id']
+        df['run_id'] = paths[path]['run_id']
         dfs.append(df)
     df_all = pd.concat(dfs)
     return df_all
@@ -154,30 +120,6 @@ def get_roc_curve_query(query, th_output_location, loo=False, file_type=Names.TE
         fpr, tpr, threshold = metrics.roc_curve(y_true, y_probas)
         ###TODO: NEED TO FIGURE OUT WHAT TO DO WITH THIS!
 
-def get_incorrect_classification_results(loo_or_run_ids, th_output_location, loo=False, file_type=Names.TESTING_DATA):
-    '''
-    This method queries the leaderboard, retrieves the files of the associated run_ids, subsets that
-    :param loo_or_run_ids: dictionary of loo/run ids
-    :param th_output_location: path to output location
-    :param loo: Boolean. If a leave one out runn.
-    :param classification: Boolean. True if classification
-    :param file_type: one of the output of the files
-    :return: the
-    '''
-    df_leaderboard_list = []
-    for item in loo_or_run_ids:
-        query={}
-        if loo:
-            query[Names.LOO_ID]=item
-            query[Names.RUN_ID]=loo_or_run_ids[item]
-        else:
-            query[Names.RUN_ID]=item
-        df_sub = get_incorrect_classification_results_query(query=query,th_output_location=th_output_location,loo=loo, \
-                                                            file_type=file_type)
-        df_leaderboard_list.append(df_sub)
-    df_all = pd.concat(df_leaderboard_list)
-    return df_all
-
 
 def get_result_csv_paths_query(query, th_output_location, loo=False, classification=False,file_type=Names.TESTING_DATA):
     '''
@@ -203,6 +145,33 @@ def get_result_csv_paths_query(query, th_output_location, loo=False, classificat
     paths = get_result_csv_paths(loo_or_run_ids=loo_or_run_ids,th_output_location=th_output_location,file_type=file_type)
     return paths
 
+
+def join_new_data_with_predictions(df_test,index_col_new_data,index_col_predictions_data,query, th_output_location, loo=False, classification=False,file_type=Names.PREDICTED_DATA):
+    '''
+    You have made a set of predictions and you want to now compare it with passed models predictions
+    :param df: a new dataframe generated from data in the lab to compare with prediction dataframe
+    :param index_col_new_data: the index column in the new dataset
+    :param index_col_predictions_data: the index column that was used in the predictions dataset
+    :param query: query on leaderboard to see which outputs you want predicted
+    :param th_output_location: path to test harness output
+    :param loo: True/False -- is this a LOO Run
+    :param classification: is this a classification or regression problem
+    :return: dataframe that can be used for comparison
+    '''
+
+
+    paths = get_result_csv_paths_query(query=query, th_output_location=th_output_location, loo=loo, file_type=file_type,
+                                       classification=True)
+    dfs = []
+    for path in paths:
+        df = pd.read_csv(path)
+        if loo:
+            df['loo_id'] = paths[path]['loo_id']
+        df['run_id'] = paths[path]['run_id']
+        df = df.merge(df_test,left_on=index_col_predictions_data,right_on=index_col_new_data,how='outer',suffixes=('_predicted','_actual'))
+        dfs.append(df)
+    df_all = pd.concat(dfs)
+    return df_all
 
 
 def query_leaderboard(query, th_output_location, loo=False, classification=False):
@@ -238,7 +207,7 @@ if __name__ == '__main__':
 
     # Example of use of query to get incorrect results
     query = {Names.MODEL_NAME: 'random_forest', Names.TEST_GROUP: "topology: EHEE"}
-    sub_df = get_incorrect_classification_results_query(query, th_location, loo=True)
+    sub_df = get_classification_results_query(query, th_location, loo=True , correct=False)
     print(sub_df.head)
 
 
