@@ -28,30 +28,38 @@ class _BaseRun:
                  target_col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
                  feature_extraction, predict_untested_data=False, sparse_cols_to_use=None, loo_dict=False,
                  interpret_complex_model=False, custom_metric=False):
-        if isinstance(test_harness_model, ClassificationModel):
-            self.run_type = Names.CLASSIFICATION
-            self.prob_predictions_col = "{}_prob_predictions".format(target_col)
-            unique_train_classes = set(training_data[target_col].unique())
-            unique_test_classes = set(testing_data[target_col].unique())
-            if unique_train_classes != unique_test_classes:
-                warnings.warn("The unique classes in the training_data do not match those in the testing_data. "
-                              "Perhaps you should stratify your train/test split based on your classes (target_col)", Warning)
-            num_classes = len(unique_train_classes)
-            if num_classes > 2:
-                self.multiclass = True
-            else:
-                self.multiclass = False
-            self.num_classes = num_classes
-        elif isinstance(test_harness_model, RegressionModel):
-            self.run_type = Names.REGRESSION
-            self.residuals_col = "{}_residuals".format(target_col)
+        if isinstance(test_harness_model, str):
+            self.run_type = "predict_only"
+            self.test_harness_model = test_harness_model
+            self.model_name = test_harness_model.model_name
+            self.model_author = test_harness_model.model_author
+            self.model_description = test_harness_model.model_description
+            self.model_stack_trace = test_harness_model.stack_trace
         else:
-            raise TypeError("test_harness_model must be a ClassificationModel or a RegressionModel")
-        self.test_harness_model = test_harness_model
-        self.model_name = test_harness_model.model_name
-        self.model_author = test_harness_model.model_author
-        self.model_description = test_harness_model.model_description
-        self.model_stack_trace = test_harness_model.stack_trace
+            if isinstance(test_harness_model, ClassificationModel):
+                self.run_type = Names.CLASSIFICATION
+                self.prob_predictions_col = "{}_prob_predictions".format(target_col)
+                unique_train_classes = set(training_data[target_col].unique())
+                unique_test_classes = set(testing_data[target_col].unique())
+                if unique_train_classes != unique_test_classes:
+                    warnings.warn("The unique classes in the training_data do not match those in the testing_data. "
+                                  "Perhaps you should stratify your train/test split based on your classes (target_col)", Warning)
+                num_classes = len(unique_train_classes)
+                if num_classes > 2:
+                    self.multiclass = True
+                else:
+                    self.multiclass = False
+                self.num_classes = num_classes
+            elif isinstance(test_harness_model, RegressionModel):
+                self.run_type = Names.REGRESSION
+                self.residuals_col = "{}_residuals".format(target_col)
+            else:
+                raise TypeError("test_harness_model must be a ClassificationModel or a RegressionModel. Or it can be a run_id string.")
+            self.test_harness_model = test_harness_model
+            self.model_name = test_harness_model.model_name
+            self.model_author = test_harness_model.model_author
+            self.model_description = test_harness_model.model_description
+            self.model_stack_trace = test_harness_model.stack_trace
         self.training_data = training_data.copy()
         self.testing_data = testing_data.copy()
         self.data_and_split_description = data_and_split_description
@@ -148,6 +156,49 @@ class _BaseRun:
                 self.predict_untested_data = pd.get_dummies(self.predict_untested_data, columns=[sparse_col])
                 for val in all_vals_for_this_sparse_col.difference(untested_vals):
                     self.predict_untested_data['{}_{}'.format(sparse_col, val)] = 0
+
+    def train_model(self):
+        if self.normalize:
+            self._normalize_dataframes()
+
+        if self.sparse_cols_to_use:
+            self._add_sparse_cols()
+
+        train_df = self.training_data.copy()
+        test_df = self.testing_data.copy()
+
+    def predict(self):
+        """
+        If target column exists, then treat it as testing. If target call doesn't exist, then treat it as prediction.
+        """
+        untested_df = self.predict_untested_data.copy()
+        prediction_start_time = time.time()
+
+        untested_df.loc[:, self.predictions_col] = self.test_harness_model._predict(untested_df[self.feature_cols_to_use])
+        if self.run_type == Names.CLASSIFICATION:
+            # _predict_proba currently returns the probability of class = 1
+            untested_df.loc[:, self.prob_predictions_col] = self.test_harness_model._predict_proba(
+                untested_df[self.feature_cols_to_use])
+
+        # IDEA: remove all columns except for self.index_cols and self.predictions_col. This is already done in test_harness_class.py,
+        # IDEA: but if it's done here the extra columns wouldn't have to be stored in the run_object either.
+
+        # creating rankings column based on the predictions. Rankings assume that a higher score is more desirable
+        if self.run_type == Names.REGRESSION:
+            untested_df.sort_values(by=[self.predictions_col], ascending=False, inplace=True)
+        elif self.run_type == Names.CLASSIFICATION:
+            # assuming binary classification, predictions of class 1 are ranked higher than class 0,
+            # and the probability of a sample being in class 1 is used as the secondary column for ranking.
+            # currently the _predict_proba methods in test harness model classes return the probability of a sample being in class 1
+            untested_df.sort_values(by=[self.predictions_col, self.prob_predictions_col], ascending=[False, False], inplace=True)
+        else:
+            raise ValueError("self.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
+        # resetting index to match sorted values, so the index can be used as a ranking.
+        untested_df.reset_index(inplace=True, drop=True)
+        # adding 1 to rankings so they start from 1 instead of 0.
+        untested_df[self.rankings_col] = untested_df.index + 1
+
+        print(("Prediction time of untested data was: {}".format(time.time() - prediction_start_time)))
 
     def train_and_test_model(self):
         if self.normalize:
