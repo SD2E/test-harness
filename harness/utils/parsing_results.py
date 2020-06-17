@@ -49,35 +49,17 @@ def get_result_csv_paths(loo_or_run_ids, th_output_location=None, file_type=Name
     assert file_type in Names.OUTPUT_FILES, 'file_type must be in {0}'.format(Names.OUTPUT_FILES.keys())
     for item in loo_or_run_ids:
         output_csv_paths = {}
-        if th_output_location is None:
-            runs_path = os.path.join('test_harness_results', 'runs')
-            previous_runs = []
-            for this_run_folder in os.listdir(runs_path):
-                if this_run_folder.rsplit("_")[1] in loo_or_run_ids:
-                    print('{} was kicked off by this TestHarness instance. Its results will be collected.'.format(this_run_folder))
-                    if type(loo_or_run_ids)==list:
-                        output_csv_path = os.path.join(runs_path, this_run_folder, Names.OUTPUT_FILES[file_type])
-                    else:
-                        for run_id in loo_or_run_ids[item]:
-                            output_csv_path = os.path.join(runs_path, this_run_folder,'loo_'+item, 'run_'+run_id,Names.OUTPUT_FILES[file_type])
-                    if os.path.exists(output_csv_path):
-                        print("file found: ", output_csv_path)
-                        output_csv_paths.append(output_csv_path)
-                else:
-                    previous_runs.append(this_run_folder)
-
+        if type(loo_or_run_ids) == list:
+            output_csv_path = os.path.join(th_output_location,'test_harness_results','runs','run_'+item,Names.OUTPUT_FILES[file_type])
+            output_csv_paths[output_csv_path]={}
+            output_csv_paths[output_csv_path]['run_id'] = item
         else:
-            if type(loo_or_run_ids) == list:
-                output_csv_path = os.path.join(th_output_location,'test_harness_results','runs','run_'+item,Names.OUTPUT_FILES[file_type])
-                output_csv_paths[output_csv_path]={}
-                output_csv_paths[output_csv_path]['run_id'] = item
-            else:
-                for run_id in loo_or_run_ids[item]:
-                    output_csv_path = os.path.join(th_output_location,'test_harness_results','runs','loo_'+item, 'run_' + run_id,
-                                                       Names.OUTPUT_FILES[file_type])
-                    output_csv_paths[output_csv_path] = {}
-                    output_csv_paths[output_csv_path]['run_id']= run_id
-                    output_csv_paths[output_csv_path]['loo_id'] = item
+            for run_id in loo_or_run_ids[item]:
+                output_csv_path = os.path.join(th_output_location,'test_harness_results','runs','loo_'+item, 'run_' + run_id,
+                                                   Names.OUTPUT_FILES[file_type])
+                output_csv_paths[output_csv_path] = {}
+                output_csv_paths[output_csv_path]['run_id']= run_id
+                output_csv_paths[output_csv_path]['loo_id'] = item
     return output_csv_paths
 
 
@@ -177,15 +159,12 @@ def join_new_data_with_predictions(df_test,index_col_new_data,index_col_predicti
     :return: dataframe that can be used for comparison
     '''
 
-    df_leaderboard_sub = query_leaderboard(query=query, th_output_location=th_output_location, loo=loo,
-                                           classification=True)
 
     paths = get_result_csv_paths_query(query=query, th_output_location=th_output_location, loo=loo, file_type=file_type,
                                        classification=True)
     dfs = []
     for path in paths:
         df = pd.read_csv(path)
-        #df = df.loc[(df[col_to_predict[0]] == df[col_to_predict[0] + '_predictions'])]
         if loo:
             df['loo_id'] = paths[path]['loo_id']
         df['run_id'] = paths[path]['run_id']
