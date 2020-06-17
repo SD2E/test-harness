@@ -102,6 +102,48 @@ class TestHarness:
         self.dict_of_instance_run_loo_ids = defaultdict(list)
         print()
 
+    def train_only(self, function_that_returns_TH_model, dict_of_function_parameters, training_data,
+                   data_and_split_description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
+                   feature_cols_to_normalize=None, feature_extraction=False, sparse_cols_to_use=None):
+        self.run_custom(function_that_returns_TH_model=function_that_returns_TH_model,
+                        dict_of_function_parameters=dict_of_function_parameters,
+                        training_data=training_data, testing_data=training_data,  # both are the same for train_only
+                        data_and_split_description=data_and_split_description,
+                        target_cols=target_cols, feature_cols_to_use=feature_cols_to_use, index_cols=index_cols,
+                        normalize=normalize, feature_cols_to_normalize=feature_cols_to_normalize,
+                        feature_extraction=feature_extraction, sparse_cols_to_use=sparse_cols_to_use,
+                        predict_untested_data=False, interpret_complex_model=False, custom_metric=False)
+
+    def predict_only(self, run_id_of_saved_model, description, data_to_predict, index_cols, target_col, feature_cols_to_use):
+        """
+        TODO: Need to read in saved normalizations too
+        TODO: sparse_cols_to_use
+        """
+        run_object = _BaseRun(test_harness_model=run_id_of_saved_model, training_data=None, testing_data=None,
+                              data_and_split_description=description, target_col=target_col, feature_cols_to_use=feature_cols_to_use,
+                              index_cols=index_cols, normalize=False, feature_cols_to_normalize=False, feature_extraction=False,
+                              predict_untested_data=data_to_predict)
+
+        self.list_of_this_instance_run_ids.append(run_object.run_id)
+
+        # call run object methods
+        start = time.time()
+        print('-' * 100)  # this adds a line of dashes to signify the beginning of the model run
+        print('Starting prediction_only model at time {}'.format(datetime.now().strftime("%H:%M:%S")))
+        run_object.predict()
+
+        # output results of run object by updating the appropriate leaderboard(s) and writing files to disk
+        # Pandas append docs: "Columns not in this frame are added as new columns" --> don't worry about adding new leaderboard cols
+        self._update_leaderboard(run_object)
+
+        run_id_folder_path = os.path.join(self.runs_folder_path, '{}_{}'.format("run", run_object.run_id))
+        os.makedirs(run_id_folder_path)
+        self._output_run_files(run_object, run_id_folder_path, True, None)
+        end = time.time()
+        print('Run finished at {}.'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
+        print('^' * 100)  # this adds a line of ^ to signify the end of of the model run
+        print("\n\n\n")
+
     # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
     def run_custom(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                    data_and_split_description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
@@ -469,8 +511,7 @@ class TestHarness:
 
         end = time.time()
         print('Run finished at {}.'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
-        # this adds a line of ^ to signify the end of of the model run
-        print('^' * 100)
+        print('^' * 100)  # this adds a line of ^ to signify the end of of the model run
         print("\n\n\n")
 
     def _update_leaderboard(self, run_object):
@@ -565,7 +606,7 @@ class TestHarness:
             raise ValueError("run_object.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
         return row_of_results
 
-    def _output_run_files(self, run_object, output_path, output_data_csvs=True, feature_extractor=None):
+    def _output_run_files(self, run_object, output_path, output_data_csvs=True, feature_extractor=None, output_model=True):
         if output_data_csvs:
             # using index_cols and prediction/ranking cols to only output subset of dataframe.
             # using unchanged_index_cols to get names of columns that were created in execute_run for later output.
@@ -662,6 +703,11 @@ class TestHarness:
 
         if run_object.normalization_scaler_object is not None:
             joblib.dump(run_object.normalization_scaler_object, os.path.join(output_path, "normalization_scaler_object.pkl"))
+
+        if output_model:
+            # get trained_model from run_object
+            # save trained_model in appropriate format
+            pass
 
     def print_leaderboards(self):
         pass
