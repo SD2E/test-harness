@@ -25,17 +25,17 @@ then you must make sure that a COPY of the variable is passed in! Otherwise the 
 
 class _BaseRun:
     def __init__(self, test_harness_model, training_data, testing_data, data_and_split_description,
-                 col_to_predict, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
+                 target_col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
                  feature_extraction, predict_untested_data=False, sparse_cols_to_use=None, loo_dict=False,
                  interpret_complex_model=False, custom_metric=False):
         if isinstance(test_harness_model, ClassificationModel):
             self.run_type = Names.CLASSIFICATION
-            self.prob_predictions_col = "{}_prob_predictions".format(col_to_predict)
-            unique_train_classes = set(training_data[col_to_predict].unique())
-            unique_test_classes = set(testing_data[col_to_predict].unique())
+            self.prob_predictions_col = "{}_prob_predictions".format(target_col)
+            unique_train_classes = set(training_data[target_col].unique())
+            unique_test_classes = set(testing_data[target_col].unique())
             if unique_train_classes != unique_test_classes:
                 warnings.warn("The unique classes in the training_data do not match those in the testing_data. "
-                              "Perhaps you should stratify your train/test split based on your classes (col_to_predict)", Warning)
+                              "Perhaps you should stratify your train/test split based on your classes (target_col)", Warning)
             num_classes = len(unique_train_classes)
             if num_classes > 2:
                 self.multiclass = True
@@ -44,7 +44,7 @@ class _BaseRun:
             self.num_classes = num_classes
         elif isinstance(test_harness_model, RegressionModel):
             self.run_type = Names.REGRESSION
-            self.residuals_col = "{}_residuals".format(col_to_predict)
+            self.residuals_col = "{}_residuals".format(target_col)
         else:
             raise TypeError("test_harness_model must be a ClassificationModel or a RegressionModel")
         self.test_harness_model = test_harness_model
@@ -55,7 +55,7 @@ class _BaseRun:
         self.training_data = training_data.copy()
         self.testing_data = testing_data.copy()
         self.data_and_split_description = data_and_split_description
-        self.col_to_predict = col_to_predict
+        self.target_col = target_col
         self.feature_cols_to_use = copy(feature_cols_to_use)
         self.index_cols = copy(index_cols)
         self.normalize = normalize
@@ -63,8 +63,8 @@ class _BaseRun:
         self.feature_extraction = feature_extraction
         self.predict_untested_data = predict_untested_data
         self.sparse_cols_to_use = copy(sparse_cols_to_use)
-        self.predictions_col = "{}_predictions".format(col_to_predict)
-        self.rankings_col = "{}_rankings".format(col_to_predict)
+        self.predictions_col = "{}_predictions".format(target_col)
+        self.rankings_col = "{}_rankings".format(target_col)
         self.run_id = get_id()
         self.loo_dict = loo_dict
         if self.predict_untested_data is False:
@@ -79,10 +79,9 @@ class _BaseRun:
 
         self.normalization_scaler_object = None
 
-        #model on model
-        self.interpret_complex_model=interpret_complex_model
+        # model on model
+        self.interpret_complex_model = interpret_complex_model
         self.model_interpretation_img = None
-
 
     def _normalize_dataframes(self):
         warnings.simplefilter('ignore', DataConversionWarning)
@@ -163,7 +162,7 @@ class _BaseRun:
         # Training model
         print("Starting {} training...".format(self.run_type))
         training_start_time = time.time()
-        self.test_harness_model._fit(train_df[self.feature_cols_to_use], train_df[self.col_to_predict])
+        self.test_harness_model._fit(train_df[self.feature_cols_to_use], train_df[self.target_col])
         print(("Training time was: {0:.2f} seconds".format(time.time() - training_start_time)))
 
         # Testing model
@@ -173,7 +172,7 @@ class _BaseRun:
             # _predict_proba currently returns the probability of class = 1
             test_df.loc[:, self.prob_predictions_col] = self.test_harness_model._predict_proba(test_df[self.feature_cols_to_use])
         elif self.run_type == Names.REGRESSION:
-            test_df[self.residuals_col] = test_df[self.col_to_predict] - test_df[self.predictions_col]
+            test_df[self.residuals_col] = test_df[self.target_col] - test_df[self.predictions_col]
         else:
             raise ValueError(
                 "run_type must be '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
@@ -237,50 +236,50 @@ class _BaseRun:
             # the try/except blocks will allow AUC and Average Precision to be filled in with NaN if they can't be calculated
             # this removes the need for special logic to check if self.multiclass is True or False
             try:
-                self.metrics_dict[Names.AUC_SCORE] = roc_auc_score(self.testing_data_predictions[self.col_to_predict],
+                self.metrics_dict[Names.AUC_SCORE] = roc_auc_score(self.testing_data_predictions[self.target_col],
                                                                    self.testing_data_predictions[self.prob_predictions_col])
             except ValueError:
                 self.metrics_dict[Names.AUC_SCORE] = np.NaN
 
             try:
                 self.metrics_dict[Names.AVERAGE_PRECISION] = \
-                    average_precision_score(self.testing_data_predictions[self.col_to_predict],
+                    average_precision_score(self.testing_data_predictions[self.target_col],
                                             self.testing_data_predictions[self.prob_predictions_col])
             except ValueError:
                 self.metrics_dict[Names.AVERAGE_PRECISION] = np.NaN
 
-            self.metrics_dict[Names.ACCURACY] = accuracy_score(self.testing_data_predictions[self.col_to_predict],
+            self.metrics_dict[Names.ACCURACY] = accuracy_score(self.testing_data_predictions[self.target_col],
                                                                self.testing_data_predictions[self.predictions_col])
-            self.metrics_dict[Names.BALANCED_ACCURACY] = balanced_accuracy_score(self.testing_data_predictions[self.col_to_predict],
+            self.metrics_dict[Names.BALANCED_ACCURACY] = balanced_accuracy_score(self.testing_data_predictions[self.target_col],
                                                                                  self.testing_data_predictions[self.predictions_col])
-            self.metrics_dict[Names.F1_SCORE] = f1_score(self.testing_data_predictions[self.col_to_predict],
+            self.metrics_dict[Names.F1_SCORE] = f1_score(self.testing_data_predictions[self.target_col],
                                                          self.testing_data_predictions[self.predictions_col],
                                                          average=averaging_type)
-            self.metrics_dict[Names.PRECISION] = precision_score(self.testing_data_predictions[self.col_to_predict],
+            self.metrics_dict[Names.PRECISION] = precision_score(self.testing_data_predictions[self.target_col],
                                                                  self.testing_data_predictions[self.predictions_col],
                                                                  average=averaging_type)
-            self.metrics_dict[Names.RECALL] = recall_score(self.testing_data_predictions[self.col_to_predict],
+            self.metrics_dict[Names.RECALL] = recall_score(self.testing_data_predictions[self.target_col],
                                                            self.testing_data_predictions[self.predictions_col],
                                                            average=averaging_type)
         elif self.run_type == Names.REGRESSION:
             self.metrics_dict[Names.RMSE] = sqrt(
-                mean_squared_error(self.testing_data_predictions[self.col_to_predict], self.testing_data_predictions[self.predictions_col]))
-            self.metrics_dict[Names.R_SQUARED] = r2_score(self.testing_data_predictions[self.col_to_predict],
+                mean_squared_error(self.testing_data_predictions[self.target_col], self.testing_data_predictions[self.predictions_col]))
+            self.metrics_dict[Names.R_SQUARED] = r2_score(self.testing_data_predictions[self.target_col],
                                                           self.testing_data_predictions[self.predictions_col])
             for key in self.custom_metric:
-                self.metrics_dict[key] = self.custom_metric[key](self.testing_data_predictions[self.col_to_predict],
+                self.metrics_dict[key] = self.custom_metric[key](self.testing_data_predictions[self.target_col],
                                                                  self.testing_data_predictions[self.predictions_col])
         else:
             raise TypeError("self.run_type must equal '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
 
-    #---------------------------------------------------------
+    # ---------------------------------------------------------
     # model on model 
     def interpret_model(self,
-        complex_model,
-        training_df, 
-        feature_col,
-        predict_col, 
-        simple_model):
+                        complex_model,
+                        training_df,
+                        feature_col,
+                        predict_col,
+                        simple_model):
         """
         Trains an interpretable model on the predicted labels of 
         an uninterpretable model, thus offering an approximation of
@@ -290,40 +289,40 @@ class _BaseRun:
         * simple_model must be defined, else it will be a default DecisionTreeClassifier
         """
 
-        #train the complex model and get its predictions for training data
-        complex_model.fit(training_df[feature_col],training_df[predict_col])
+        # train the complex model and get its predictions for training data
+        complex_model.fit(training_df[feature_col], training_df[predict_col])
         predictions = complex_model.predict(training_df[feature_col])
-        #check if predicted labels are continuous. If so, change to binary
-        if len(np.unique(predictions)) > 2: #TODO: modify this to allow for multilabel classification
-            predictions = [i[0]>.5 for i in predictions]
+        # check if predicted labels are continuous. If so, change to binary
+        if len(np.unique(predictions)) > 2:  # TODO: modify this to allow for multilabel classification
+            predictions = [i[0] > .5 for i in predictions]
 
-        #train simple model on predictions
-        model_interpretation_img = self.get_simple_model_image(training_df[feature_col],predictions)
+        # train simple model on predictions
+        model_interpretation_img = self.get_simple_model_image(training_df[feature_col], predictions)
         self.model_interpretation_img = model_interpretation_img
-    
-    def get_simple_model_image(self,data_features,predicted_labels,interpretable_model=None):
-        #make interpretable model a decision tree by default
-        if interpretable_model==None:
+
+    def get_simple_model_image(self, data_features, predicted_labels, interpretable_model=None):
+        # make interpretable model a decision tree by default
+        if interpretable_model == None:
             from sklearn.tree import DecisionTreeClassifier
             interpretable_model = DecisionTreeClassifier(random_state=0)
-        
-        #fit interpretable model on complex model's predicted labels
+
+        # fit interpretable model on complex model's predicted labels
         # NOTE: random_state param has to be passed to get consistent tree output, but is an arbitrary number
         # How do we know which tree is the 'correct' way that the UninterpretableModel is learning?
-        interpretable_model.fit(data_features,predicted_labels)
+        interpretable_model.fit(data_features, predicted_labels)
 
-        #visualize model
-        if str(type(interpretable_model))=="<class 'sklearn.tree.tree.DecisionTreeClassifier'>":
-            from sklearn.externals.six import StringIO  
-            #from PIL import Image
+        # visualize model
+        if str(type(interpretable_model)) == "<class 'sklearn.tree.tree.DecisionTreeClassifier'>":
+            from sklearn.externals.six import StringIO
+            # from PIL import Image
             from sklearn.tree import export_graphviz
             import pydotplus
             dot_data = StringIO()
-            export_graphviz(interpretable_model, out_file=dot_data,  
+            export_graphviz(interpretable_model, out_file=dot_data,
                             filled=True, rounded=True,
                             special_characters=True,
                             feature_names=list(data_features.columns))
-            graph = pydotplus.graph_from_dot_data(dot_data.getvalue())  
-            
-            #return graph.create_png()
+            graph = pydotplus.graph_from_dot_data(dot_data.getvalue())
+
+            # return graph.create_png()
             return dot_data
