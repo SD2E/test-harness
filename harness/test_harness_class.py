@@ -50,8 +50,8 @@ class TestHarness:
         # Note: loo stands for leave-one-out
         self.output_path = output_location
         self.output_csvs_of_leaderboards = output_csvs_of_leaderboards
-        self.results_folder_path = os.path.join(self.output_path, 'test_harness_results')
-        self.runs_folder_path = os.path.join(self.results_folder_path, 'runs')
+        self.results_folder_path = os.path.join(self.output_path, Names.TEST_HARNESS_RESULTS_DIR)
+        self.runs_folder_path = os.path.join(self.results_folder_path, Names.RUNS_DIR)
         if not os.path.exists(self.results_folder_path):
             os.makedirs(self.results_folder_path, exist_ok=True)
         if not os.path.exists(self.runs_folder_path):
@@ -102,43 +102,40 @@ class TestHarness:
         self.dict_of_instance_run_loo_ids = defaultdict(list)
         print()
 
-    def train_only(self, function_that_returns_TH_model, dict_of_function_parameters, training_data,
-                   data_and_split_description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
-                   feature_cols_to_normalize=None, feature_extraction=False, sparse_cols_to_use=None):
-        self.run_custom(function_that_returns_TH_model=function_that_returns_TH_model,
-                        dict_of_function_parameters=dict_of_function_parameters,
-                        training_data=training_data, testing_data=training_data,  # both are the same for train_only
-                        data_and_split_description=data_and_split_description,
-                        target_cols=target_cols, feature_cols_to_use=feature_cols_to_use, index_cols=index_cols,
-                        normalize=normalize, feature_cols_to_normalize=feature_cols_to_normalize,
-                        feature_extraction=feature_extraction, sparse_cols_to_use=sparse_cols_to_use,
-                        predict_untested_data=False, interpret_complex_model=False, custom_metric=False)
+    # def train_only(self, function_that_returns_TH_model, dict_of_function_parameters, training_data,
+    #                data_and_split_description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
+    #                feature_cols_to_normalize=None, feature_extraction=False, sparse_cols_to_use=None):
+    #     self.run_custom(function_that_returns_TH_model=function_that_returns_TH_model,
+    #                     dict_of_function_parameters=dict_of_function_parameters,
+    #                     training_data=training_data, testing_data=training_data,  # both are the same for train_only
+    #                     data_and_split_description=data_and_split_description,
+    #                     target_cols=target_cols, feature_cols_to_use=feature_cols_to_use, index_cols=index_cols,
+    #                     normalize=normalize, feature_cols_to_normalize=feature_cols_to_normalize,
+    #                     feature_extraction=feature_extraction, sparse_cols_to_use=sparse_cols_to_use,
+    #                     predict_untested_data=False, interpret_complex_model=False, custom_metric=False)
 
     def predict_only(self, run_id_of_saved_model, description, data_to_predict, index_cols, target_col, feature_cols_to_use):
         """
         TODO: Need to read in saved normalizations too
         TODO: sparse_cols_to_use
+        TODO: potentially make an internal table that tracks prediction runs/outputs
+          - for now it will always output the prediction to predicted_data.csv in the appropriate run folder.
         """
-        run_object = _BaseRun(test_harness_model=run_id_of_saved_model, training_data=None, testing_data=None,
+        run_id_folder_path_of_saved_model = os.path.join(self.runs_folder_path, run_id_of_saved_model)
+
+        # probably can remove data_and_split_description
+        run_object = _BaseRun(test_harness_model=run_id_folder_path_of_saved_model, training_data=None, testing_data=None,
                               data_and_split_description=description, target_col=target_col, feature_cols_to_use=feature_cols_to_use,
                               index_cols=index_cols, normalize=False, feature_cols_to_normalize=False, feature_extraction=False,
                               predict_untested_data=data_to_predict)
-
-        self.list_of_this_instance_run_ids.append(run_object.run_id)
 
         # call run object methods
         start = time.time()
         print('-' * 100)  # this adds a line of dashes to signify the beginning of the model run
         print('Starting prediction_only model at time {}'.format(datetime.now().strftime("%H:%M:%S")))
-        run_object.predict()
 
-        # output results of run object by updating the appropriate leaderboard(s) and writing files to disk
-        # Pandas append docs: "Columns not in this frame are added as new columns" --> don't worry about adding new leaderboard cols
-        self._update_leaderboard(run_object)
-
-        run_id_folder_path = os.path.join(self.runs_folder_path, '{}_{}'.format("run", run_object.run_id))
-        os.makedirs(run_id_folder_path)
-        self._output_run_files(run_object, run_id_folder_path, True, None)
+        run_object.predict_only()
+        self._output_run_files(run_object, run_id_folder_path_of_saved_model, True, None)
         end = time.time()
         print('Run finished at {}.'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
         print('^' * 100)  # this adds a line of ^ to signify the end of of the model run
@@ -623,23 +620,32 @@ class TestHarness:
             elif run_object.run_type == Names.REGRESSION:
                 test_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.residuals_col]
                 pred_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.rankings_col]
+            elif run_object.run_type == Names.PREDICT_ONLY:
+                test_cols_to_output = None
+                pred_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.rankings_col]
             else:
-                raise ValueError("run_object.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
+                raise ValueError("run_object.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION, Names.PREDICT_ONLY))
 
-            train_df_to_output = run_object.training_data[train_cols_to_output].copy()
-            for col in unchanged_index_cols:
-                train_df_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
-            train_df_to_output.to_csv('{}/{}'.format(output_path, 'training_data.csv'), index=False)
+            if run_object.run_type != Names.PREDICT_ONLY:
+                train_df_to_output = run_object.training_data[train_cols_to_output].copy()
+                for col in unchanged_index_cols:
+                    train_df_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
+                train_df_to_output.to_csv('{}/{}'.format(output_path, 'training_data.csv'), index=False)
 
-            test_df_to_output = run_object.testing_data_predictions[test_cols_to_output].copy()
-            for col in unchanged_index_cols:
-                test_df_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
-            test_df_to_output.to_csv('{}/{}'.format(output_path, 'testing_data.csv'), index=False)
+                test_df_to_output = run_object.testing_data_predictions[test_cols_to_output].copy()
+                for col in unchanged_index_cols:
+                    test_df_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
+                test_df_to_output.to_csv('{}/{}'.format(output_path, 'testing_data.csv'), index=False)
 
             if run_object.was_untested_data_predicted is not False:
+                # TODO: make this work, using simpler output for now:
+                '''
                 prediction_data_to_output = run_object.untested_data_predictions[pred_cols_to_output].copy()
                 for col in unchanged_index_cols:
                     prediction_data_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
+                prediction_data_to_output.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
+                '''
+                prediction_data_to_output = run_object.untested_data_predictions.copy()
                 prediction_data_to_output.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
 
         if run_object.feature_extraction is not False:
@@ -686,28 +692,27 @@ class TestHarness:
             img = pydotplus.graph_from_dot_data(run_object.model_interpretation_img.getvalue())
             img.write_png(os.path.join(image_path, 'model_interpretation.png'))
 
-        test_file_name = os.path.join(output_path, 'model_information.txt')
-        with open(test_file_name, "w") as f:
-            f.write("%s\n" % run_object.model_name)
-            f.write("Feature columns used by model: \n")
-            json.dump(run_object.feature_cols_to_use, f)
-            f.write("\n\n\n")
+        if run_object.run_type != Names.PREDICT_ONLY:
+            test_file_name = os.path.join(output_path, 'model_information.txt')
+            with open(test_file_name, "w") as f:
+                f.write("%s\n" % run_object.model_name)
+                f.write("Feature columns used by model: \n")
+                json.dump(run_object.feature_cols_to_use, f)
+                f.write("\n\n\n")
 
-            f.write("Model Instantiation Trace:\n")
-            for i, t in enumerate(run_object.model_stack_trace):
-                f.write(" Level {}\n".format(i))
-                path, line, func = t[1:4]
-                f.write(' - Path: ' + path + '\n')
-                f.write(' - Line: ' + str(line) + ',  Function: ' + str(func) + '\n')
-                f.write("\n")
+                f.write("Model Instantiation Trace:\n")
+                for i, t in enumerate(run_object.model_stack_trace):
+                    f.write(" Level {}\n".format(i))
+                    path, line, func = t[1:4]
+                    f.write(' - Path: ' + path + '\n')
+                    f.write(' - Line: ' + str(line) + ',  Function: ' + str(func) + '\n')
+                    f.write("\n")
 
-        if run_object.normalization_scaler_object is not None:
-            joblib.dump(run_object.normalization_scaler_object, os.path.join(output_path, "normalization_scaler_object.pkl"))
+            if run_object.normalization_scaler_object is not None:
+                joblib.dump(run_object.normalization_scaler_object, os.path.join(output_path, "normalization_scaler_object.pkl"))
 
-        if output_model:
-            # get trained_model from run_object
-            # save trained_model in appropriate format
-            pass
+            if output_model:
+                joblib.dump(run_object.test_harness_model.model, os.path.join(output_path, "trained_model.pkl"))
 
     def print_leaderboards(self):
         pass

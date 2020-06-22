@@ -3,6 +3,8 @@ from math import sqrt
 import time
 import warnings
 
+import os
+import joblib
 import numpy as np
 import pandas as pd
 from copy import copy, deepcopy
@@ -28,13 +30,21 @@ class _BaseRun:
                  target_col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
                  feature_extraction, predict_untested_data=False, sparse_cols_to_use=None, loo_dict=False,
                  interpret_complex_model=False, custom_metric=False):
-        if isinstance(test_harness_model, str):
-            self.run_type = "predict_only"
-            self.test_harness_model = test_harness_model
-            self.model_name = test_harness_model.model_name
-            self.model_author = test_harness_model.model_author
-            self.model_description = test_harness_model.model_description
-            self.model_stack_trace = test_harness_model.stack_trace
+        if isinstance(test_harness_model, str):  # the string should be the path to a run_id folder
+            # retrieve model and info from passed in string path to run_id folder
+            self.run_type = Names.PREDICT_ONLY
+            self.trained_model_path = test_harness_model
+            self.saved_scaler, self.test_harness_model = self.load_scaler_and_trained_model(self.trained_model_path)
+            if isinstance(test_harness_model, ClassificationModel):
+                print("ClassificationModel!")
+            elif isinstance(test_harness_model, RegressionModel):
+                print("RegressionModel!")
+            else:
+                print("Cannot figure out if model is RegressionModel or ClassificationModel!")
+            # self.model_name
+            # self.model_author
+            # self.model_description
+            # self.model_stack_trace
         else:
             if isinstance(test_harness_model, ClassificationModel):
                 self.run_type = Names.CLASSIFICATION
@@ -60,8 +70,8 @@ class _BaseRun:
             self.model_author = test_harness_model.model_author
             self.model_description = test_harness_model.model_description
             self.model_stack_trace = test_harness_model.stack_trace
-        self.training_data = training_data.copy()
-        self.testing_data = testing_data.copy()
+            self.training_data = training_data.copy()
+            self.testing_data = testing_data.copy()
         self.data_and_split_description = data_and_split_description
         self.target_col = target_col
         self.feature_cols_to_use = copy(feature_cols_to_use)
@@ -157,24 +167,48 @@ class _BaseRun:
                 for val in all_vals_for_this_sparse_col.difference(untested_vals):
                     self.predict_untested_data['{}_{}'.format(sparse_col, val)] = 0
 
-    def train_model(self):
-        if self.normalize:
-            self._normalize_dataframes()
+    # ----------------------------------------------------------------------------------------------------------------
 
-        if self.sparse_cols_to_use:
-            self._add_sparse_cols()
+    def load_scaler_and_trained_model(self, run_id_folder_path_of_saved_model):
+        scaler_path = os.path.join(run_id_folder_path_of_saved_model, "normalization_scaler_object.pkl")
+        if os.path.isfile(scaler_path):
+            saved_scaler = joblib.load(scaler_path)
+        else:
+            saved_scaler = None
 
-        train_df = self.training_data.copy()
-        test_df = self.testing_data.copy()
+        trained_model_path = os.path.join(run_id_folder_path_of_saved_model, "trained_model.pkl")
+        if os.path.isfile(trained_model_path):
+            trained_model = joblib.load(trained_model_path)
+        else:
+            trained_model = None
+        return saved_scaler, trained_model
 
-    def predict(self):
+    # TODO: later get train_and_test_model to call train, test, and predict methods (rename predict_only to predict)
+    # currently predict_only is separated from train_and_test_model because no time to do above yet, but I have it planned out
+    # TODO: If target column exists, then treat it as testing. If target call doesn't exist, then treat it as prediction.
+    def predict_only(self):
         """
-        If target column exists, then treat it as testing. If target call doesn't exist, then treat it as prediction.
+        Only predicts
         """
-        untested_df = self.predict_untested_data.copy()
+        if self.predict_untested_data is not False:
+            untested_df = self.predict_untested_data.copy()
+            if self.saved_scaler is not None:
+                # untested_df[self.feature_cols_to_normalize] = self.saved_scaler.transform(untested_df[self.feature_cols_to_normalize])
+                pass
+        else:
+            raise ValueError("Can't predict if no dataframe was passed in to self.predict_untested_data")
+
         prediction_start_time = time.time()
 
-        untested_df.loc[:, self.predictions_col] = self.test_harness_model._predict(untested_df[self.feature_cols_to_use])
+        # this ensures that the feature columns that are output are original columns and not scaled columns
+        # note that this calls sklearn's .predict because I had to save out the self.test_harness_model.model in test_harness_class.py
+        self.predict_untested_data.loc[:, self.predictions_col] = self.test_harness_model.predict(untested_df[self.feature_cols_to_use])
+        self.untested_data_predictions = self.predict_untested_data.copy()
+
+        print(("predict_only time was: {}".format(time.time() - prediction_start_time)))
+
+        # TODO: figure out what to do with this block here, not sure how to know if the saved model was classifier or regressor
+        '''
         if self.run_type == Names.CLASSIFICATION:
             # _predict_proba currently returns the probability of class = 1
             untested_df.loc[:, self.prob_predictions_col] = self.test_harness_model._predict_proba(
@@ -193,12 +227,15 @@ class _BaseRun:
             untested_df.sort_values(by=[self.predictions_col, self.prob_predictions_col], ascending=[False, False], inplace=True)
         else:
             raise ValueError("self.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
+
+        untested_df.sort_values(by=[self.predictions_col], ascending=False, inplace=True)
         # resetting index to match sorted values, so the index can be used as a ranking.
         untested_df.reset_index(inplace=True, drop=True)
         # adding 1 to rankings so they start from 1 instead of 0.
         untested_df[self.rankings_col] = untested_df.index + 1
+        '''
 
-        print(("Prediction time of untested data was: {}".format(time.time() - prediction_start_time)))
+    # ----------------------------------------------------------------------------------------------------------------
 
     def train_and_test_model(self):
         if self.normalize:

@@ -68,3 +68,7 @@ class Names:
                     TESTING_DATA: TESTING_DATA + '.csv',
                     PREDICTED_DATA: PREDICTED_DATA + '.csv',
                     FEATURE_IMPORTANCES: FEATURE_IMPORTANCES + '.csv'}
+
+    TEST_HARNESS_RESULTS_DIR = "test_harness_results"
+    RUNS_DIR = "runs"
+    PREDICT_ONLY = "predict_only"
