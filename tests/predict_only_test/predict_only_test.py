@@ -35,7 +35,7 @@ def main():
     #               normalize=True, feature_cols_to_normalize=feature_columns,
     #               feature_extraction=False, predict_untested_data=False)
 
-    desired_run_id = "run_AQQRNVj9k9Pbm"
+    desired_run_id = "AQQRNVj9k9Pbm"
     #
     th.predict_only(run_id_of_saved_model=desired_run_id,
                     data_to_predict=protein_data_2,

@@ -121,6 +121,7 @@ class TestHarness:
         TODO: potentially make an internal table that tracks prediction runs/outputs
           - for now it will always output the prediction to predicted_data.csv in the appropriate run folder.
         """
+        run_id_of_saved_model = 'run_'+run_id_of_saved_model
         run_id_folder_path_of_saved_model = os.path.join(self.runs_folder_path, run_id_of_saved_model)
 
         run_object = _BaseRun(test_harness_model=run_id_folder_path_of_saved_model, training_data=None, testing_data=None,
