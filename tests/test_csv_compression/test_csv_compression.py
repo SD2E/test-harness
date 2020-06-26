@@ -34,10 +34,11 @@ def main():
                   feature_extraction=False, predict_untested_data=False)
 
     last_run = th.list_of_this_instance_run_ids[-1]
+    last_run = "run_" + last_run
     print(last_run)
     # read in compressed csv file:
     read_in_compressed_csv = pd.read_csv(os.path.join(harness_output_path,
-                                                      "test_harness_results/runs/run_{}/testing_data.csv.gz".format(last_run)))
+                                                      "test_harness_results/runs/{}/testing_data.csv.gz".format(last_run)))
     print(read_in_compressed_csv)
 
 

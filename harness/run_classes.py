@@ -4,6 +4,7 @@ import time
 import warnings
 
 import os
+import keras
 import joblib
 import numpy as np
 import pandas as pd
@@ -41,10 +42,6 @@ class _BaseRun:
                 print("RegressionModel!")
             else:
                 print("Cannot figure out if model is RegressionModel or ClassificationModel!")
-            # self.model_name
-            # self.model_author
-            # self.model_description
-            # self.model_stack_trace
         else:
             if isinstance(test_harness_model, ClassificationModel):
                 self.run_type = Names.CLASSIFICATION
@@ -176,11 +173,15 @@ class _BaseRun:
         else:
             saved_scaler = None
 
-        trained_model_path = os.path.join(run_id_folder_path_of_saved_model, "trained_model.pkl")
-        if os.path.isfile(trained_model_path):
-            trained_model = joblib.load(trained_model_path)
+        sklearn_trained_model_path = os.path.join(run_id_folder_path_of_saved_model, "trained_model.pkl")
+        keras_trained_model_path = os.path.join(run_id_folder_path_of_saved_model, "trained_model.pb")
+
+        if os.path.isfile(sklearn_trained_model_path):
+            trained_model = joblib.load(sklearn_trained_model_path)
+        elif os.path.isfile(keras_trained_model_path):
+            trained_model = keras.models.load_model(keras_trained_model_path)
         else:
-            trained_model = None
+            raise FileNotFoundError("Neither trained_model.pkl nor trained_model.pb were found.")
         return saved_scaler, trained_model
 
     # TODO: later get train_and_test_model to call train, test, and predict methods (rename predict_only to predict)
@@ -201,7 +202,8 @@ class _BaseRun:
         prediction_start_time = time.time()
 
         # this ensures that the feature columns that are output are original columns and not scaled columns
-        # note that this calls sklearn's .predict because I had to save out the self.test_harness_model.model in test_harness_class.py
+        # note that this calls sklearn's and keras's .predict method because
+        # I had to save out the self.test_harness_model.model in test_harness_class.py
         self.predict_untested_data.loc[:, self.predictions_col] = self.test_harness_model.predict(untested_df[self.feature_cols_to_use])
         self.untested_data_predictions = self.predict_untested_data.copy()
 

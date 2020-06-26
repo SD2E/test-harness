@@ -127,7 +127,7 @@ class TestHarness:
         run_id_folder_path_of_saved_model = os.path.join(self.runs_folder_path, run_id_of_saved_model)
 
         run_object = _BaseRun(test_harness_model=run_id_folder_path_of_saved_model, training_data=None, testing_data=None,
-                              target_col=target_col, feature_cols_to_use=feature_cols_to_use,
+                              description=None, target_col=target_col, feature_cols_to_use=feature_cols_to_use,
                               index_cols=index_cols, normalize=False, feature_cols_to_normalize=False, feature_extraction=False,
                               predict_untested_data=data_to_predict)
 
@@ -723,7 +723,16 @@ class TestHarness:
                 joblib.dump(run_object.normalization_scaler_object, os.path.join(output_path, "normalization_scaler_object.pkl"))
 
             if output_model:
-                joblib.dump(run_object.test_harness_model.model, os.path.join(output_path, "trained_model.pkl"))
+                print()
+                model = run_object.test_harness_model.model
+                # determines library that model came from:
+                model_type = str(type(model)).split(".", 1)[0].split("'", 1)[1]
+                if model_type == "sklearn":
+                    joblib.dump(run_object.test_harness_model.model, os.path.join(output_path, "trained_model.pkl"))
+                elif model_type == "keras":
+                    model.save(os.path.join(output_path, "trained_model.pb"))
+                else:
+                    raise NotImplementedError("this kind of model has not been implemented: {}".format(model_type))
 
     def print_leaderboards(self):
         pass
