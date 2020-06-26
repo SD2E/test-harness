@@ -8,8 +8,6 @@ import numpy as np
 
 
 def main():
-    # Reading in data from versioned-datasets repo.
-    # Using the versioned-datasets repo is probably what most people want to do, but you can read in your data however you like.
     cwd = os.getcwd()
     project_path = os.path.join(cwd.split("/test-harness/")[0], "test-harness")
     data_path = os.path.join(project_path, "example_scripts/Data_Sharing_Demo/rocklin_dataset_simplified.csv")

@@ -46,7 +46,8 @@ then you must make sure that a COPY of the variable is passed in! Otherwise the 
 
 
 class TestHarness:
-    def __init__(self, output_location=os.path.dirname(os.path.realpath(__file__)), output_csvs_of_leaderboards=False):
+    def __init__(self, output_location=os.path.dirname(os.path.realpath(__file__)), output_csvs_of_leaderboards=False,
+                 compress_large_csvs=False):
         # Note: loo stands for leave-one-out
         self.output_path = output_location
         self.output_csvs_of_leaderboards = output_csvs_of_leaderboards
@@ -56,6 +57,8 @@ class TestHarness:
             os.makedirs(self.results_folder_path, exist_ok=True)
         if not os.path.exists(self.runs_folder_path):
             os.makedirs(self.runs_folder_path, exist_ok=True)
+        assert isinstance(compress_large_csvs, bool), "compress_large_csvs must be True or False"
+        self.compress_large_csvs = compress_large_csvs
 
         # add metrics here:
         self.classification_metrics = [Names.NUM_CLASSES, Names.ACCURACY, Names.BALANCED_ACCURACY, Names.AUC_SCORE,
@@ -242,7 +245,10 @@ class TestHarness:
             loo_id = get_id()
             loo_folder_path = os.path.join(self.runs_folder_path, '{}_{}'.format("loo", loo_id))
             os.makedirs(loo_folder_path, exist_ok=False)
-            data.to_csv(os.path.join(loo_folder_path, "data.csv"), index=False)
+            if self.compress_large_csvs:
+                data.to_csv(os.path.join(loo_folder_path, "data.csv.gz"), index=False, compression="gzip")
+            else:
+                data.to_csv(os.path.join(loo_folder_path, "data.csv"), index=False)
             grouping_df.to_csv(os.path.join(loo_folder_path, "grouping_df.csv"), index=False)
 
             dummy_th_model = function_that_returns_TH_model(**dict_of_function_parameters)
@@ -629,12 +635,15 @@ class TestHarness:
                 train_df_to_output = run_object.training_data[train_cols_to_output].copy()
                 for col in unchanged_index_cols:
                     train_df_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
-                train_df_to_output.to_csv('{}/{}'.format(output_path, 'training_data.csv'), index=False)
-
                 test_df_to_output = run_object.testing_data_predictions[test_cols_to_output].copy()
                 for col in unchanged_index_cols:
                     test_df_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
-                test_df_to_output.to_csv('{}/{}'.format(output_path, 'testing_data.csv'), index=False)
+                if self.compress_large_csvs:
+                    train_df_to_output.to_csv('{}/{}'.format(output_path, 'training_data.csv.gz'), index=False, compression="gzip")
+                    test_df_to_output.to_csv('{}/{}'.format(output_path, 'testing_data.csv.gz'), index=False, compression="gzip")
+                else:
+                    train_df_to_output.to_csv('{}/{}'.format(output_path, 'training_data.csv'), index=False)
+                    test_df_to_output.to_csv('{}/{}'.format(output_path, 'testing_data.csv'), index=False)
 
             if run_object.was_untested_data_predicted is not False:
                 # TODO: make this work, using simpler output for now:
@@ -645,7 +654,10 @@ class TestHarness:
                 prediction_data_to_output.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
                 '''
                 prediction_data_to_output = run_object.untested_data_predictions.copy()
-                prediction_data_to_output.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
+                if self.compress_large_csvs:
+                    prediction_data_to_output.to_csv('{}/{}'.format(output_path, 'predicted_data.csv.gz'), index=False, compression="gzip")
+                else:
+                    prediction_data_to_output.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
 
         if run_object.feature_extraction is not False:
             from harness.feature_extraction import FeatureExtractor
