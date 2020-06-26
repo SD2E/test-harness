@@ -34,7 +34,7 @@ def main():
 
     th.run_custom(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={},
                   training_data=train_df, testing_data=test_df,
-                  data_and_split_description="Demo Run on Rocklin dataset",
+                  description="Demo Run on Rocklin dataset",
                   cols_to_predict=regression_prediction_col,
                   feature_cols_to_use=feature_columns,
                   index_cols=["dataset", "name"],

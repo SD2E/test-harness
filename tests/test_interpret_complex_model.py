@@ -84,14 +84,14 @@ def main():
     th = TestHarness(output_location=current_path)
 
     th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=toy_train,
-                  testing_data=toy_test, data_and_split_description="testing shap on toy datasets",
+                  testing_data=toy_test, description="testing shap on toy datasets",
                   cols_to_predict='stabilityscore_cnn_calibrated_2classes',
                   feature_cols_to_use=toy_feature_cols, normalize=True, feature_cols_to_normalize=toy_feature_cols,
                   feature_extraction='bba_audit', predict_untested_data=False,
                   interpret_complex_model=True)
 
     th.run_custom(function_that_returns_TH_model=keras_classification_4, dict_of_function_parameters={}, training_data=toy_train,
-                  testing_data=toy_test, data_and_split_description="testing shap on toy datasets",
+                  testing_data=toy_test, description="testing shap on toy datasets",
                   cols_to_predict='stabilityscore_cnn_calibrated_2classes',
                   feature_cols_to_use=toy_feature_cols, normalize=True, feature_cols_to_normalize=toy_feature_cols,
                   feature_extraction='bba_audit', predict_untested_data=False,

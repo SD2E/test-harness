@@ -81,7 +81,7 @@ def main():
     th = TestHarness(output_location="/Users/janestrada/Desktop/SorelleSummerResearch/TestHarness/")
 
     th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=toy_train,
-                  testing_data=toy_test, data_and_split_description="testing bba on toy datasets",
+                  testing_data=toy_test, description="testing bba on toy datasets",
                   cols_to_predict='stabilityscore_cnn_calibrated_2classes',
                   feature_cols_to_use=toy_feature_cols, normalize=True, feature_cols_to_normalize=toy_feature_cols,
                   feature_extraction=Names.BBA_AUDIT, predict_untested_data=False, interpret_complex_model=True)

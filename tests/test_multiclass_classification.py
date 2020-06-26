@@ -41,7 +41,7 @@ def main():
     th = TestHarness(output_location=current_path)
 
     th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train,
-                  testing_data=test, data_and_split_description="testing multiclass classification on perovskite data",
+                  testing_data=test, description="testing multiclass classification on perovskite data",
                   cols_to_predict='_out_crystalscore', feature_cols_to_use=feature_cols, normalize=True,
                   feature_cols_to_normalize=feature_cols, feature_extraction=Names.ELI5_PERMUTATION)
 
