@@ -19,7 +19,7 @@ def main():
     regression_prediction_col = "stabilityscore_cnn_calibrated"
     feature_columns = protein_data.columns.values.tolist()[13:]
 
-    harness_output_path = os.path.join(project_path, "tests/predict_only_test")
+    harness_output_path = os.path.join(project_path, "tests/test_model_saving_and_predict_only")
     th = TestHarness(output_location=harness_output_path)
     train_df, test_df = train_test_split(protein_data_1, test_size=0.2, random_state=5, stratify=protein_data_1['topology'])
     index_cols = ["dataset", "name"]
