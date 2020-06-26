@@ -26,7 +26,7 @@ then you must make sure that a COPY of the variable is passed in! Otherwise the 
 
 
 class _BaseRun:
-    def __init__(self, test_harness_model, training_data, testing_data, data_and_split_description,
+    def __init__(self, test_harness_model, training_data, testing_data, description,
                  target_col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
                  feature_extraction, predict_untested_data=False, sparse_cols_to_use=None, loo_dict=False,
                  interpret_complex_model=False, custom_metric=False):
@@ -72,7 +72,7 @@ class _BaseRun:
             self.model_stack_trace = test_harness_model.stack_trace
             self.training_data = training_data.copy()
             self.testing_data = testing_data.copy()
-        self.data_and_split_description = data_and_split_description
+        self.description = description
         self.target_col = target_col
         self.feature_cols_to_use = copy(feature_cols_to_use)
         self.index_cols = copy(index_cols)

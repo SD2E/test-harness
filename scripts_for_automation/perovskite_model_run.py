@@ -270,7 +270,7 @@ def run_configured_test_harness_models_on_80_20_splits(train_set, state_set, col
     for model in MODELS_TO_RUN:
         th.run_custom(function_that_returns_TH_model=model, dict_of_function_parameters={},
                       training_data=train,
-                      testing_data=test, data_and_split_description="test run on perovskite data",
+                      testing_data=test, description="test run on perovskite data",
                       cols_to_predict=col_to_predict,
                       feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
                       feature_extraction=False,

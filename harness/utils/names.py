@@ -30,7 +30,7 @@ class Names:
     MODEL_AUTHOR = "Model Author"
     MODEL_DESCRIPTION = "Model Description"
     COLUMN_PREDICTED = "Column Predicted"
-    DATA_AND_SPLIT_DESCRIPTION = "Data and Split Description"
+    DESCRIPTION = "Description"
     NORMALIZED = "Normalized"
     FEATURE_EXTRACTION = "Feature Extraction"
     WAS_UNTESTED_PREDICTED = "Was Untested Data Predicted"

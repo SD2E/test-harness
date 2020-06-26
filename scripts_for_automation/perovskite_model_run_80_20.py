@@ -55,7 +55,7 @@ def run_configured_test_harness_models_on_80_20_splits(train_set, num_k=5, rando
                           dict_of_function_parameters={},
                           training_data=train,
                           testing_data=test,
-                          data_and_split_description="test run on perovskite data with 80/20 k fold k=%s" % k_ind,
+                          description="test run on perovskite data with 80/20 k fold k=%s" % k_ind,
                           cols_to_predict=col_to_predict,
                           feature_cols_to_use=feature_cols,
                           normalize=True,

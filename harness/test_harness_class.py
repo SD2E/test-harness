@@ -69,7 +69,7 @@ class TestHarness:
 
         custom_cols_1 = [Names.RUN_ID, Names.DATE, Names.TIME, Names.MODEL_NAME, Names.MODEL_AUTHOR]
         custom_cols_2 = [Names.SAMPLES_IN_TRAIN, Names.SAMPLES_IN_TEST, Names.MODEL_DESCRIPTION, Names.COLUMN_PREDICTED,
-                         Names.NUM_FEATURES_USED, Names.DATA_AND_SPLIT_DESCRIPTION, Names.NORMALIZED, Names.NUM_FEATURES_NORMALIZED,
+                         Names.NUM_FEATURES_USED, Names.DESCRIPTION, Names.NORMALIZED, Names.NUM_FEATURES_NORMALIZED,
                          Names.FEATURE_EXTRACTION, Names.WAS_UNTESTED_PREDICTED]
         self.custom_classification_leaderboard_cols = custom_cols_1 + self.classification_metrics + custom_cols_2
         self.custom_regression_leaderboard_cols = custom_cols_1 + self.regression_metrics + custom_cols_2
@@ -103,18 +103,18 @@ class TestHarness:
         print()
 
     # def train_only(self, function_that_returns_TH_model, dict_of_function_parameters, training_data,
-    #                data_and_split_description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
+    #                description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
     #                feature_cols_to_normalize=None, feature_extraction=False, sparse_cols_to_use=None):
     #     self.run_custom(function_that_returns_TH_model=function_that_returns_TH_model,
     #                     dict_of_function_parameters=dict_of_function_parameters,
     #                     training_data=training_data, testing_data=training_data,  # both are the same for train_only
-    #                     data_and_split_description=data_and_split_description,
+    #                     description=description,
     #                     target_cols=target_cols, feature_cols_to_use=feature_cols_to_use, index_cols=index_cols,
     #                     normalize=normalize, feature_cols_to_normalize=feature_cols_to_normalize,
     #                     feature_extraction=feature_extraction, sparse_cols_to_use=sparse_cols_to_use,
     #                     predict_untested_data=False, interpret_complex_model=False, custom_metric=False)
 
-    def predict_only(self, run_id_of_saved_model, description, data_to_predict, index_cols, target_col, feature_cols_to_use):
+    def predict_only(self, run_id_of_saved_model, data_to_predict, index_cols, target_col, feature_cols_to_use):
         """
         TODO: Need to read in saved normalizations too
         TODO: sparse_cols_to_use
@@ -123,9 +123,8 @@ class TestHarness:
         """
         run_id_folder_path_of_saved_model = os.path.join(self.runs_folder_path, run_id_of_saved_model)
 
-        # probably can remove data_and_split_description
         run_object = _BaseRun(test_harness_model=run_id_folder_path_of_saved_model, training_data=None, testing_data=None,
-                              data_and_split_description=description, target_col=target_col, feature_cols_to_use=feature_cols_to_use,
+                              target_col=target_col, feature_cols_to_use=feature_cols_to_use,
                               index_cols=index_cols, normalize=False, feature_cols_to_normalize=False, feature_extraction=False,
                               predict_untested_data=data_to_predict)
 
@@ -143,7 +142,7 @@ class TestHarness:
 
     # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
     def run_custom(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                   data_and_split_description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
+                   description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
                    feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
                    interpret_complex_model=False, custom_metric=False):
         """
@@ -166,7 +165,7 @@ class TestHarness:
 
         for col in target_cols:
             self._execute_run(function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                              data_and_split_description, col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
+                              description, col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
                               feature_extraction, predict_untested_data, sparse_cols_to_use, loo_dict=False,
                               interpret_complex_model=interpret_complex_model, custom_metric=custom_metric)
 
@@ -256,7 +255,7 @@ class TestHarness:
 
             # iterate through the groups (determined by "group_index" column) in the all_data Dataframe:
             for i, group_index in enumerate(list(set(all_data[Names.GROUP_INDEX]))):
-                data_and_split_description = "{}".format(data_description)
+                description = "{}".format(data_description)
                 group_rows = grouping_df.loc[grouping_df[Names.GROUP_INDEX] == group_index]
                 group_info = group_rows.to_dict(orient='list')
                 print("Creating test split based on {} {}".format(Names.GROUP_INDEX, group_index))
@@ -278,7 +277,7 @@ class TestHarness:
                                   dict_of_function_parameters=dict_of_function_parameters,
                                   training_data=train_split,
                                   testing_data=test_split,
-                                  data_and_split_description=data_and_split_description,
+                                  description=description,
                                   target_col=col,
                                   feature_cols_to_use=feature_cols_to_use,
                                   index_cols=index_cols,
@@ -375,7 +374,7 @@ class TestHarness:
             summary_leaderboard.to_csv(csv_path, index=False)
 
     def validate_execute_run_inputs(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                                    data_and_split_description, target_col, feature_cols_to_use, index_cols, normalize,
+                                    description, target_col, feature_cols_to_use, index_cols, normalize,
                                     feature_cols_to_normalize, feature_extraction, predict_untested_data, sparse_cols_to_use,
                                     custom_metric):
         # Single strings are included in the assert error messages because the make_list_if_not_list function was used
@@ -385,7 +384,7 @@ class TestHarness:
             "dict_of_function_parameters must be a dictionary of parameters for the function_that_returns_TH_model function."
         assert isinstance(training_data, pd.DataFrame), "training_data must be a Pandas Dataframe"
         assert isinstance(testing_data, pd.DataFrame), "testing_data must be a Pandas Dataframe"
-        assert isinstance(data_and_split_description, string_types), "data_and_split_description must be a string"
+        assert isinstance(description, string_types), "description must be a string"
         assert isinstance(target_col, string_types), "target_col must be a string"
         assert is_list_of_strings(feature_cols_to_use), "feature_cols_to_use must be a string or a list of strings"
         assert isinstance(normalize, bool), "normalize must be True or False"
@@ -418,7 +417,7 @@ class TestHarness:
 
     # TODO: replace loo_dict with type_dict --> first entry is run type --> this will allow for more types in the future
     def _execute_run(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                     data_and_split_description, target_col, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
+                     description, target_col, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
                      feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
                      loo_dict=False, interpret_complex_model=False, custom_metric=False):
         """
@@ -428,7 +427,7 @@ class TestHarness:
         """
         # TODO: add checks to ensure index_cols represent unique values in training, testing, and prediction dataframes
         self.validate_execute_run_inputs(function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                                         data_and_split_description, target_col, feature_cols_to_use, index_cols, normalize,
+                                         description, target_col, feature_cols_to_use, index_cols, normalize,
                                          feature_cols_to_normalize, feature_extraction, predict_untested_data, sparse_cols_to_use,
                                          custom_metric)
 
@@ -449,7 +448,7 @@ class TestHarness:
         test_harness_model = function_that_returns_TH_model(**dict_of_function_parameters)
 
         # This is the one and only time _BaseRun is invoked
-        run_object = _BaseRun(test_harness_model, train_df, test_df, data_and_split_description, target_col,
+        run_object = _BaseRun(test_harness_model, train_df, test_df, description, target_col,
                               copy(feature_cols_to_use), copy(index_cols), normalize, copy(feature_cols_to_normalize), feature_extraction,
                               pred_df, copy(sparse_cols_to_use), loo_dict, interpret_complex_model, custom_metric)
 
@@ -583,7 +582,7 @@ class TestHarness:
                       Names.MODEL_NAME: run_object.model_name, Names.MODEL_AUTHOR: run_object.model_author,
                       Names.MODEL_DESCRIPTION: run_object.model_description, Names.COLUMN_PREDICTED: run_object.target_col,
                       Names.NUM_FEATURES_USED: run_object.metrics_dict[Names.NUM_FEATURES_USED],
-                      Names.DATA_AND_SPLIT_DESCRIPTION: run_object.data_and_split_description, Names.NORMALIZED: run_object.normalize,
+                      Names.DESCRIPTION: run_object.description, Names.NORMALIZED: run_object.normalize,
                       Names.NUM_FEATURES_NORMALIZED: run_object.metrics_dict[Names.NUM_FEATURES_NORMALIZED],
                       Names.FEATURE_EXTRACTION: run_object.feature_extraction,
                       Names.WAS_UNTESTED_PREDICTED: run_object.was_untested_data_predicted}
