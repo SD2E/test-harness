@@ -124,7 +124,7 @@ class TestHarness:
         TODO: potentially make an internal table that tracks prediction runs/outputs
           - for now it will always output the prediction to predicted_data.csv in the appropriate run folder.
         """
-        run_id_of_saved_model = 'run_'+run_id_of_saved_model
+        run_id_of_saved_model = 'run_' + run_id_of_saved_model
         run_id_folder_path_of_saved_model = os.path.join(self.runs_folder_path, run_id_of_saved_model)
 
         run_object = _BaseRun(test_harness_model=run_id_folder_path_of_saved_model, training_data=None, testing_data=None,
@@ -473,7 +473,7 @@ class TestHarness:
         # this adds a line of dashes to signify the beginning of the model run
         print('-' * 100)
 
-        print('Starting run of model {} at time {}'.format(datetime.now().strftime("%H:%M:%S"), function_that_returns_TH_model.__name__))
+        print('Starting run of model {} at time {}'.format(function_that_returns_TH_model.__name__, datetime.now().strftime("%H:%M:%S")))
         run_object.train_and_test_model()
         run_object.calculate_metrics()
 
