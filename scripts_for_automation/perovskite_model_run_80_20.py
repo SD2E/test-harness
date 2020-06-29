@@ -36,7 +36,7 @@ NUM_PREDICTIONS = 100
 AUTH_TOKEN = '4a8751b83c9744234367b52c58f4c46a53f5d0e0225da3f9c32ed238b7f82a69'
 
 
-def run_configured_test_harness_models_on_80_20_splits(train_set, num_k=5, random_state=42, col_to_predict='binarized_crystalscore'):
+def run_configured_test_harness_models_on_80_20_splits(train_set, num_k=5, random_state=42, target_col='binarized_crystalscore'):
 
     # Test Harness use starts here:
     current_path = os.getcwd()
@@ -56,7 +56,7 @@ def run_configured_test_harness_models_on_80_20_splits(train_set, num_k=5, rando
                           training_data=train,
                           testing_data=test,
                           description="test run on perovskite data with 80/20 k fold k=%s" % k_ind,
-                          cols_to_predict=col_to_predict,
+                          target_cols=target_col,
                           feature_cols_to_use=feature_cols,
                           normalize=True,
                           feature_cols_to_normalize=feature_cols,

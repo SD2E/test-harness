@@ -258,7 +258,7 @@ def configure_input_df_for_test_harness(train_set):
     return train_set, feature_cols
 
 
-def run_configured_test_harness_models_on_80_20_splits(train_set, state_set, col_to_predict='binarized_crystalscore'):
+def run_configured_test_harness_models_on_80_20_splits(train_set, state_set, target_col='binarized_crystalscore'):
     train_set, feature_cols = configure_input_df_for_test_harness(train_set)
     train, test = train_test_split(train_set, test_size=0.2, random_state=5, stratify=train_set[['dataset']])
 
@@ -271,7 +271,7 @@ def run_configured_test_harness_models_on_80_20_splits(train_set, state_set, col
         th.run_custom(function_that_returns_TH_model=model, dict_of_function_parameters={},
                       training_data=train,
                       testing_data=test, description="test run on perovskite data",
-                      cols_to_predict=col_to_predict,
+                      target_cols=target_col,
                       feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
                       feature_extraction=False,
                       predict_untested_data=state_set,
@@ -281,7 +281,7 @@ def run_configured_test_harness_models_on_80_20_splits(train_set, state_set, col
     return th.list_of_this_instance_run_ids
 
 
-def run_configured_test_harness_models_on_loo_amine_data(train_set, state_set, col_to_predict='binarized_crystalscore'):
+def run_configured_test_harness_models_on_loo_amine_data(train_set, state_set, target_col='binarized_crystalscore'):
     train_set, feature_cols = configure_input_df_for_test_harness(train_set)
     # Test Harness use starts here:
     current_path = os.getcwd()
@@ -298,7 +298,7 @@ def run_configured_test_harness_models_on_loo_amine_data(train_set, state_set, c
                              data_description="Leave-one-out-amine run",
                              grouping=grouping_df,
                              grouping_description="amine",
-                             cols_to_predict=col_to_predict,
+                             target_cols=target_col,
                              feature_cols_to_use=feature_cols,
                              index_cols=["dataset", "name", "_rxn_M_inorganic", "_rxn_M_organic", "_rxn_M_acid"],
                              normalize=True,

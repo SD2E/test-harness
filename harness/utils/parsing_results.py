@@ -76,19 +76,19 @@ def get_classification_results_query(query, th_output_location, loo=False, file_
     :return:
     '''
     df_leaderboard_sub = query_leaderboard(query=query,th_output_location=th_output_location,loo=loo,classification=True)
-    col_to_predict = df_leaderboard_sub[Names.COLUMN_PREDICTED].unique()
-    if len(col_to_predict)>1:
-        raise RuntimeError('This function can only be used when you have a single predicted column. You currently have {0}'.format(len(col_to_predict)))
-    print("Column to predict",col_to_predict)
+    target_col = df_leaderboard_sub[Names.COLUMN_PREDICTED].unique()
+    if len(target_col)>1:
+        raise RuntimeError('This function can only be used when you have a single predicted column. You currently have {0}'.format(len(target_col)))
+    print("Column to predict",target_col)
 
     paths = get_result_csv_paths_query(query=query,th_output_location=th_output_location,loo=loo,file_type=file_type,classification=True)
     dfs = []
     for path in paths:
         df = pd.read_csv(path)
         if correct:
-            df = df.loc[(df[col_to_predict[0]] == df[col_to_predict[0]+'_predictions'])]
+            df = df.loc[(df[target_col[0]] == df[target_col[0]+'_predictions'])]
         else:
-            df = df.loc[~(df[col_to_predict[0]] == df[col_to_predict[0] + '_predictions'])]
+            df = df.loc[~(df[target_col[0]] == df[target_col[0] + '_predictions'])]
         if loo:
             df['loo_id'] = paths[path]['loo_id']
         df['run_id'] = paths[path]['run_id']
@@ -107,16 +107,16 @@ def get_roc_curve_query(query, th_output_location, loo=False, file_type=Names.TE
     :return:
     '''
     df_leaderboard_sub = query_leaderboard(query=query,th_output_location=th_output_location,loo=loo,classification=True)
-    col_to_predict = df_leaderboard_sub[Names.COLUMN_PREDICTED].unique()
-    if len(col_to_predict)>1:
-        raise RuntimeError('This function can only be used when you have a single predicted column. You currently have {0}'.format(len(col_to_predict)))
-    print("Column to predict",col_to_predict)
+    target_col = df_leaderboard_sub[Names.COLUMN_PREDICTED].unique()
+    if len(target_col)>1:
+        raise RuntimeError('This function can only be used when you have a single predicted column. You currently have {0}'.format(len(target_col)))
+    print("Column to predict",target_col)
     paths = get_result_csv_paths_query(query=query,th_output_location=th_output_location,loo=loo,file_type=file_type,classification=True)
     dfs = []
     for path in paths:
         df_preds = pd.read_csv(path)
-        y_true = df_preds[col_to_predict[0]].tolist()
-        y_probas = df_preds[col_to_predict[0]+'_prob_predictions'].tolist()
+        y_true = df_preds[target_col[0]].tolist()
+        y_probas = df_preds[target_col[0]+'_prob_predictions'].tolist()
         fpr, tpr, threshold = metrics.roc_curve(y_true, y_probas)
         ###TODO: NEED TO FIGURE OUT WHAT TO DO WITH THIS!
 

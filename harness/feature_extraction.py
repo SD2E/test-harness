@@ -41,7 +41,7 @@ class FeatureExtractor:
         if method == Names.ELI5_PERMUTATION:
             pi_object = PermutationImportance(self.base_run_instance.test_harness_model.model)
             pi_object.fit(self.base_run_instance.testing_data[self.base_run_instance.feature_cols_to_use],
-                          self.base_run_instance.testing_data[self.base_run_instance.col_to_predict]
+                          self.base_run_instance.testing_data[self.base_run_instance.target_col]
                           )
             feature_importances_df = pd.DataFrame()
             feature_importances_df["Feature"] = self.base_run_instance.feature_cols_to_use
@@ -52,7 +52,7 @@ class FeatureExtractor:
         elif method == Names.RFPIMP_PERMUTATION:
             pis = rfpimp.importances(self.base_run_instance.test_harness_model.model,
                                      self.base_run_instance.testing_data[self.base_run_instance.feature_cols_to_use],
-                                     self.base_run_instance.testing_data[self.base_run_instance.col_to_predict])
+                                     self.base_run_instance.testing_data[self.base_run_instance.target_col])
             pis['Feature'] = pis.index
             pis.reset_index(inplace=True, drop=True)
             pis = pis[['Feature', 'Importance']]
@@ -67,7 +67,7 @@ class FeatureExtractor:
                                           testing_data=self.base_run_instance.testing_data.copy(),
                                           features=self.base_run_instance.feature_cols_to_use,
                                           classifier=self.base_run_instance.test_harness_model.model,
-                                          col_to_predict=self.base_run_instance.col_to_predict)
+                                          target_col=self.base_run_instance.target_col)
             feature_importances_df = pd.DataFrame(data, columns=["Feature", "Importance"])
             self.feature_importances = feature_importances_df.copy()
 
@@ -182,10 +182,10 @@ class FeatureExtractor:
                           testing_data,
                           features,
                           classifier,
-                          col_to_predict):
+                          target_col):
         combined_df = training_data.append(testing_data)
         X = combined_df[features]
-        y = pd.DataFrame(combined_df[col_to_predict], columns=[col_to_predict])
+        y = pd.DataFrame(combined_df[target_col], columns=[target_col])
 
         data = BBA.data.load_testdf_only(X, y)
         response_index = len(data[0]) - 1
