@@ -2,8 +2,6 @@ import os
 import pandas as pd
 import sklearn.metrics as metrics
 
-
-
 from harness.utils.names import Names
 
 pd.set_option('display.max_columns', 500)
@@ -21,18 +19,18 @@ def get_leaderboard(th_output_location=None, loo=True, classification=True):
     '''
     if th_output_location is None:
         th_output_location = os.getcwd()
-    th_output_location = os.path.join(th_output_location,'test_harness_results')
+    th_output_location = os.path.join(th_output_location, 'test_harness_results')
 
     if loo:
         if classification:
-            leaderboard = pd.read_html(os.path.join(th_output_location,Names.LOO_FULL_CLASS_LBOARD+'.html'))[0]
+            leaderboard = pd.read_html(os.path.join(th_output_location, Names.LOO_FULL_CLASS_LBOARD + '.html'))[0]
         else:
-            leaderboard = pd.read_html(os.path.join(th_output_location,Names.LOO_FULL_REG_LBOARD+'.html'))[0]
+            leaderboard = pd.read_html(os.path.join(th_output_location, Names.LOO_FULL_REG_LBOARD + '.html'))[0]
     else:
         if classification:
-            leaderboard = pd.read_html(os.path.join(th_output_location,Names.CUSTOM_CLASS_LBOARD+'.html'))[0]
+            leaderboard = pd.read_html(os.path.join(th_output_location, Names.CUSTOM_CLASS_LBOARD + '.html'))[0]
         else:
-            leaderboard = pd.read_html(os.path.join(th_output_location,Names.CUSTOM_REG_LBOARD+'.html'))[0]
+            leaderboard = pd.read_html(os.path.join(th_output_location, Names.CUSTOM_REG_LBOARD + '.html'))[0]
     return leaderboard
 
 
@@ -50,18 +48,17 @@ def get_result_csv_paths(loo_or_run_ids, th_output_location=None, file_type=Name
     for item in loo_or_run_ids:
         output_csv_paths = {}
         if type(loo_or_run_ids) == list:
-            output_csv_path = os.path.join(th_output_location,'test_harness_results','runs','run_'+item,Names.OUTPUT_FILES[file_type])
-            output_csv_paths[output_csv_path]={}
+            output_csv_path = os.path.join(th_output_location, 'test_harness_results', 'runs', 'run_' + item, Names.OUTPUT_FILES[file_type])
+            output_csv_paths[output_csv_path] = {}
             output_csv_paths[output_csv_path]['run_id'] = item
         else:
             for run_id in loo_or_run_ids[item]:
-                output_csv_path = os.path.join(th_output_location,'test_harness_results','runs','loo_'+item, 'run_' + run_id,
-                                                   Names.OUTPUT_FILES[file_type])
+                output_csv_path = os.path.join(th_output_location, 'test_harness_results', 'runs', 'loo_' + item, 'run_' + run_id,
+                                               Names.OUTPUT_FILES[file_type])
                 output_csv_paths[output_csv_path] = {}
-                output_csv_paths[output_csv_path]['run_id']= run_id
+                output_csv_paths[output_csv_path]['run_id'] = run_id
                 output_csv_paths[output_csv_path]['loo_id'] = item
     return output_csv_paths
-
 
 
 def get_classification_results_query(query, th_output_location, loo=False, file_type=Names.TESTING_DATA, correct=True):
@@ -75,18 +72,20 @@ def get_classification_results_query(query, th_output_location, loo=False, file_
     :param correct: Boolean, if True, get correct classsification results, if False get incorrect
     :return:
     '''
-    df_leaderboard_sub = query_leaderboard(query=query,th_output_location=th_output_location,loo=loo,classification=True)
+    df_leaderboard_sub = query_leaderboard(query=query, th_output_location=th_output_location, loo=loo, classification=True)
     target_col = df_leaderboard_sub[Names.COLUMN_PREDICTED].unique()
-    if len(target_col)>1:
-        raise RuntimeError('This function can only be used when you have a single predicted column. You currently have {0}'.format(len(target_col)))
-    print("Column to predict",target_col)
+    if len(target_col) > 1:
+        raise RuntimeError(
+            'This function can only be used when you have a single predicted column. You currently have {0}'.format(len(target_col)))
+    print("Column to predict", target_col)
 
-    paths = get_result_csv_paths_query(query=query,th_output_location=th_output_location,loo=loo,file_type=file_type,classification=True)
+    paths = get_result_csv_paths_query(query=query, th_output_location=th_output_location, loo=loo, file_type=file_type,
+                                       classification=True)
     dfs = []
     for path in paths:
         df = pd.read_csv(path)
         if correct:
-            df = df.loc[(df[target_col[0]] == df[target_col[0]+'_predictions'])]
+            df = df.loc[(df[target_col[0]] == df[target_col[0] + '_predictions'])]
         else:
             df = df.loc[~(df[target_col[0]] == df[target_col[0] + '_predictions'])]
         if loo:
@@ -95,6 +94,7 @@ def get_classification_results_query(query, th_output_location, loo=False, file_
         dfs.append(df)
     df_all = pd.concat(dfs)
     return df_all
+
 
 def get_roc_curve_query(query, th_output_location, loo=False, file_type=Names.TESTING_DATA):
     '''
@@ -106,22 +106,24 @@ def get_roc_curve_query(query, th_output_location, loo=False, file_type=Names.TE
     :param file_type: one of the output of the files
     :return:
     '''
-    df_leaderboard_sub = query_leaderboard(query=query,th_output_location=th_output_location,loo=loo,classification=True)
+    df_leaderboard_sub = query_leaderboard(query=query, th_output_location=th_output_location, loo=loo, classification=True)
     target_col = df_leaderboard_sub[Names.COLUMN_PREDICTED].unique()
-    if len(target_col)>1:
-        raise RuntimeError('This function can only be used when you have a single predicted column. You currently have {0}'.format(len(target_col)))
-    print("Column to predict",target_col)
-    paths = get_result_csv_paths_query(query=query,th_output_location=th_output_location,loo=loo,file_type=file_type,classification=True)
+    if len(target_col) > 1:
+        raise RuntimeError(
+            'This function can only be used when you have a single predicted column. You currently have {0}'.format(len(target_col)))
+    print("Column to predict", target_col)
+    paths = get_result_csv_paths_query(query=query, th_output_location=th_output_location, loo=loo, file_type=file_type,
+                                       classification=True)
     dfs = []
     for path in paths:
         df_preds = pd.read_csv(path)
         y_true = df_preds[target_col[0]].tolist()
-        y_probas = df_preds[target_col[0]+'_prob_predictions'].tolist()
+        y_probas = df_preds[target_col[0] + '_prob_predictions'].tolist()
         fpr, tpr, threshold = metrics.roc_curve(y_true, y_probas)
         ###TODO: NEED TO FIGURE OUT WHAT TO DO WITH THIS!
 
 
-def get_result_csv_paths_query(query, th_output_location, loo=False, classification=False,file_type=Names.TESTING_DATA):
+def get_result_csv_paths_query(query, th_output_location, loo=False, classification=False, file_type=Names.TESTING_DATA):
     '''
     Get the results of a leaderboard from a query
     :param query: query
@@ -133,20 +135,21 @@ def get_result_csv_paths_query(query, th_output_location, loo=False, classificat
     '''
     df_sub = query_leaderboard(query, th_output_location, loo=loo, classification=classification)
     if loo:
-        loo_or_run_ids={}
+        loo_or_run_ids = {}
         for ind in df_sub.index:
-            loo_id = df_sub.loc[ind,Names.LOO_ID]
-            run_id = df_sub.loc[ind,Names.RUN_ID]
+            loo_id = df_sub.loc[ind, Names.LOO_ID]
+            run_id = df_sub.loc[ind, Names.RUN_ID]
             if loo_id not in loo_or_run_ids:
-                loo_or_run_ids[loo_id]=[]
+                loo_or_run_ids[loo_id] = []
             loo_or_run_ids[loo_id].append(run_id)
     else:
         loo_or_run_ids = df_sub[Names.RUN_ID].tolist()
-    paths = get_result_csv_paths(loo_or_run_ids=loo_or_run_ids,th_output_location=th_output_location,file_type=file_type)
+    paths = get_result_csv_paths(loo_or_run_ids=loo_or_run_ids, th_output_location=th_output_location, file_type=file_type)
     return paths
 
 
-def join_new_data_with_predictions(df_test,index_col_new_data,index_col_predictions_data,query, th_output_location, loo=False, classification=False,file_type=Names.PREDICTED_DATA):
+def join_new_data_with_predictions(df_test, index_col_new_data, index_col_predictions_data, query, th_output_location, loo=False,
+                                   classification=False, file_type=Names.PREDICTED_DATA):
     '''
     You have made a set of predictions and you want to now compare it with passed models predictions
     :param df: a new dataframe generated from data in the lab to compare with prediction dataframe
@@ -159,7 +162,6 @@ def join_new_data_with_predictions(df_test,index_col_new_data,index_col_predicti
     :return: dataframe that can be used for comparison
     '''
 
-
     paths = get_result_csv_paths_query(query=query, th_output_location=th_output_location, loo=loo, file_type=file_type,
                                        classification=True)
     dfs = []
@@ -168,7 +170,8 @@ def join_new_data_with_predictions(df_test,index_col_new_data,index_col_predicti
         if loo:
             df['loo_id'] = paths[path]['loo_id']
         df['run_id'] = paths[path]['run_id']
-        df = df.merge(df_test,left_on=index_col_predictions_data,right_on=index_col_new_data,how='outer',suffixes=('_predicted','_actual'))
+        df = df.merge(df_test, left_on=index_col_predictions_data, right_on=index_col_new_data, how='outer',
+                      suffixes=('_predicted', '_actual'))
         dfs.append(df)
     df_all = pd.concat(dfs)
     return df_all
@@ -202,12 +205,10 @@ if __name__ == '__main__':
     th_location = '/Users/meslami/Documents/GitRepos/test-harness/example_scripts/Data_Sharing_Demo'
 
     # Example of use of query to subset leaderboard
-    query = {Names.MODEL_NAME:'random_forest',Names.TEST_GROUP:"topology: EHEE"}
-    sub_df = query_leaderboard(query, th_location, loo=True,classification=True)
+    query = {Names.MODEL_NAME: 'random_forest', Names.TEST_GROUP: "topology: EHEE"}
+    sub_df = query_leaderboard(query, th_location, loo=True, classification=True)
 
     # Example of use of query to get incorrect results
     query = {Names.MODEL_NAME: 'random_forest', Names.TEST_GROUP: "topology: EHEE"}
-    sub_df = get_classification_results_query(query, th_location, loo=True , correct=False)
+    sub_df = get_classification_results_query(query, th_location, loo=True, correct=False)
     print(sub_df.head)
-
-
