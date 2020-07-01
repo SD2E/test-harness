@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from pathlib import Path
 import joblib
-from tests.check_harness_outputs_vs_inputs import compare_cols_of_two_equally_shaped_dataframes
+from tests.test_alignment_of_outputs_vs_inputs import compare_cols_of_two_equally_shaped_dataframes
 
 
 def main():
