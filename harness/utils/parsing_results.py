@@ -163,7 +163,7 @@ def join_new_data_with_predictions(df_test, index_col_new_data, index_col_predic
     '''
 
     paths = get_result_csv_paths_query(query=query, th_output_location=th_output_location, loo=loo, file_type=file_type,
-                                       classification=True)
+                                       classification=classification)
     dfs = []
     for path in paths:
         df = pd.read_csv(path)
