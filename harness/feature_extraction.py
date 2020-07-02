@@ -41,7 +41,7 @@ class FeatureExtractor:
         if method == Names.ELI5_PERMUTATION:
             pi_object = PermutationImportance(self.base_run_instance.test_harness_model.model)
             pi_object.fit(self.base_run_instance.testing_data[self.base_run_instance.feature_cols_to_use],
-                          self.base_run_instance.testing_data[self.base_run_instance.col_to_predict]
+                          self.base_run_instance.testing_data[self.base_run_instance.target_col]
                           )
             feature_importances_df = pd.DataFrame()
             feature_importances_df["Feature"] = self.base_run_instance.feature_cols_to_use
@@ -52,7 +52,7 @@ class FeatureExtractor:
         elif method == Names.RFPIMP_PERMUTATION:
             pis = rfpimp.importances(self.base_run_instance.test_harness_model.model,
                                      self.base_run_instance.testing_data[self.base_run_instance.feature_cols_to_use],
-                                     self.base_run_instance.testing_data[self.base_run_instance.col_to_predict])
+                                     self.base_run_instance.testing_data[self.base_run_instance.target_col])
             pis['Feature'] = pis.index
             pis.reset_index(inplace=True, drop=True)
             pis = pis[['Feature', 'Importance']]
@@ -67,7 +67,7 @@ class FeatureExtractor:
                                           testing_data=self.base_run_instance.testing_data.copy(),
                                           features=self.base_run_instance.feature_cols_to_use,
                                           classifier=self.base_run_instance.test_harness_model.model,
-                                          col_to_predict=self.base_run_instance.col_to_predict)
+                                          target_col=self.base_run_instance.target_col)
             feature_importances_df = pd.DataFrame(data, columns=["Feature", "Importance"])
             self.feature_importances = feature_importances_df.copy()
 
@@ -87,13 +87,12 @@ class FeatureExtractor:
         import warnings
         warnings.filterwarnings('ignore')
 
-        
         #######
         features = self.base_run_instance.feature_cols_to_use
-        
+
         train_X = self.base_run_instance.training_data[features].copy()
         test_X = self.base_run_instance.testing_data[features].copy()
-        
+
         train_X_df = pd.DataFrame(data=train_X, columns=features)
         test_X_df = pd.DataFrame(data=test_X, columns=features)
 
@@ -101,25 +100,23 @@ class FeatureExtractor:
         # a set of weighted kmeans, each weighted by the number of points they represent. (from shap notebook)
         X_train_summary = shap.kmeans(train_X, 10)
 
+        shap.initjs()
 
-        shap.initjs()      
-        
         explainer = None
-        
-        if self.base_run_instance.run_type==Names.CLASSIFICATION:
-            
+
+        if self.base_run_instance.run_type == Names.CLASSIFICATION:
+
             print("CLASSIFICATION PATH")
-            
+
             f = self.base_run_instance.test_harness_model._predict_proba
             med = train_X_df.median().values.reshape((1, train_X_df.shape[1]))
             explainer = shap.KernelExplainer(f, med)
-        elif self.base_run_instance.run_type==Names.REGRESSION:
-            
+        elif self.base_run_instance.run_type == Names.REGRESSION:
+
             print("REGRESSION PATH")
-            
+
             explainer = shap.KernelExplainer(self.base_run_instance.test_harness_model._predict, X_train_summary)
-        
-        
+
         shap_values = explainer.shap_values(test_X_df)
 
         # store shap_values so they can be accessed and output by TestHarness class
@@ -182,40 +179,38 @@ class FeatureExtractor:
                           testing_data,
                           features,
                           classifier,
-                          col_to_predict):
+                          target_col):
         combined_df = training_data.append(testing_data)
         X = combined_df[features]
-        y = pd.DataFrame(combined_df[col_to_predict], columns=[col_to_predict])
+        y = pd.DataFrame(combined_df[target_col], columns=[target_col])
 
         data = BBA.data.load_testdf_only(X, y)
         response_index = len(data[0]) - 1
         auditor = BBA.Auditor()
         auditor.trained_model = SKLearnModelVisitor(classifier, response_index)
-        #auditor(data)
-        
-        #make a directory name for tracking the audit later
+        # auditor(data)
+
+        # make a directory name for tracking the audit later
         dir_name = "audits/{}".format(time.time())
-        auditor(data,output_dir=dir_name)
-        print('BBA audit data stored in %s'%dir_name)
+        auditor(data, output_dir=dir_name)
+        print('BBA audit data stored in %s' % dir_name)
 
-        #make a consistency graph, along with the consistency data
-        BBA.consistency_graph.graph_prediction_consistency(dir_name,'consistency_graph.png')
+        # make a consistency graph, along with the consistency data
+        BBA.consistency_graph.graph_prediction_consistency(dir_name, 'consistency_graph.png')
 
-        #make feature importance bar plot
+        # make feature importance bar plot
         plt.close('all')
-        bba_audit = pd.DataFrame(auditor._audits_data["ranks"],columns=['Feature','Importance'])
+        bba_audit = pd.DataFrame(auditor._audits_data["ranks"], columns=['Feature', 'Importance'])
         n_features = len(bba_audit['Feature'].values)
-        fig,ax = plt.subplots(figsize=[.25*n_features,1.25*n_features]) #will be longer/shorter depending of n of features
-        ax.set_title("Feature Importances for BBA Audit (Accuracy)",{"fontsize":20})
-        plt.barh(y=bba_audit['Importance'].index,width=bba_audit['Importance'],tick_label=bba_audit['Feature'])
+        fig, ax = plt.subplots(figsize=[.25 * n_features, 1.25 * n_features])  # will be longer/shorter depending of n of features
+        ax.set_title("Feature Importances for BBA Audit (Accuracy)", {"fontsize": 20})
+        plt.barh(y=bba_audit['Importance'].index, width=bba_audit['Importance'], tick_label=bba_audit['Feature'])
         plt.xlabel("Importance")
-        ax.set_yticklabels(bba_audit['Feature'],{"fontsize":16})
+        ax.set_yticklabels(bba_audit['Feature'], {"fontsize": 16})
         plt.show()
         self.bba_plots_dict['bar_plot'] = plt.gcf()
         plt.close('all')
-        
-        
+
         print("BBA AUDITOR RESULTS:\n")
         print(auditor._audits_data["ranks"])
         return auditor._audits_data["ranks"]
-        
