@@ -624,7 +624,7 @@ class TestHarness:
                 pred_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.prob_predictions_col,
                                                               run_object.rankings_col]
             elif run_object.run_type == Names.REGRESSION:
-                test_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.residuals_col]
+                test_cols_to_output = train_cols_to_output + [run_object.predictions_col, run_object.residuals_col]
                 pred_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.rankings_col]
             elif run_object.run_type == Names.PREDICT_ONLY:
                 test_cols_to_output = None

@@ -50,7 +50,6 @@ def main():
         raise NotImplementedError("{} is not implemented".format(test_model_type))
 
     last_run = th.list_of_this_instance_run_ids[-1]
-    last_run = "run_" + last_run
     print(last_run)
 
     th.predict_only(run_id_of_saved_model=last_run,
@@ -61,7 +60,7 @@ def main():
 
     # read in predicted_data.csv file:
     read_in_predicted_data = pd.read_csv(os.path.join(harness_output_path,
-                                                      "test_harness_results/runs/{}/predicted_data.csv".format(last_run)))
+                                                      "test_harness_results/runs/run_{}/predicted_data.csv".format(last_run)))
     print(read_in_predicted_data.head())
 
 
