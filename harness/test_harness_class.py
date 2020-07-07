@@ -212,6 +212,7 @@ class TestHarness:
         return grouping_df, data_cols, cols_to_group_on
 
     # TODO: add sparse cols to leave one out
+    # TODO: utilize sklearn's LeavePGroupsOut or LeaveOneGroupOut instead
     def run_leave_one_out(self, function_that_returns_TH_model, dict_of_function_parameters, data, data_description, grouping,
                           grouping_description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
                           feature_cols_to_normalize=None, feature_extraction=False, sparse_cols_to_use=None):
@@ -444,7 +445,10 @@ class TestHarness:
         else:
             pred_df = False
 
-        # for each col in index_cols, create a copy with and "unchanged_" prefix added, because later we want to
+        # TODO: make this check for columns that are in index_cols AND feature_cols_to_normalize
+        # TODO: because only columns that are in feature_cols_to_normalize would be changed I believe
+        # TODO: alternatively just output train/test at the beginning and get rid of this "unchanged" business
+        # for each col in index_cols, create a copy with an "unchanged_" prefix added, because later we want to
         # output the original column that hasn't been changed by operations such as normalization
         for col in index_cols:
             train_df["unchanged_{}".format(col)] = train_df[col]
@@ -648,12 +652,11 @@ class TestHarness:
 
             if run_object.was_untested_data_predicted is not False:
                 # TODO: make this work, using simpler output for now:
-                '''
-                prediction_data_to_output = run_object.untested_data_predictions[pred_cols_to_output].copy()
-                for col in unchanged_index_cols:
-                    prediction_data_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
-                prediction_data_to_output.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
-                '''
+                # prediction_data_to_output = run_object.untested_data_predictions[pred_cols_to_output].copy()
+                # for col in unchanged_index_cols:
+                #     prediction_data_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
+                # prediction_data_to_output.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
+
                 prediction_data_to_output = run_object.untested_data_predictions.copy()
                 if self.compress_large_csvs:
                     prediction_data_to_output.to_csv('{}/{}'.format(output_path, 'predicted_data.csv.gz'), index=False, compression="gzip")

@@ -36,6 +36,11 @@ class _BaseRun:
             self.run_type = Names.PREDICT_ONLY
             self.trained_model_path = test_harness_model
             self.saved_scaler, self.test_harness_model = self.load_scaler_and_trained_model(self.trained_model_path)
+            print(self.saved_scaler)
+            print(self.test_harness_model)
+            print()
+            import sys
+            sys.exit(0)
             if isinstance(test_harness_model, ClassificationModel):
                 print("ClassificationModel!")
             elif isinstance(test_harness_model, RegressionModel):
