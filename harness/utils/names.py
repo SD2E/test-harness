@@ -71,4 +71,3 @@ class Names:
 
     TEST_HARNESS_RESULTS_DIR = "test_harness_results"
     RUNS_DIR = "runs"
-    PREDICT_ONLY = "predict_only"
