@@ -519,7 +519,7 @@ class TestHarness:
         end = time.time()
         print('Run finished at {}.'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
         print('^' * 100)  # this adds a line of ^ to signify the end of of the model run
-        print("\n\n\n")
+        print("\n\n")
 
     def _update_leaderboard(self, run_object):
         # find appropriate leaderboard to update based on run_object characteristics
