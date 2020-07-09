@@ -85,7 +85,7 @@ def custom_run_preds_tester(harness_output_path, train_df, test_df, target_col, 
     # read in and print predicted_data.csv generated from setting predict_untested_data=True in run_custom:
     predicted_data_1 = pd.read_csv(os.path.join(harness_output_path,
                                                 "test_harness_results/runs/run_{}/predicted_data.csv".format(last_run)))
-    # print(predicted_data_1.head(), "\n")
+    print(predicted_data_1.head(), "\n")
 
     # now testing out the predict_only method...
     th2 = TestHarness(output_location=harness_output_path)
@@ -93,12 +93,13 @@ def custom_run_preds_tester(harness_output_path, train_df, test_df, target_col, 
                      data_to_predict=data_to_predict,
                      index_cols=index_cols,
                      target_col=target_col,
-                     feature_cols_to_use=feature_columns)
+                     feature_cols_to_use=feature_columns,
+                     sparse_cols_to_use=sparse_cols)
 
     # read in and print predicted_data.csv generated from predict_only method (will overwrite the previous one):
     predicted_data_2 = pd.read_csv(os.path.join(harness_output_path,
                                                 "test_harness_results/runs/run_{}/predicted_data.csv".format(last_run)))
-    # print(predicted_data_2.head(), "\n")
+    print(predicted_data_2.head(), "\n")
 
     # testing if predicted_data_1 has the same or similar predictions to predicted_data_2
     if len(predicted_data_1) != len(predicted_data_2):

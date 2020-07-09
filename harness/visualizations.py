@@ -10,7 +10,7 @@ from harness.utils.names import Names
 
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)
-pd.set_option('display.max_colwidth', -1)
+pd.set_option('display.max_colwidth', None)
 
 
 def vis_barplot(data_df, x_colname, y_colname, title, x_label, y_label, color_by_col, hue_order=None, palette="colorblind",
