@@ -209,27 +209,32 @@ class _BaseRun:
         if self.predict_untested_data is not False:
             untested_df = self.predict_untested_data.copy()
             if self.saved_scaler is not None:
-                # TODO: figure out why the following line isn't working
-                # untested_df[self.feature_cols_to_normalize] = self.saved_scaler.transform(untested_df[self.feature_cols_to_normalize])
-                pass
+                untested_df[self.feature_cols_to_normalize] = self.saved_scaler.transform(untested_df[self.feature_cols_to_normalize])
         else:
             raise ValueError("Can't predict if no dataframe was passed in to self.predict_untested_data")
 
         prediction_start_time = time.time()
 
-        # this ensures that the feature columns that are output are original columns and not scaled columns
-        # note that this calls sklearn's and keras's .predict method because the saved trained models that we
+        # note that this code block calls sklearn's and keras's .predict method because the saved trained models that we
         # read in for predict_only are no longer Test Harness models but the model inside the Test Harness model
         # TODO: we can probably get rid of the Test Harness model classes now and use model_type instead (will need revamp)
-        untested_df.loc[:, self.predictions_col] = self.model.predict(untested_df[self.feature_cols_to_use])
-        if self.run_type == Names.CLASSIFICATION:
+        if self.run_type == Names.REGRESSION:
+            predictions = self.model.predict(untested_df[self.feature_cols_to_use])
+            untested_df.loc[:, self.predictions_col] = predictions
+        elif self.run_type == Names.CLASSIFICATION:
             # _predict_proba currently returns the probability of class = 1
             if self.model_type == "sklearn":
+                predictions = self.model.predict(untested_df[self.feature_cols_to_use])
                 probabilities = self.model.predict_proba(untested_df[self.feature_cols_to_use])[:, 1]
             elif self.model_type == "keras":
-                # TODO figure out why keras models are always returning all 0 or all 1 for probabilities
+                predictions = self.model.predict_classes(untested_df[self.feature_cols_to_use])
                 probabilities = [x[0] for x in self.model.predict_proba(untested_df[self.feature_cols_to_use])]
+            else:
+                raise NotImplementedError()
+            untested_df.loc[:, self.predictions_col] = predictions
             untested_df.loc[:, self.prob_predictions_col] = probabilities
+        else:
+            raise NotImplementedError()
 
         # IDEA: remove all columns except for self.index_cols and self.predictions_col. This is already done in test_harness_class.py,
         # IDEA: but if it's done here the extra columns wouldn't have to be stored in the run_object either.
