@@ -6,7 +6,7 @@ from harness.utils.names import Names
 
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)
-pd.set_option('display.max_colwidth', -1)
+pd.set_option('display.max_colwidth', None)
 
 
 def get_leaderboard(th_output_location=None, loo=True, classification=True):

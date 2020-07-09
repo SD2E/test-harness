@@ -20,7 +20,7 @@ from harness.utils.object_type_modifiers_and_checkers import is_list_of_strings,
 plt.switch_backend('agg')
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 10000)
-pd.set_option('display.max_colwidth', -1)
+pd.set_option('display.max_colwidth', None)
 # CSS classes applied to the Pandas Dataframes when written as HTML
 css_classes = ["table-bordered", "table-striped", "table-compact"]
 
@@ -105,19 +105,8 @@ class TestHarness:
         self.dict_of_instance_run_loo_ids = defaultdict(list)
         print()
 
-    # def train_only(self, function_that_returns_TH_model, dict_of_function_parameters, training_data,
-    #                description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
-    #                feature_cols_to_normalize=None, feature_extraction=False, sparse_cols_to_use=None):
-    #     self.run_custom(function_that_returns_TH_model=function_that_returns_TH_model,
-    #                     dict_of_function_parameters=dict_of_function_parameters,
-    #                     training_data=training_data, testing_data=training_data,  # both are the same for train_only
-    #                     description=description,
-    #                     target_cols=target_cols, feature_cols_to_use=feature_cols_to_use, index_cols=index_cols,
-    #                     normalize=normalize, feature_cols_to_normalize=feature_cols_to_normalize,
-    #                     feature_extraction=feature_extraction, sparse_cols_to_use=sparse_cols_to_use,
-    #                     predict_untested_data=False, interpret_complex_model=False, custom_metric=False)
-
-    def predict_only(self, run_id_of_saved_model, data_to_predict, index_cols, target_col, feature_cols_to_use):
+    def predict_only(self, run_id_of_saved_model, data_to_predict, index_cols, target_col, feature_cols_to_use,
+                     sparse_cols_to_use=None):
         """
         TODO: Need to read in saved normalizations too
         TODO: sparse_cols_to_use
@@ -519,7 +508,7 @@ class TestHarness:
         end = time.time()
         print('Run finished at {}.'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
         print('^' * 100)  # this adds a line of ^ to signify the end of of the model run
-        print("\n\n\n")
+        print("\n\n")
 
     def _update_leaderboard(self, run_object):
         # find appropriate leaderboard to update based on run_object characteristics
