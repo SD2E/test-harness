@@ -10,7 +10,7 @@ from harness.th_model_classes.class_keras_classification import KerasClassificat
 def keras_classification_4():
     # Creating a Keras deep learning classification model:
     model = Sequential()
-    model.add(Dropout(0.12798022511149154, input_shape=(110,)))
+    model.add(Dropout(0.12798022511149154, input_shape=(113,)))
     wr = l1_l2(l2=0.0017903936061736681, l1=0)
     model.add(Dense(units=64, activation="relu", kernel_regularizer=wr))
     model.add(Dropout(0.35046247337121422))

@@ -32,20 +32,29 @@ class _BaseRun:
                  feature_extraction, predict_untested_data=False, sparse_cols_to_use=None, loo_dict=False,
                  interpret_complex_model=False, custom_metric=False):
         if isinstance(test_harness_model, str):  # the string should be the path to a run_id folder
+            self.only_predict = True
             # retrieve model and info from passed in string path to run_id folder
-            self.run_type = Names.PREDICT_ONLY
             self.trained_model_path = test_harness_model
             self.saved_scaler, self.test_harness_model = self.load_scaler_and_trained_model(self.trained_model_path)
-            if isinstance(test_harness_model, ClassificationModel):
-                print("ClassificationModel!")
-            elif isinstance(test_harness_model, RegressionModel):
-                print("RegressionModel!")
-            else:
-                print("Cannot figure out if model is RegressionModel or ClassificationModel!")
+
+            # get what the run_type was based on model_information.txt
+            model_information_path = os.path.join(self.trained_model_path, "model_information.txt")
+            with open(model_information_path) as f:
+                first_line = f.readline()
+            f.close()
+            self.run_type = str(first_line).split("run_type: ")[1].strip()
+        elif isinstance(test_harness_model, ClassificationModel):
+            self.only_predict = False
+            self.run_type = Names.CLASSIFICATION
+        elif isinstance(test_harness_model, RegressionModel):
+            self.only_predict = False
+            self.run_type = Names.REGRESSION
         else:
-            if isinstance(test_harness_model, ClassificationModel):
-                self.run_type = Names.CLASSIFICATION
-                self.prob_predictions_col = "{}_prob_predictions".format(target_col)
+            raise TypeError("test_harness_model must be a ClassificationModel or a RegressionModel. Or it can be a run_id string.")
+
+        if self.run_type == Names.CLASSIFICATION:
+            self.prob_predictions_col = "{}_prob_predictions".format(target_col)
+            if self.only_predict is False:
                 unique_train_classes = set(training_data[target_col].unique())
                 unique_test_classes = set(testing_data[target_col].unique())
                 if unique_train_classes != unique_test_classes:
@@ -57,11 +66,12 @@ class _BaseRun:
                 else:
                     self.multiclass = False
                 self.num_classes = num_classes
-            elif isinstance(test_harness_model, RegressionModel):
-                self.run_type = Names.REGRESSION
-                self.residuals_col = "{}_residuals".format(target_col)
-            else:
-                raise TypeError("test_harness_model must be a ClassificationModel or a RegressionModel. Or it can be a run_id string.")
+        elif self.run_type == Names.REGRESSION:
+            self.residuals_col = "{}_residuals".format(target_col)
+        else:
+            raise TypeError("self.run_type must be {} or {}".format(Names.CLASSIFICATION, Names.REGRESSION))
+
+        if self.only_predict is False:
             self.test_harness_model = test_harness_model
             self.model_name = test_harness_model.model_name
             self.model_author = test_harness_model.model_author
@@ -69,6 +79,11 @@ class _BaseRun:
             self.model_stack_trace = test_harness_model.stack_trace
             self.training_data = training_data.copy()
             self.testing_data = testing_data.copy()
+            self.model = self.test_harness_model.model
+        else:
+            self.model = self.test_harness_model
+        self.model_type = str(type(self.model)).split(".", 1)[0].split("'", 1)[1]
+
         self.description = description
         self.target_col = target_col
         self.feature_cols_to_use = copy(feature_cols_to_use)
@@ -85,7 +100,7 @@ class _BaseRun:
         if self.predict_untested_data is False:
             self.was_untested_data_predicted = False
         else:
-            self.was_untested_data_predicted = True
+            self.was_untested_data_predicted = True  # this takes care of predict_only as well
         self.date_ran = datetime.now().strftime("%Y-%m-%d")
         self.time_ran = datetime.now().strftime("%H:%M:%S")
         self.metrics_dict = {}
@@ -194,6 +209,7 @@ class _BaseRun:
         if self.predict_untested_data is not False:
             untested_df = self.predict_untested_data.copy()
             if self.saved_scaler is not None:
+                # TODO: figure out why the following line isn't working
                 # untested_df[self.feature_cols_to_normalize] = self.saved_scaler.transform(untested_df[self.feature_cols_to_normalize])
                 pass
         else:
@@ -202,19 +218,18 @@ class _BaseRun:
         prediction_start_time = time.time()
 
         # this ensures that the feature columns that are output are original columns and not scaled columns
-        # note that this calls sklearn's and keras's .predict method because
-        # I had to save out the self.test_harness_model.model in test_harness_class.py
-        self.predict_untested_data.loc[:, self.predictions_col] = self.test_harness_model.predict(untested_df[self.feature_cols_to_use])
-        self.untested_data_predictions = self.predict_untested_data.copy()
-
-        print(("predict_only time was: {}".format(time.time() - prediction_start_time)))
-
-        # TODO: figure out what to do with this block here, not sure how to know if the saved model was classifier or regressor
-        '''
+        # note that this calls sklearn's and keras's .predict method because the saved trained models that we
+        # read in for predict_only are no longer Test Harness models but the model inside the Test Harness model
+        # TODO: we can probably get rid of the Test Harness model classes now and use model_type instead (will need revamp)
+        untested_df.loc[:, self.predictions_col] = self.model.predict(untested_df[self.feature_cols_to_use])
         if self.run_type == Names.CLASSIFICATION:
             # _predict_proba currently returns the probability of class = 1
-            untested_df.loc[:, self.prob_predictions_col] = self.test_harness_model._predict_proba(
-                untested_df[self.feature_cols_to_use])
+            if self.model_type == "sklearn":
+                probabilities = self.model.predict_proba(untested_df[self.feature_cols_to_use])[:, 1]
+            elif self.model_type == "keras":
+                # TODO figure out why keras models are always returning all 0 or all 1 for probabilities
+                probabilities = [x[0] for x in self.model.predict_proba(untested_df[self.feature_cols_to_use])]
+            untested_df.loc[:, self.prob_predictions_col] = probabilities
 
         # IDEA: remove all columns except for self.index_cols and self.predictions_col. This is already done in test_harness_class.py,
         # IDEA: but if it's done here the extra columns wouldn't have to be stored in the run_object either.
@@ -225,17 +240,18 @@ class _BaseRun:
         elif self.run_type == Names.CLASSIFICATION:
             # assuming binary classification, predictions of class 1 are ranked higher than class 0,
             # and the probability of a sample being in class 1 is used as the secondary column for ranking.
-            # currently the _predict_proba methods in test harness model classes return the probability of a sample being in class 1
             untested_df.sort_values(by=[self.predictions_col, self.prob_predictions_col], ascending=[False, False], inplace=True)
         else:
             raise ValueError("self.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
 
-        untested_df.sort_values(by=[self.predictions_col], ascending=False, inplace=True)
         # resetting index to match sorted values, so the index can be used as a ranking.
         untested_df.reset_index(inplace=True, drop=True)
         # adding 1 to rankings so they start from 1 instead of 0.
         untested_df[self.rankings_col] = untested_df.index + 1
-        '''
+
+        print(("predict_only time was: {}".format(time.time() - prediction_start_time)))
+        # Saving untested predictions
+        self.untested_data_predictions = untested_df.copy()
 
     # ----------------------------------------------------------------------------------------------------------------
 

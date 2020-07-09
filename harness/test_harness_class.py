@@ -212,6 +212,7 @@ class TestHarness:
         return grouping_df, data_cols, cols_to_group_on
 
     # TODO: add sparse cols to leave one out
+    # TODO: utilize sklearn's LeavePGroupsOut or LeaveOneGroupOut instead
     def run_leave_one_out(self, function_that_returns_TH_model, dict_of_function_parameters, data, data_description, grouping,
                           grouping_description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
                           feature_cols_to_normalize=None, feature_extraction=False, sparse_cols_to_use=None):
@@ -444,7 +445,10 @@ class TestHarness:
         else:
             pred_df = False
 
-        # for each col in index_cols, create a copy with and "unchanged_" prefix added, because later we want to
+        # TODO: make this check for columns that are in index_cols AND feature_cols_to_normalize
+        # TODO: because only columns that are in feature_cols_to_normalize would be changed I believe
+        # TODO: alternatively just output train/test at the beginning and get rid of this "unchanged" business
+        # for each col in index_cols, create a copy with an "unchanged_" prefix added, because later we want to
         # output the original column that hasn't been changed by operations such as normalization
         for col in index_cols:
             train_df["unchanged_{}".format(col)] = train_df[col]
@@ -621,18 +625,23 @@ class TestHarness:
             train_cols_to_output = unchanged_index_cols + [run_object.target_col]
             if run_object.run_type == Names.CLASSIFICATION:
                 test_cols_to_output = train_cols_to_output + [run_object.predictions_col, run_object.prob_predictions_col]
-                pred_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.prob_predictions_col,
-                                                              run_object.rankings_col]
+                non_index_pred_cols = [run_object.predictions_col, run_object.prob_predictions_col, run_object.rankings_col]
+                if run_object.only_predict is False:
+                    pred_cols_to_output = unchanged_index_cols + non_index_pred_cols
+                else:
+                    pred_cols_to_output = run_object.index_cols + non_index_pred_cols
             elif run_object.run_type == Names.REGRESSION:
                 test_cols_to_output = train_cols_to_output + [run_object.predictions_col, run_object.residuals_col]
-                pred_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.rankings_col]
-            elif run_object.run_type == Names.PREDICT_ONLY:
-                test_cols_to_output = None
-                pred_cols_to_output = unchanged_index_cols + [run_object.predictions_col, run_object.rankings_col]
+                non_index_pred_cols = [run_object.predictions_col, run_object.rankings_col]
+                if run_object.only_predict is False:
+                    pred_cols_to_output = unchanged_index_cols + non_index_pred_cols
+                else:
+                    pred_cols_to_output = run_object.index_cols + non_index_pred_cols
             else:
-                raise ValueError("run_object.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION, Names.PREDICT_ONLY))
+                print(run_object.run_type)
+                raise ValueError("run_object.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
 
-            if run_object.run_type != Names.PREDICT_ONLY:
+            if run_object.only_predict is False:
                 train_df_to_output = run_object.training_data[train_cols_to_output].copy()
                 for col in unchanged_index_cols:
                     train_df_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
@@ -647,14 +656,11 @@ class TestHarness:
                     test_df_to_output.to_csv('{}/{}'.format(output_path, 'testing_data.csv'), index=False)
 
             if run_object.was_untested_data_predicted is not False:
-                # TODO: make this work, using simpler output for now:
-                '''
                 prediction_data_to_output = run_object.untested_data_predictions[pred_cols_to_output].copy()
-                for col in unchanged_index_cols:
-                    prediction_data_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
-                prediction_data_to_output.to_csv('{}/{}'.format(output_path, 'predicted_data.csv'), index=False)
-                '''
-                prediction_data_to_output = run_object.untested_data_predictions.copy()
+                if run_object.only_predict is False:
+                    for col in unchanged_index_cols:
+                        prediction_data_to_output.rename(columns={col: col.rsplit("unchanged_")[1]}, inplace=True)
+
                 if self.compress_large_csvs:
                     prediction_data_to_output.to_csv('{}/{}'.format(output_path, 'predicted_data.csv.gz'), index=False, compression="gzip")
                 else:
@@ -704,9 +710,10 @@ class TestHarness:
             img = pydotplus.graph_from_dot_data(run_object.model_interpretation_img.getvalue())
             img.write_png(os.path.join(image_path, 'model_interpretation.png'))
 
-        if run_object.run_type != Names.PREDICT_ONLY:
+        if run_object.only_predict is False:
             test_file_name = os.path.join(output_path, 'model_information.txt')
             with open(test_file_name, "w") as f:
+                f.write("run_type: {}\n".format(run_object.run_type))
                 f.write("%s\n" % run_object.model_name)
                 f.write("Feature columns used by model: \n")
                 json.dump(run_object.feature_cols_to_use, f)
@@ -724,16 +731,12 @@ class TestHarness:
                 joblib.dump(run_object.normalization_scaler_object, os.path.join(output_path, "normalization_scaler_object.pkl"))
 
             if output_model:
-                print()
-                model = run_object.test_harness_model.model
-                # determines library that model came from:
-                model_type = str(type(model)).split(".", 1)[0].split("'", 1)[1]
-                if model_type == "sklearn":
+                if run_object.model_type == "sklearn":
                     joblib.dump(run_object.test_harness_model.model, os.path.join(output_path, "trained_model.pkl"))
-                elif model_type == "keras":
-                    model.save(os.path.join(output_path, "trained_model.pb"))
+                elif run_object.model_type == "keras":
+                    run_object.model.save(os.path.join(output_path, "trained_model.pb"))
                 else:
-                    raise NotImplementedError("this kind of model has not been implemented: {}".format(model_type))
+                    raise NotImplementedError("this kind of model has not been implemented: {}".format(run_object.model_type))
 
     def print_leaderboards(self):
         pass
