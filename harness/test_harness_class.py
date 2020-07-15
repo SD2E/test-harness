@@ -106,7 +106,7 @@ class TestHarness:
         print()
 
     def predict_only(self, run_id_of_saved_model, data_to_predict, index_cols, target_col, feature_cols_to_use,
-                     sparse_cols_to_use=None):
+                     feature_cols_to_normalize, normalize=False, sparse_cols_to_use=None):
         """
         TODO: Need to read in saved normalizations too
         TODO: sparse_cols_to_use
@@ -118,8 +118,8 @@ class TestHarness:
 
         run_object = _BaseRun(test_harness_model=run_id_folder_path_of_saved_model, training_data=None, testing_data=None,
                               description=None, target_col=target_col, feature_cols_to_use=feature_cols_to_use,
-                              index_cols=index_cols, normalize=False, feature_cols_to_normalize=False, feature_extraction=False,
-                              predict_untested_data=data_to_predict)
+                              index_cols=index_cols, normalize=normalize, feature_cols_to_normalize=feature_cols_to_normalize,
+                              feature_extraction=False, predict_untested_data=data_to_predict)
 
         # call run object methods
         start = time.time()
@@ -131,7 +131,7 @@ class TestHarness:
         end = time.time()
         print('Run finished at {}.'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
         print('^' * 100)  # this adds a line of ^ to signify the end of of the model run
-        print("\n\n\n")
+        print("\n")
 
     # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
     def run_custom(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
@@ -508,7 +508,7 @@ class TestHarness:
         end = time.time()
         print('Run finished at {}.'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
         print('^' * 100)  # this adds a line of ^ to signify the end of of the model run
-        print("\n\n")
+        print("\n")
 
     def _update_leaderboard(self, run_object):
         # find appropriate leaderboard to update based on run_object characteristics

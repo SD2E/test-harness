@@ -13,15 +13,16 @@ from harness.th_model_instances.hamed_models.keras_classification import keras_c
 def main():
     # Set model type to test here (sklearn or keras)
     test_model_type = "sklearn"
-    normalize = False
+    normalize = True
     sparse_cols = None
+    print_pred_dfs = False
 
     cwd = os.getcwd()
     project_path = os.path.join(cwd.split("/test-harness/")[0], "test-harness")
     data_path = os.path.join(project_path, "example_scripts/Data_Sharing_Demo/rocklin_dataset_simplified.csv")
 
     protein_data = pd.read_csv(data_path, comment='#', low_memory=False, nrows=1000)
-    protein_data['stabilityscore_cnn_calibrated_2classes'] = protein_data['stabilityscore_cnn_calibrated'] > 1
+    protein_data.insert(12, "stabilityscore_cnn_calibrated_2classes", protein_data['stabilityscore_cnn_calibrated'] > 1)
     protein_data_1 = protein_data[0:500]
     protein_data_2 = protein_data[500:1000]
 
@@ -37,19 +38,19 @@ def main():
     custom_run_preds_tester(harness_output_path=harness_output_path, train_df=train_df, test_df=test_df,
                             target_col=regression_prediction_col, feature_columns=feature_columns, index_cols=index_cols,
                             data_to_predict=protein_data_2, normalize=normalize, sparse_cols=sparse_cols,
-                            model_type=test_model_type, run_type="regression")
+                            model_type=test_model_type, run_type="regression", print_pred_dfs=print_pred_dfs)
 
     print("\n\n\n************************************** Begin Testing Classification Runs **************************************\n")
     custom_run_preds_tester(harness_output_path=harness_output_path, train_df=train_df, test_df=test_df,
                             target_col=classification_prediction_col, feature_columns=feature_columns, index_cols=index_cols,
                             data_to_predict=protein_data_2, normalize=normalize, sparse_cols=sparse_cols,
-                            model_type=test_model_type, run_type="classification")
+                            model_type=test_model_type, run_type="classification", print_pred_dfs=print_pred_dfs)
 
     # TODO: test LOO runs as well...
 
 
 def custom_run_preds_tester(harness_output_path, train_df, test_df, target_col, feature_columns, index_cols, data_to_predict,
-                            normalize=True, sparse_cols=None, model_type="sklearn", run_type="classification"):
+                            normalize=True, sparse_cols=None, model_type="sklearn", run_type="classification", print_pred_dfs=False):
     th = TestHarness(output_location=harness_output_path)
 
     if run_type == "classification":
@@ -80,12 +81,13 @@ def custom_run_preds_tester(harness_output_path, train_df, test_df, target_col, 
                   sparse_cols_to_use=sparse_cols)
 
     last_run = th.list_of_this_instance_run_ids[-1]
-    print("Here is the run_id of the trained model we just saved: {}\n\n\n".format(last_run))
+    print("Here is the run_id of the trained model we just saved: {}\n".format(last_run))
 
     # read in and print predicted_data.csv generated from setting predict_untested_data=True in run_custom:
     predicted_data_1 = pd.read_csv(os.path.join(harness_output_path,
                                                 "test_harness_results/runs/run_{}/predicted_data.csv".format(last_run)))
-    print(predicted_data_1.head(), "\n")
+    if print_pred_dfs:
+        print(predicted_data_1.head(), "\n")
 
     # now testing out the predict_only method...
     th2 = TestHarness(output_location=harness_output_path)
@@ -94,12 +96,15 @@ def custom_run_preds_tester(harness_output_path, train_df, test_df, target_col, 
                      index_cols=index_cols,
                      target_col=target_col,
                      feature_cols_to_use=feature_columns,
+                     feature_cols_to_normalize=feature_columns,
+                     normalize=normalize,
                      sparse_cols_to_use=sparse_cols)
 
     # read in and print predicted_data.csv generated from predict_only method (will overwrite the previous one):
     predicted_data_2 = pd.read_csv(os.path.join(harness_output_path,
                                                 "test_harness_results/runs/run_{}/predicted_data.csv".format(last_run)))
-    print(predicted_data_2.head(), "\n")
+    if print_pred_dfs:
+        print(predicted_data_2.head(), "\n")
 
     # testing if predicted_data_1 has the same or similar predictions to predicted_data_2
     if len(predicted_data_1) != len(predicted_data_2):
