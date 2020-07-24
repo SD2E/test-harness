@@ -3,6 +3,7 @@ from datetime import datetime
 import os
 import json
 import time
+import warnings
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -725,7 +726,7 @@ class TestHarness:
                 elif run_object.model_type == "keras":
                     run_object.model.save(os.path.join(output_path, "trained_model.pb"))
                 else:
-                    raise NotImplementedError("this kind of model has not been implemented: {}".format(run_object.model_type))
+                    warnings.warn("Saving this kind of model has not been implemented: {}".format(run_object.model_type))
 
     def print_leaderboards(self):
         pass
