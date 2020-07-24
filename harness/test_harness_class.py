@@ -3,6 +3,7 @@ from datetime import datetime
 import os
 import json
 import time
+import warnings
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -108,7 +109,6 @@ class TestHarness:
     def predict_only(self, run_id_of_saved_model, data_to_predict, index_cols, target_col, feature_cols_to_use,
                      feature_cols_to_normalize, normalize=False, sparse_cols_to_use=None):
         """
-        TODO: Need to read in saved normalizations too
         TODO: sparse_cols_to_use
         TODO: potentially make an internal table that tracks prediction runs/outputs
           - for now it will always output the prediction to predicted_data.csv in the appropriate run folder.
@@ -127,7 +127,7 @@ class TestHarness:
         print('Starting prediction_only model at time {}'.format(datetime.now().strftime("%H:%M:%S")))
 
         run_object.predict_only()
-        self._output_run_files(run_object, run_id_folder_path_of_saved_model, True, None)
+        self._output_run_files(run_object, run_id_folder_path_of_saved_model, True, None, output_model=False)
         end = time.time()
         print('Run finished at {}.'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
         print('^' * 100)  # this adds a line of ^ to signify the end of of the model run
@@ -137,7 +137,7 @@ class TestHarness:
     def run_custom(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                    description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
                    feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
-                   interpret_complex_model=False, custom_metric=False):
+                   interpret_complex_model=False, custom_metric=False, save_trained_model: bool = False):
         """
         Instantiates and runs a model on a custom train/test split
         If you pass in a list of columns to predict, a separate run will occur for each string in the list
@@ -160,7 +160,8 @@ class TestHarness:
             self._execute_run(function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                               description, col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
                               feature_extraction, predict_untested_data, sparse_cols_to_use, loo_dict=False,
-                              interpret_complex_model=interpret_complex_model, custom_metric=custom_metric)
+                              interpret_complex_model=interpret_complex_model, custom_metric=custom_metric,
+                              save_trained_model=save_trained_model)
 
     def make_grouping_df(self, grouping, data):
         # if grouping is a string, turn it into a list containing that one string
@@ -204,7 +205,8 @@ class TestHarness:
     # TODO: utilize sklearn's LeavePGroupsOut or LeaveOneGroupOut instead
     def run_leave_one_out(self, function_that_returns_TH_model, dict_of_function_parameters, data, data_description, grouping,
                           grouping_description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
-                          feature_cols_to_normalize=None, feature_extraction=False, sparse_cols_to_use=None):
+                          feature_cols_to_normalize=None, feature_extraction=False, sparse_cols_to_use=None,
+                          save_trained_models: bool = False):
         """
         Splits the data into appropriate train/test splits according to the grouping dataframe, and then runs a separate instantiation of
         the passed-in model on each split.
@@ -284,7 +286,8 @@ class TestHarness:
                                   predict_untested_data=False,
                                   sparse_cols_to_use=sparse_cols_to_use,
                                   loo_dict=loo_dict,
-                                  interpret_complex_model=False)
+                                  interpret_complex_model=False,
+                                  save_trained_model=save_trained_models)
 
             # summary results are calculated here, and summary leaderboards are updated
             summary_values = {Names.LOO_ID: loo_id, Names.DATE: date_loo_ran, Names.TIME: time_loo_ran,
@@ -416,7 +419,7 @@ class TestHarness:
     def _execute_run(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                      description, target_col, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
                      feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
-                     loo_dict=False, interpret_complex_model=False, custom_metric=False):
+                     loo_dict=False, interpret_complex_model=False, custom_metric=False, save_trained_model: bool = False):
         """
         1. Instantiates the TestHarnessModel object
         2. Creates a _BaseRun object and calls their train_and_test_model and calculate_metrics methods
@@ -496,14 +499,14 @@ class TestHarness:
         if run_object.loo_dict is False:
             run_id_folder_path = os.path.join(self.runs_folder_path, '{}_{}'.format("run", run_object.run_id))
             os.makedirs(run_id_folder_path)
-            self._output_run_files(run_object, run_id_folder_path, True, feature_extractor)
+            self._output_run_files(run_object, run_id_folder_path, True, feature_extractor, output_model=save_trained_model)
         else:
             loo_id = run_object.loo_dict['loo_id']
             loo_path = os.path.join(self.runs_folder_path, '{}_{}'.format("loo", loo_id))
             os.makedirs(loo_path, exist_ok=True)
             run_id_folder_path = os.path.join(loo_path, '{}_{}'.format("run", run_object.run_id))
             os.makedirs(run_id_folder_path)
-            self._output_run_files(run_object, run_id_folder_path, True, feature_extractor)
+            self._output_run_files(run_object, run_id_folder_path, True, feature_extractor, output_model=save_trained_model)
 
         end = time.time()
         print('Run finished at {}.'.format(datetime.now().strftime("%H:%M:%S")), 'Total run time = {0:.2f} seconds'.format(end - start))
@@ -725,7 +728,7 @@ class TestHarness:
                 elif run_object.model_type == "keras":
                     run_object.model.save(os.path.join(output_path, "trained_model.pb"))
                 else:
-                    raise NotImplementedError("this kind of model has not been implemented: {}".format(run_object.model_type))
+                    warnings.warn("Saving this kind of model has not been implemented: {}".format(run_object.model_type))
 
     def print_leaderboards(self):
         pass

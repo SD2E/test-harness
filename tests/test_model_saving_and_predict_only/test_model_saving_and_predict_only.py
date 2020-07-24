@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from sklearn.model_selection import train_test_split
 from harness.test_harness_class import TestHarness
 from harness.th_model_instances.hamed_models.random_forest_regression import random_forest_regression
@@ -78,7 +77,7 @@ def custom_run_preds_tester(harness_output_path, train_df, test_df, target_col, 
                   index_cols=index_cols,
                   normalize=normalize, feature_cols_to_normalize=feature_columns,
                   feature_extraction=False, predict_untested_data=data_to_predict,
-                  sparse_cols_to_use=sparse_cols)
+                  sparse_cols_to_use=sparse_cols, save_trained_model=True)
 
     last_run = th.list_of_this_instance_run_ids[-1]
     print("Here is the run_id of the trained model we just saved: {}\n".format(last_run))
