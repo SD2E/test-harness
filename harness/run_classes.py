@@ -113,6 +113,9 @@ class _BaseRun:
         self.interpret_complex_model = interpret_complex_model
         self.model_interpretation_img = None
 
+        if self.sparse_cols_to_use:
+            self._add_sparse_cols()
+
     def _normalize_dataframes(self):
         warnings.simplefilter('ignore', DataConversionWarning)
 
@@ -160,6 +163,9 @@ class _BaseRun:
             all_vals_for_this_sparse_col = set().union(train_vals, test_vals, untested_vals)
 
             # update self.feature_cols_to_use
+            assert (sparse_col in self.feature_cols_to_use), \
+                "The sparse col '{}' is not in feature_cols_to_use. " \
+                "Sparse columns should also be included in feature_cols_to_use.".format(sparse_col)
             self.feature_cols_to_use.remove(sparse_col)
             self.feature_cols_to_use.extend(['{}_{}'.format(sparse_col, val) for val in all_vals_for_this_sparse_col])
 
@@ -258,14 +264,9 @@ class _BaseRun:
         # Saving untested predictions
         self.untested_data_predictions = untested_df.copy()
 
-    # ----------------------------------------------------------------------------------------------------------------
-
     def train_and_test_model(self):
         if self.normalize:
             self._normalize_dataframes()
-
-        if self.sparse_cols_to_use:
-            self._add_sparse_cols()
 
         train_df = self.training_data.copy()
         test_df = self.testing_data.copy()
