@@ -137,11 +137,20 @@ class TestHarness:
     def run_custom(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                    description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
                    feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
-                   interpret_complex_model=False, custom_metric=False, save_trained_model: bool = False):
+                   interpret_complex_model=False, custom_metric=False, save_trained_model: bool = False, execute: bool = True):
         """
-        Instantiates and runs a model on a custom train/test split
-        If you pass in a list of columns to predict, a separate run will occur for each string in the list
-        :param custom_metric: dict with string keys and values are functions that take two arguuments.  Not tested with LOO runs.
+        Instantiates and runs a model on a custom train/test split.
+        If you pass in a list of columns to predict, a separate run will occur for each string in the list.
+
+        Using execute=False gives you a sneak preview of what your custom run will look like, without running it.
+
+        :param custom_metric: dict with string keys and values are functions that take two arguments.  Not tested with LOO runs.
+        :param save_trained_model: whether or not to save the trained model to file (you might want to save disk space)
+        :param execute: whether or not to actually execute the run. If False, this method will return the run_object
+                            instead of executing the run. Setting to False is good for debugging or investigating what
+                            the run_object and its parameters look like before actually starting model training/testing.
+
+        :return: No return if execute=True. _BaseRun object if execute=False.
         """
         target_cols = make_list_if_not_list(target_cols)
         assert is_list_of_strings(target_cols), "target_cols must be a string or a list of strings"
@@ -156,12 +165,24 @@ class TestHarness:
             self.regression_metrics.extend(list(custom_metric.keys()))
             self.custom_regression_leaderboard_cols.extend(list(custom_metric.keys()))
 
-        for col in target_cols:
-            self._execute_run(function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                              description, col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
-                              feature_extraction, predict_untested_data, sparse_cols_to_use, loo_dict=False,
-                              interpret_complex_model=interpret_complex_model, custom_metric=custom_metric,
-                              save_trained_model=save_trained_model)
+        if execute:
+            for col in target_cols:
+                self._execute_run(function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
+                                  description, col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
+                                  feature_extraction, predict_untested_data, sparse_cols_to_use, loo_dict=False,
+                                  interpret_complex_model=interpret_complex_model, custom_metric=custom_metric,
+                                  save_trained_model=save_trained_model)
+
+        else:  # debug/investigation mode ...
+            if len(target_cols) > 1:
+                warnings.warn("With execute == False, only the first target_col in the list of target_cols will be used.")
+            target_col = target_cols[0]
+            run_obj = self._execute_run(function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
+                                        description, target_col, feature_cols_to_use, index_cols, normalize, feature_cols_to_normalize,
+                                        feature_extraction, predict_untested_data, sparse_cols_to_use, loo_dict=False,
+                                        interpret_complex_model=interpret_complex_model, custom_metric=custom_metric,
+                                        save_trained_model=save_trained_model, execute=False)
+            return run_obj
 
     def make_grouping_df(self, grouping, data):
         # if grouping is a string, turn it into a list containing that one string
@@ -419,7 +440,8 @@ class TestHarness:
     def _execute_run(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                      description, target_col, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
                      feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
-                     loo_dict=False, interpret_complex_model=False, custom_metric=False, save_trained_model: bool = False):
+                     loo_dict=False, interpret_complex_model=False, custom_metric=False, save_trained_model: bool = False,
+                     execute: bool = True):
         """
         1. Instantiates the TestHarnessModel object
         2. Creates a _BaseRun object and calls their train_and_test_model and calculate_metrics methods
@@ -454,6 +476,9 @@ class TestHarness:
         run_object = _BaseRun(test_harness_model, train_df, test_df, description, target_col,
                               copy(feature_cols_to_use), copy(index_cols), normalize, copy(feature_cols_to_normalize), feature_extraction,
                               pred_df, copy(sparse_cols_to_use), loo_dict, interpret_complex_model, custom_metric)
+
+        if execute is False:  # debug/investigation mode ...
+            return run_object
 
         # tracking the run_ids of all the runs that were kicked off in this TestHarness instance
         loo_id = None
