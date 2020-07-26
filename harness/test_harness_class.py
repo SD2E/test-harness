@@ -424,8 +424,8 @@ class TestHarness:
         if isinstance(index_cols, list):
             assert is_list_of_strings(index_cols), "if index_cols is a tuple or list, it must contain only strings."
         if custom_metric:
-            assert type(
-                custom_metric) is dict, 'Custom metric must be of type dict. Key should be string, and value should a be a function that takes in two arguuments.'
+            assert type(custom_metric) is dict, 'Custom metric must be of type dict. ' \
+                                                'Key should be string, and value should a be a function that takes in two arguuments.'
 
         # check if index_cols exist in training, testing, and prediction dataframes:
         assert (set(index_cols).issubset(training_data.columns.tolist())), \
@@ -435,6 +435,16 @@ class TestHarness:
         if isinstance(predict_untested_data, pd.DataFrame):
             assert (set(index_cols).issubset(predict_untested_data.columns.tolist())), \
                 "the strings in index_cols are not valid columns in predict_untested_data."
+
+        # making sure sparse_cols_to_use is used correctly
+        # TODO: remove this assertion and instead automatically add sparse_cols_to_use to feature_cols_to_use if they are not in there.
+        assert (set(sparse_cols_to_use) <= set(feature_cols_to_use)), \
+            "The elements of sparse_cols_to_use are not elements of feature_cols_to_use. " \
+            "Please include your sparse columns in feature_cols_to_use."
+
+        assert (set(sparse_cols_to_use) <= set(feature_cols_to_normalize)) is False, \
+            "The elements of sparse_cols_to_use should NOT be in feature_cols_to_normalize. " \
+            "Normalizing a sparse column doesn't make much sense!"
 
     # TODO: replace loo_dict with type_dict --> first entry is run type --> this will allow for more types in the future
     def _execute_run(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
@@ -709,7 +719,7 @@ class TestHarness:
                 for name, plot in feature_extractor.bba_plots_dict.items():
                     plot.savefig(os.path.join(bba_path, name), bbox_inches="tight")
 
-        # model on model 
+        # model on model
         if run_object.interpret_complex_model is True:
             import pydotplus
 
