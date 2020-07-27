@@ -46,7 +46,7 @@ def main():
                                feature_extraction=False, predict_untested_data=False,
                                sparse_cols_to_use=fake_sparse_cols, execute=False)
     print(run_object.training_data.head(), "\n")
-    print("training_data shape: {}".format(run_object.training_data.shape), "\n")
+    print("shape of training_data: {}".format(run_object.training_data.shape), "\n")
     print("sparse_cols_to_use: {}".format(run_object.sparse_cols_to_use), "\n")
     print("feature_cols_to_use: {}".format(run_object.feature_cols_to_use), "\n")
     print("feature_cols_to_normalize: {}".format(run_object.feature_cols_to_normalize), "\n")
@@ -66,7 +66,7 @@ def main():
     training_data_csv_that_was_output = pd.read_csv(
         os.path.join(dir_path, "test_harness_results/runs/run_{}/training_data.csv.gz".format(last_run)))
     print(training_data_csv_that_was_output.head(), "\n")
-    print("training_data_csv_that_was_output shape: {}".format(training_data_csv_that_was_output.shape))
+    print("shape of training_data_csv_that_was_output: {}".format(training_data_csv_that_was_output.shape))
 
 
 if __name__ == '__main__':

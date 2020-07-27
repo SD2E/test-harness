@@ -438,13 +438,15 @@ class TestHarness:
 
         # making sure sparse_cols_to_use is used correctly
         # TODO: remove this assertion and instead automatically add sparse_cols_to_use to feature_cols_to_use if they are not in there.
-        assert (set(sparse_cols_to_use) <= set(feature_cols_to_use)), \
-            "The elements of sparse_cols_to_use are not elements of feature_cols_to_use. " \
-            "Please include your sparse columns in feature_cols_to_use."
+        if sparse_cols_to_use is not None:
+            assert (set(sparse_cols_to_use) <= set(feature_cols_to_use)), \
+                "The elements of sparse_cols_to_use are not elements of feature_cols_to_use. " \
+                "Please include your sparse columns in feature_cols_to_use."
 
-        assert (set(sparse_cols_to_use) <= set(feature_cols_to_normalize)) is False, \
-            "The elements of sparse_cols_to_use should NOT be in feature_cols_to_normalize. " \
-            "Normalizing a sparse column doesn't make much sense!"
+            if feature_cols_to_normalize is not None:
+                assert (set(sparse_cols_to_use) <= set(feature_cols_to_normalize)) is False, \
+                    "The elements of sparse_cols_to_use should NOT be in feature_cols_to_normalize. " \
+                    "Normalizing a sparse column doesn't make much sense!"
 
     # TODO: replace loo_dict with type_dict --> first entry is run type --> this will allow for more types in the future
     def _execute_run(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
