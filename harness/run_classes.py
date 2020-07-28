@@ -129,7 +129,7 @@ class _BaseRun:
         if (self.normalize is True) or (self.normalize == "StandardScaler"):
             scaler = preprocessing.StandardScaler().fit(train_df[self.feature_cols_to_normalize])
         elif self.normalize == "MinMax":
-            raise ValueError("MinMax normalization hasn't been added yet")
+            scaler = preprocessing.MinMaxScaler().fit(train_df[self.feature_cols_to_normalize])
         else:
             raise ValueError("normalize must have a value of True, 'StandardScaler', or 'MinMax'")
 

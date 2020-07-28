@@ -135,7 +135,7 @@ class TestHarness:
 
     # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
     def run_custom(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                   description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
+                   description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize="StandardScaler",
                    feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
                    interpret_complex_model=False, custom_metric=False, save_trained_model: bool = False, execute: bool = True):
         """
@@ -158,6 +158,8 @@ class TestHarness:
         feature_cols_to_use = make_list_if_not_list(feature_cols_to_use)
         if feature_cols_to_normalize:
             feature_cols_to_normalize = make_list_if_not_list(feature_cols_to_normalize)
+        else:
+            normalize=False
         if sparse_cols_to_use:
             sparse_cols_to_use = make_list_if_not_list(sparse_cols_to_use)
         if custom_metric:
