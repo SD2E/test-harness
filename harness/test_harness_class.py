@@ -117,8 +117,8 @@ class TestHarness:
         run_id_folder_path_of_saved_model = os.path.join(self.runs_folder_path, run_id_of_saved_model)
 
         run_object = _BaseRun(test_harness_model=run_id_folder_path_of_saved_model, training_data=None, testing_data=None,
-                              description=None, target_col=target_col, feature_cols_to_use=feature_cols_to_use,
-                              index_cols=index_cols, normalize=normalize, feature_cols_to_normalize=feature_cols_to_normalize,
+                              description=None, target_col=target_col, feature_cols_to_use=copy(feature_cols_to_use),
+                              index_cols=copy(index_cols), normalize=normalize, feature_cols_to_normalize=copy(feature_cols_to_normalize),
                               feature_extraction=False, predict_untested_data=data_to_predict)
 
         # call run object methods
@@ -222,7 +222,7 @@ class TestHarness:
                         Names.GROUP_INDEX))
         return grouping_df, data_cols, cols_to_group_on
 
-    # TODO: add sparse cols to leave one out
+    # TODO: add sparse cols to leave one out (isn't this done?)
     # TODO: utilize sklearn's LeavePGroupsOut or LeaveOneGroupOut instead
     def run_leave_one_out(self, function_that_returns_TH_model, dict_of_function_parameters, data, data_description, grouping,
                           grouping_description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
