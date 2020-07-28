@@ -159,7 +159,7 @@ class TestHarness:
         if feature_cols_to_normalize:
             feature_cols_to_normalize = make_list_if_not_list(feature_cols_to_normalize)
         else:
-            normalize=False
+            normalize = False
         if sparse_cols_to_use:
             sparse_cols_to_use = make_list_if_not_list(sparse_cols_to_use)
         if custom_metric:
@@ -227,9 +227,9 @@ class TestHarness:
     # TODO: add sparse cols to leave one out (isn't this done?)
     # TODO: utilize sklearn's LeavePGroupsOut or LeaveOneGroupOut instead
     def run_leave_one_out(self, function_that_returns_TH_model, dict_of_function_parameters, data, data_description, grouping,
-                          grouping_description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
-                          feature_cols_to_normalize=None, feature_extraction=False, sparse_cols_to_use=None,
-                          save_trained_models: bool = False):
+                          grouping_description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"),
+                          normalize="StandardScaler", feature_cols_to_normalize=None, feature_extraction=False,
+                          sparse_cols_to_use=None, save_trained_models: bool = False):
         """
         Splits the data into appropriate train/test splits according to the grouping dataframe, and then runs a separate instantiation of
         the passed-in model on each split.
@@ -244,6 +244,7 @@ class TestHarness:
             num_features_normalized = len(feature_cols_to_normalize)
         else:
             num_features_normalized = 0
+            normalize = False
 
         assert isinstance(data, pd.DataFrame), "data must be a Pandas Dataframe"
         assert isinstance(data_description, string_types), "data_description must be a string"
