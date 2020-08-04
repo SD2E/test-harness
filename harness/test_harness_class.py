@@ -135,7 +135,7 @@ class TestHarness:
 
     # TODO: add more normalization options: http://benalexkeen.com/feature-scaling-with-scikit-learn/
     def run_custom(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                   description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"), normalize="StandardScaler",
+                   description, target_cols, feature_cols_to_use, index_cols, normalize="StandardScaler",
                    feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
                    interpret_complex_model=False, custom_metric=False, save_trained_model: bool = False, execute: bool = True):
         """
@@ -227,7 +227,7 @@ class TestHarness:
     # TODO: add sparse cols to leave one out (isn't this done?)
     # TODO: utilize sklearn's LeavePGroupsOut or LeaveOneGroupOut instead
     def run_leave_one_out(self, function_that_returns_TH_model, dict_of_function_parameters, data, data_description, grouping,
-                          grouping_description, target_cols, feature_cols_to_use, index_cols=("dataset", "name"),
+                          grouping_description, target_cols, feature_cols_to_use, index_cols,
                           normalize="StandardScaler", feature_cols_to_normalize=None, feature_extraction=False,
                           sparse_cols_to_use=None, save_trained_models: bool = False):
         """
@@ -453,7 +453,7 @@ class TestHarness:
 
     # TODO: replace loo_dict with type_dict --> first entry is run type --> this will allow for more types in the future
     def _execute_run(self, function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
-                     description, target_col, feature_cols_to_use, index_cols=("dataset", "name"), normalize=False,
+                     description, target_col, feature_cols_to_use, index_cols, normalize=False,
                      feature_cols_to_normalize=None, feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None,
                      loo_dict=False, interpret_complex_model=False, custom_metric=False, save_trained_model: bool = False,
                      execute: bool = True):
@@ -462,6 +462,12 @@ class TestHarness:
         2. Creates a _BaseRun object and calls their train_and_test_model and calculate_metrics methods
         3. Calls _output_results(Run Object)
         """
+        if index_cols is None:  # if None, we use the intersection of columns in the 2 or 3 DataFrames as our index_cols
+            if isinstance(predict_untested_data, pd.DataFrame):
+                index_cols = list(set(training_data.columns).intersection(set(testing_data.columns), set(predict_untested_data.columns)))
+            else:
+                index_cols = list(set(training_data.columns).intersection(set(testing_data.columns)))
+
         # TODO: add checks to ensure index_cols represent unique values in training, testing, and prediction dataframes
         self.validate_execute_run_inputs(function_that_returns_TH_model, dict_of_function_parameters, training_data, testing_data,
                                          description, target_col, feature_cols_to_use, index_cols, normalize,
