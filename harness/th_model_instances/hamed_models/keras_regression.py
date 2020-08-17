@@ -5,10 +5,10 @@ from keras.regularizers import l2
 from harness.th_model_classes.class_keras_regression import KerasRegression
 
 
-def keras_regression_best():
+def keras_regression_best(input_shape=None):
     # Creating a Keras deep learning regression model:
     kr = Sequential()
-    kr.add(Dropout(0.0, input_shape=(113,)))
+    kr.add(Dropout(0.0, input_shape=(input_shape,)))
     kr.add(Dense(units=80, activation="relu"))
     kr.add(Dropout(0.019414354060286951))
     kr.add(Dense(units=73, activation="relu"))

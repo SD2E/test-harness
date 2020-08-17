@@ -3,6 +3,7 @@ from datetime import datetime
 import os
 import json
 import time
+import inspect
 import warnings
 
 import pandas as pd
@@ -17,6 +18,7 @@ from harness.test_harness_models_abstract_classes import ClassificationModel, Re
 from harness.unique_id import get_id
 from harness.utils.names import Names
 from harness.utils.object_type_modifiers_and_checkers import is_list_of_strings, make_list_if_not_list
+from harness.th_model_instances.hamed_models.dummy_model_for_auto_input_size import dummy_classifier, dummy_regressor
 
 plt.switch_backend('agg')
 pd.set_option('display.max_columns', 500)
@@ -490,6 +492,26 @@ class TestHarness:
             test_df["unchanged_{}".format(col)] = test_df[col]
             if isinstance(pred_df, pd.DataFrame):
                 pred_df["unchanged_{}".format(col)] = pred_df[col]
+
+        input_shape_arg = "input_shape"
+        model_function_args = list(inspect.signature(function_that_returns_TH_model).parameters)
+        if input_shape_arg in model_function_args:
+            input_shape_default = inspect.signature(function_that_returns_TH_model).parameters[input_shape_arg].default
+
+            try:
+                input_shape_value = dict_of_function_parameters[input_shape_arg]
+            except KeyError:
+                input_shape_value = input_shape_default
+
+            if (input_shape_value is None) or (input_shape_value == "auto"):
+                # This code block is solely to obtain the number of feature columns we
+                # would have after _add_sparse_cols is invoked in _BaseRun.
+                temp_run_obj = _BaseRun(dummy_classifier(), train_df, test_df, description, target_col,
+                                        copy(feature_cols_to_use), copy(index_cols),
+                                        normalize, copy(feature_cols_to_normalize), feature_extraction,
+                                        pred_df, copy(sparse_cols_to_use), loo_dict, interpret_complex_model, custom_metric)
+                determined_input_shape = len(temp_run_obj.feature_cols_to_use)
+                dict_of_function_parameters[input_shape_arg] = determined_input_shape
 
         test_harness_model = function_that_returns_TH_model(**dict_of_function_parameters)
 
