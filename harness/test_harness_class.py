@@ -631,10 +631,16 @@ class TestHarness:
 
         leaderboard = leaderboard.reindex(row_of_results.columns, axis=1)  # reindex will correct col order in case a new col is added
         if run_object.run_type == Names.CLASSIFICATION:
-            leaderboard.sort_values(self.metric_to_sort_classification_results_by, inplace=True, ascending=False)
+            try:
+                leaderboard.sort_values(self.metric_to_sort_classification_results_by, inplace=True, ascending=False)
+            except Exception:
+                pass
         elif run_object.run_type == Names.REGRESSION:
             # print(leaderboard[self.metric_to_sort_regression_results_by].value_counts(dropna=False))
-            leaderboard.sort_values(self.metric_to_sort_regression_results_by, inplace=True, ascending=False)
+            try:
+                leaderboard.sort_values(self.metric_to_sort_regression_results_by, inplace=True, ascending=False)
+            except Exception:
+                pass
         else:
             raise TypeError("run_object.run_type must equal '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
         leaderboard.reset_index(inplace=True, drop=True)
