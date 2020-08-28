@@ -2,7 +2,7 @@ from datetime import datetime
 from math import sqrt
 import time
 import warnings
-
+from collections import Iterable
 import os
 import keras
 import joblib
@@ -271,6 +271,8 @@ class _BaseRun:
         train_df = self.training_data.copy()
         test_df = self.testing_data.copy()
 
+
+
         # Training model
         print("Starting {} training...".format(self.run_type))
         training_start_time = time.time()
@@ -284,7 +286,39 @@ class _BaseRun:
             # _predict_proba currently returns the probability of class = 1
             test_df.loc[:, self.prob_predictions_col] = self.test_harness_model._predict_proba(test_df[self.feature_cols_to_use])
         elif self.run_type == Names.REGRESSION:
-            test_df[self.residuals_col] = test_df[self.target_col] - test_df[self.predictions_col]
+
+            # Check if the output column is a iterable, if it is, we need to iterate over each instance and compute residual for each element. Also, ensure it's not a string.
+            if isinstance(test_df[self.target_col].iloc[0],Iterable) and not isinstance(test_df[self.target_col].iloc[0],str):
+                tuple_size = len(test_df[self.target_col].iloc[0])
+                print('Tuple size is:',tuple_size)
+
+                target_cols = [self.target_col+'_'+str(i) for i in range(tuple_size)]
+                print('Name of target cols is:')
+                print(target_cols)
+                print()
+                print("shape of test df")
+                print(test_df.shape)
+                test_df[target_cols]=pd.DataFrame(test_df[self.target_col].tolist(), index=test_df.index)
+                print("shape of test df")
+                print(test_df.shape)
+
+                predictions_cols = [self.predictions_col+'_'+str(i) for i in range(tuple_size)]
+                print('Name of pred cols is:')
+                print(predictions_cols)
+                print()
+                print('printing test df')
+                print(test_df.head(4))
+                test_df[predictions_cols] = pd.DataFrame(test_df[self.predictions_col].tolist(), index=test_df.index)
+
+                residuals_cols = [self.residuals_col+'_'+str(i) for i in range(tuple_size)]
+                print('Name of residuals cols is:')
+                print(residuals_cols)
+                print()
+                for i in range(tuple_size):
+                    test_df[residuals_cols[i]] = test_df[target_cols[i]] - test_df[predictions_cols[i]]
+
+            else:
+                test_df[self.residuals_col] = test_df[self.target_col] - test_df[self.predictions_col]
         else:
             raise ValueError(
                 "run_type must be '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
@@ -374,13 +408,40 @@ class _BaseRun:
                                                            self.testing_data_predictions[self.predictions_col],
                                                            average=averaging_type)
         elif self.run_type == Names.REGRESSION:
-            self.metrics_dict[Names.RMSE] = sqrt(
-                mean_squared_error(self.testing_data_predictions[self.target_col], self.testing_data_predictions[self.predictions_col]))
-            self.metrics_dict[Names.R_SQUARED] = r2_score(self.testing_data_predictions[self.target_col],
-                                                          self.testing_data_predictions[self.predictions_col])
-            for key in self.custom_metric:
-                self.metrics_dict[key] = self.custom_metric[key](self.testing_data_predictions[self.target_col],
-                                                                 self.testing_data_predictions[self.predictions_col])
+
+            # Check if the output column is a tuple, if it is, we need to iterate over each instance and compute residual for each element in the tple
+            if isinstance(self.testing_data_predictions[self.target_col].iloc[0],Iterable) and not isinstance(self.testing_data_predictions[self.target_col].iloc[0],str):
+                tuple_size = len(self.testing_data_predictions[self.target_col].iloc[0])
+
+                #Expand the dataframe
+                target_cols = [self.target_col + '_' + str(i) for i in range(tuple_size)]
+                self.testing_data_predictions[target_cols] = pd.DataFrame(self.testing_data_predictions[self.target_col].tolist(), index=self.testing_data_predictions.index)
+                predictions_cols = [self.predictions_col + '_' + str(i) for i in range(tuple_size)]
+                self.testing_data_predictions[predictions_cols] = pd.DataFrame(self.testing_data_predictions[self.predictions_col].tolist(), index=self.testing_data_predictions.index)
+
+                #Compute metrics for each task
+                rmse_list = []
+                rsq_list = []
+                for i in range(tuple_size):
+                    rmse_list.append(
+                        mean_squared_error(self.testing_data_predictions[target_cols[i]],
+                                           self.testing_data_predictions[predictions_cols[i]]))
+                    rsq_list.append(r2_score(self.testing_data_predictions[target_cols[i]],
+                                                                  self.testing_data_predictions[predictions_cols[i]]))
+
+                #Set the metrics into tuples
+                self.metrics_dict[Names.RMSE] = zip(rmse_list)
+                self.metrics_dict[Names.R_SQUARED] = zip(rsq_list)
+                if self.custom_metric:
+                    raise RuntimeError("Custom metrics not currently supported for multi-task outputs.")
+            else:
+                self.metrics_dict[Names.RMSE] = sqrt(
+                    mean_squared_error(self.testing_data_predictions[self.target_col], self.testing_data_predictions[self.predictions_col]))
+                self.metrics_dict[Names.R_SQUARED] = r2_score(self.testing_data_predictions[self.target_col],
+                                                              self.testing_data_predictions[self.predictions_col])
+                for key in self.custom_metric:
+                    self.metrics_dict[key] = self.custom_metric[key](self.testing_data_predictions[self.target_col],
+                                                                     self.testing_data_predictions[self.predictions_col])
         else:
             raise TypeError("self.run_type must equal '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
 
