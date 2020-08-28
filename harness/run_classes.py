@@ -285,7 +285,8 @@ class _BaseRun:
             test_df.loc[:, self.prob_predictions_col] = self.test_harness_model._predict_proba(test_df[self.feature_cols_to_use])
         elif self.run_type == Names.REGRESSION:
 
-            # Check if the output column is a iterable, if it is, we need to iterate over each instance and compute residual for each element. Also, ensure it's not a string.
+            # Check if the output column is a iterable, if it is,
+            # we need to iterate over each instance and compute residual for each element. Also, ensure it's not a string.
             if isinstance(test_df[self.target_col].iloc[0], Iterable) and not isinstance(test_df[self.target_col].iloc[0], str):
                 tuple_size = len(test_df[self.target_col].iloc[0])
                 print('Tuple size is:', tuple_size)
@@ -433,8 +434,8 @@ class _BaseRun:
                     rsq_list.append(r2)
 
                 # Set the metrics into tuples
-                self.metrics_dict[Names.RMSE] = zip(rmse_list)
-                self.metrics_dict[Names.R_SQUARED] = zip(rsq_list)
+                self.metrics_dict[Names.RMSE] = rmse_list
+                self.metrics_dict[Names.R_SQUARED] = rsq_list
                 if self.custom_metric:
                     raise RuntimeError("Custom metrics not currently supported for multi-task outputs.")
             else:
