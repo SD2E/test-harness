@@ -279,7 +279,7 @@ class _BaseRun:
 
         # Testing model
         testing_start_time = time.time()
-        test_df.loc[:, self.predictions_col] = self.test_harness_model._predict(test_df[self.feature_cols_to_use])
+        test_df[self.predictions_col] = self.test_harness_model._predict(test_df[self.feature_cols_to_use])
         if self.run_type == Names.CLASSIFICATION:
             # _predict_proba currently returns the probability of class = 1
             test_df.loc[:, self.prob_predictions_col] = self.test_harness_model._predict_proba(test_df[self.feature_cols_to_use])
@@ -407,7 +407,8 @@ class _BaseRun:
                                                            average=averaging_type)
         elif self.run_type == Names.REGRESSION:
 
-            # Check if the output column is a tuple, if it is, we need to iterate over each instance and compute residual for each element in the tple
+            # Check if the output column is a tuple, if it is,
+            # we need to iterate over each instance and compute a residual for each element in the tuple
             if isinstance(self.testing_data_predictions[self.target_col].iloc[0], Iterable) and not isinstance(
                     self.testing_data_predictions[self.target_col].iloc[0], str):
                 tuple_size = len(self.testing_data_predictions[self.target_col].iloc[0])
@@ -424,11 +425,12 @@ class _BaseRun:
                 rmse_list = []
                 rsq_list = []
                 for i in range(tuple_size):
-                    rmse_list.append(
-                        mean_squared_error(self.testing_data_predictions[target_cols[i]],
-                                           self.testing_data_predictions[predictions_cols[i]]))
-                    rsq_list.append(r2_score(self.testing_data_predictions[target_cols[i]],
-                                             self.testing_data_predictions[predictions_cols[i]]))
+                    mse = mean_squared_error(self.testing_data_predictions[target_cols[i]],
+                                             self.testing_data_predictions[predictions_cols[i]])
+                    r2 = r2_score(self.testing_data_predictions[target_cols[i]],
+                                  self.testing_data_predictions[predictions_cols[i]])
+                    rmse_list.append(mse)
+                    rsq_list.append(r2)
 
                 # Set the metrics into tuples
                 self.metrics_dict[Names.RMSE] = zip(rmse_list)

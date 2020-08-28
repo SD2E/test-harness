@@ -8,6 +8,7 @@ from keras.layers import Flatten
 from keras.optimizers import Adam
 from keras import backend as K
 import tensorflow as tf
+import warnings
 import pandas as pd
 import time
 import numpy as np
@@ -58,37 +59,14 @@ class DE_Network_Embedding_Regression(KerasRegression):
         X2 = X['gene_2_cat']
         X3 = X.drop(['gene', 'gene_2', 'gene_cat', 'gene_2_cat'], axis=1)
 
-        print('Printing model output:')
-
         y1, y2 = self.model.predict([X1, X2, X3])
-        print('first pred')
-        print(type(y1))
-        print(type(y1[0]))
-        print(y1[:5])
-        print('second pred')
-        print(type(y2))
-        print(type(y2[0]))
-        print(y2[:5])
 
         merged1 = list(itertools.chain(*y1))
-        print('merged 1')
-        print(type(merged1))
-        print(type(merged1[0]))
-        print(merged1[:5])
-        print()
+
         merged2 = list(itertools.chain(*y2))
-        print('merged 2')
-        print(type(merged2))
-        print(type(merged2[0]))
-        print(merged2[:5])
-        print()
 
         preds = list(zip(merged1, merged2))
         kk = [len(item) for item in preds]
-        print('length of items in list')
-        print(set(kk))
-        print()
-        print(preds[:5])
 
         return preds
 
@@ -175,15 +153,16 @@ def main():
         '/Volumes/GoogleDrive/Shared drives/Netrias_All/Projects/SD2/Novel Chassis/Inducer 1.0/Bacillus/additive_design_df.csv')
     df.rename({df.columns[0]: 'gene'}, axis=1, inplace=True)
     experiment_cols = ['Cuminic_acid', 'Vanillic_acid', 'Xylose', 'IPTG', 'Timepoint_5']
+
     network_df = pd.read_csv(
         '/Volumes/GoogleDrive/Shared drives/Netrias_All/Projects/SD2/Novel Chassis/Inducer 1.0/Bacillus/bacillus_net.csv')
 
     df = generate_gene_network_df(df, network_df, 5)
 
-    train_df = df[(~(((df['IPTG'] == 1) & (df['Cuminic_acid'] == 1)) | \
+    train_df = df[(~(((df['IPTG'] == 1) & (df['Cuminic_acid'] == 1)) |
                      ((df['IPTG'] == 1) & (df['Vanillic_acid'] == 1))))]
     # (hrm.existing_data['emb_present']==1)]
-    test_df = df[(((df['IPTG'] == 1) & (df['Cuminic_acid'] == 1)) | \
+    test_df = df[(((df['IPTG'] == 1) & (df['Cuminic_acid'] == 1)) |
                   ((df['IPTG'] == 1) & (df['Vanillic_acid'] == 1)))]
 
     print(len(train_df), len(test_df))
@@ -193,8 +172,8 @@ def main():
     print()
 
     th.run_custom(function_that_returns_TH_model=DE_Embedding_Regression_with_network_reg,
-                  dict_of_function_parameters={"num_tokens": len(df['gene'].unique()), \
-                                               "num_condition_cols": len(experiment_cols), \
+                  dict_of_function_parameters={"num_tokens": len(df['gene'].unique()),
+                                               "num_condition_cols": len(experiment_cols),
                                                "batch_size": 100},
                   training_data=train_df,
                   testing_data=test_df,
