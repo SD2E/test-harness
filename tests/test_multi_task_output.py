@@ -151,11 +151,14 @@ def main():
     ###Setup the data
     df = pd.read_csv(
         '/Volumes/GoogleDrive/Shared drives/Netrias_All/Projects/SD2/Novel Chassis/Inducer 1.0/Bacillus/additive_design_df.csv')
+    # df = df.sample(frac=0.01, replace=False, random_state=5)
+
     df.rename({df.columns[0]: 'gene'}, axis=1, inplace=True)
     experiment_cols = ['Cuminic_acid', 'Vanillic_acid', 'Xylose', 'IPTG', 'Timepoint_5']
 
     network_df = pd.read_csv(
         '/Volumes/GoogleDrive/Shared drives/Netrias_All/Projects/SD2/Novel Chassis/Inducer 1.0/Bacillus/bacillus_net.csv')
+    # network_df = network_df.sample(frac=0.01, replace=False, random_state=5)
 
     df = generate_gene_network_df(df, network_df, 5)
 
