@@ -16,6 +16,7 @@ from pathlib import Path
 from harness.th_model_classes.class_keras_regression import KerasRegression
 import itertools
 
+
 class DE_Network_Embedding_Regression(KerasRegression):
     def __init__(self, model, model_author, model_description, epochs=25, batch_size=1000, verbose=0):
         super(DE_Network_Embedding_Regression, self).__init__(model, model_author, model_description)
@@ -28,10 +29,10 @@ class DE_Network_Embedding_Regression(KerasRegression):
         # checkpoint_callback = ModelCheckpoint(checkpoint_filepath, monitor='val_loss', save_best_only=True)
         # stopping_callback = EarlyStopping(monitor='val_loss', min_delta=0, patience=3)
         # callbacks_list = [checkpoint_callback, stopping_callback]
-        X.loc[:,'gene_cat'] = pd.Categorical(X['gene'])
-        X.loc[:,'gene_cat'] = X.gene_cat.cat.codes
-        X.loc[:,'gene_2_cat'] = pd.Categorical(X['gene_2'])
-        X.loc[:,'gene_2_cat'] = X.gene_2_cat.cat.codes
+        X.loc[:, 'gene_cat'] = pd.Categorical(X['gene'])
+        X.loc[:, 'gene_cat'] = X.gene_cat.cat.codes
+        X.loc[:, 'gene_2_cat'] = pd.Categorical(X['gene_2'])
+        X.loc[:, 'gene_2_cat'] = X.gene_2_cat.cat.codes
 
         X1 = X['gene_cat']
         X2 = X['gene_2_cat']
@@ -48,10 +49,10 @@ class DE_Network_Embedding_Regression(KerasRegression):
         # os.remove(checkpoint_filepath)
 
     def _predict(self, X):
-        X.loc[:,'gene_cat'] = pd.Categorical(X['gene'])
-        X.loc[:,'gene_cat'] = X.gene_cat.cat.codes
-        X.loc[:,'gene_2_cat'] = pd.Categorical(X['gene_2'])
-        X.loc[:,'gene_2_cat'] = X.gene_2_cat.cat.codes
+        X.loc[:, 'gene_cat'] = pd.Categorical(X['gene'])
+        X.loc[:, 'gene_cat'] = X.gene_cat.cat.codes
+        X.loc[:, 'gene_2_cat'] = pd.Categorical(X['gene_2'])
+        X.loc[:, 'gene_2_cat'] = X.gene_2_cat.cat.codes
 
         X1 = X['gene_cat']
         X2 = X['gene_2_cat']
@@ -59,7 +60,7 @@ class DE_Network_Embedding_Regression(KerasRegression):
 
         print('Printing model output:')
 
-        y1,y2 = self.model.predict([X1, X2, X3])
+        y1, y2 = self.model.predict([X1, X2, X3])
         print('first pred')
         print(type(y1))
         print(type(y1[0]))
@@ -131,6 +132,7 @@ def DE_Embedding_Regression_with_network_reg(num_tokens, num_condition_cols, emb
 
     return th_model
 
+
 def generate_gene_network_df(df, network_df, num_random_subset=5):
     unique_genes = np.unique(df['gene'])
     if num_random_subset >= len(unique_genes):
@@ -162,6 +164,7 @@ def generate_gene_network_df(df, network_df, num_random_subset=5):
 
     return final_df.copy()
 
+
 def main():
     # Setup paths and test harness
     dir_path = Path(__file__).parent
@@ -172,7 +175,8 @@ def main():
         '/Volumes/GoogleDrive/Shared drives/Netrias_All/Projects/SD2/Novel Chassis/Inducer 1.0/Bacillus/additive_design_df.csv')
     df.rename({df.columns[0]: 'gene'}, axis=1, inplace=True)
     experiment_cols = ['Cuminic_acid', 'Vanillic_acid', 'Xylose', 'IPTG', 'Timepoint_5']
-    network_df = pd.read_csv('/Volumes/GoogleDrive/Shared drives/Netrias_All/Projects/SD2/Novel Chassis/Inducer 1.0/Bacillus/bacillus_net.csv')
+    network_df = pd.read_csv(
+        '/Volumes/GoogleDrive/Shared drives/Netrias_All/Projects/SD2/Novel Chassis/Inducer 1.0/Bacillus/bacillus_net.csv')
 
     df = generate_gene_network_df(df, network_df, 5)
 

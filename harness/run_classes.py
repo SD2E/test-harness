@@ -271,8 +271,6 @@ class _BaseRun:
         train_df = self.training_data.copy()
         test_df = self.testing_data.copy()
 
-
-
         # Training model
         print("Starting {} training...".format(self.run_type))
         training_start_time = time.time()
@@ -288,21 +286,21 @@ class _BaseRun:
         elif self.run_type == Names.REGRESSION:
 
             # Check if the output column is a iterable, if it is, we need to iterate over each instance and compute residual for each element. Also, ensure it's not a string.
-            if isinstance(test_df[self.target_col].iloc[0],Iterable) and not isinstance(test_df[self.target_col].iloc[0],str):
+            if isinstance(test_df[self.target_col].iloc[0], Iterable) and not isinstance(test_df[self.target_col].iloc[0], str):
                 tuple_size = len(test_df[self.target_col].iloc[0])
-                print('Tuple size is:',tuple_size)
+                print('Tuple size is:', tuple_size)
 
-                target_cols = [self.target_col+'_'+str(i) for i in range(tuple_size)]
+                target_cols = [self.target_col + '_' + str(i) for i in range(tuple_size)]
                 print('Name of target cols is:')
                 print(target_cols)
                 print()
                 print("shape of test df")
                 print(test_df.shape)
-                test_df[target_cols]=pd.DataFrame(test_df[self.target_col].tolist(), index=test_df.index)
+                test_df[target_cols] = pd.DataFrame(test_df[self.target_col].tolist(), index=test_df.index)
                 print("shape of test df")
                 print(test_df.shape)
 
-                predictions_cols = [self.predictions_col+'_'+str(i) for i in range(tuple_size)]
+                predictions_cols = [self.predictions_col + '_' + str(i) for i in range(tuple_size)]
                 print('Name of pred cols is:')
                 print(predictions_cols)
                 print()
@@ -310,7 +308,7 @@ class _BaseRun:
                 print(test_df.head(4))
                 test_df[predictions_cols] = pd.DataFrame(test_df[self.predictions_col].tolist(), index=test_df.index)
 
-                residuals_cols = [self.residuals_col+'_'+str(i) for i in range(tuple_size)]
+                residuals_cols = [self.residuals_col + '_' + str(i) for i in range(tuple_size)]
                 print('Name of residuals cols is:')
                 print(residuals_cols)
                 print()
@@ -410,16 +408,19 @@ class _BaseRun:
         elif self.run_type == Names.REGRESSION:
 
             # Check if the output column is a tuple, if it is, we need to iterate over each instance and compute residual for each element in the tple
-            if isinstance(self.testing_data_predictions[self.target_col].iloc[0],Iterable) and not isinstance(self.testing_data_predictions[self.target_col].iloc[0],str):
+            if isinstance(self.testing_data_predictions[self.target_col].iloc[0], Iterable) and not isinstance(
+                    self.testing_data_predictions[self.target_col].iloc[0], str):
                 tuple_size = len(self.testing_data_predictions[self.target_col].iloc[0])
 
-                #Expand the dataframe
+                # Expand the dataframe
                 target_cols = [self.target_col + '_' + str(i) for i in range(tuple_size)]
-                self.testing_data_predictions[target_cols] = pd.DataFrame(self.testing_data_predictions[self.target_col].tolist(), index=self.testing_data_predictions.index)
+                self.testing_data_predictions[target_cols] = pd.DataFrame(self.testing_data_predictions[self.target_col].tolist(),
+                                                                          index=self.testing_data_predictions.index)
                 predictions_cols = [self.predictions_col + '_' + str(i) for i in range(tuple_size)]
-                self.testing_data_predictions[predictions_cols] = pd.DataFrame(self.testing_data_predictions[self.predictions_col].tolist(), index=self.testing_data_predictions.index)
+                self.testing_data_predictions[predictions_cols] = pd.DataFrame(self.testing_data_predictions[self.predictions_col].tolist(),
+                                                                               index=self.testing_data_predictions.index)
 
-                #Compute metrics for each task
+                # Compute metrics for each task
                 rmse_list = []
                 rsq_list = []
                 for i in range(tuple_size):
@@ -427,9 +428,9 @@ class _BaseRun:
                         mean_squared_error(self.testing_data_predictions[target_cols[i]],
                                            self.testing_data_predictions[predictions_cols[i]]))
                     rsq_list.append(r2_score(self.testing_data_predictions[target_cols[i]],
-                                                                  self.testing_data_predictions[predictions_cols[i]]))
+                                             self.testing_data_predictions[predictions_cols[i]]))
 
-                #Set the metrics into tuples
+                # Set the metrics into tuples
                 self.metrics_dict[Names.RMSE] = zip(rmse_list)
                 self.metrics_dict[Names.R_SQUARED] = zip(rsq_list)
                 if self.custom_metric:
