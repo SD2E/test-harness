@@ -98,7 +98,7 @@ def DE_Embedding_Regression_with_network_reg(num_tokens, num_condition_cols, emb
     de_prediction_layer = Dense(1, activation='linear', name='de_pred')(gene_cond)
 
     # Create model
-    model = Model(inputs=[input_row_1, input_row_2, cond], outputs=[gene_network, de_prediction_layer])
+    model = Model(inputs=[input_row_1, input_row_2, cond], outputs=[de_prediction_layer, gene_network])
 
     model.compile(loss={'network_embedding': 'binary_crossentropy',
                         'de_pred': 'mean_absolute_error'}, optimizer=Adam(lr=learning_rate),
