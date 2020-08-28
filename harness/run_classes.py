@@ -315,7 +315,7 @@ class _BaseRun:
                 print()
                 for i in range(tuple_size):
                     test_df[residuals_cols[i]] = test_df[target_cols[i]] - test_df[predictions_cols[i]]
-
+                test_df[self.residuals_col] = list(zip(*[test_df[x] for x in residuals_cols]))
             else:
                 test_df[self.residuals_col] = test_df[self.target_col] - test_df[self.predictions_col]
         else:
