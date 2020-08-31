@@ -631,10 +631,16 @@ class TestHarness:
 
         leaderboard = leaderboard.reindex(row_of_results.columns, axis=1)  # reindex will correct col order in case a new col is added
         if run_object.run_type == Names.CLASSIFICATION:
-            leaderboard.sort_values(self.metric_to_sort_classification_results_by, inplace=True, ascending=False)
+            try:
+                leaderboard.sort_values(self.metric_to_sort_classification_results_by, inplace=True, ascending=False)
+            except Exception:
+                pass
         elif run_object.run_type == Names.REGRESSION:
             # print(leaderboard[self.metric_to_sort_regression_results_by].value_counts(dropna=False))
-            leaderboard.sort_values(self.metric_to_sort_regression_results_by, inplace=True, ascending=False)
+            try:
+                leaderboard.sort_values(self.metric_to_sort_regression_results_by, inplace=True, ascending=False)
+            except Exception:
+                pass
         else:
             raise TypeError("run_object.run_type must equal '{}' or '{}'".format(Names.CLASSIFICATION, Names.REGRESSION))
         leaderboard.reset_index(inplace=True, drop=True)
@@ -644,6 +650,16 @@ class TestHarness:
         if self.output_csvs_of_leaderboards is True:
             csv_path = os.path.join(self.results_folder_path, "{}.csv".format(leaderboard_name))
             leaderboard.to_csv(csv_path, index=False)
+
+    def _get_metric_results(self, metrics_list, run_object):
+        metric_results = {}
+        for metric in metrics_list:
+            value = run_object.metrics_dict[metric]
+            try:
+                metric_results[metric] = round(value, 3)
+            except:
+                metric_results[metric] = tuple(round(x, 3) for x in value)
+        return metric_results
 
     def _create_row_entry(self, run_object):
 
@@ -659,13 +675,13 @@ class TestHarness:
                       Names.WAS_UNTESTED_PREDICTED: run_object.was_untested_data_predicted}
         if run_object.run_type == Names.CLASSIFICATION:
             # extract relevant metrics from run_object.metrics_dict and round to 3rd decimal place:
-            metric_results = {metric: round(run_object.metrics_dict[metric], 3) for metric in self.classification_metrics}
+            metric_results = self._get_metric_results(self.classification_metrics, run_object)
             row_values.update(metric_results)
             row_of_results = pd.DataFrame(columns=self.custom_classification_leaderboard_cols)
             row_of_results = row_of_results.append(row_values, ignore_index=True, sort=False)
         elif run_object.run_type == Names.REGRESSION:
             # extract relevant metrics from run_object.metrics_dict and round to 3rd decimal place:
-            metric_results = {metric: round(run_object.metrics_dict[metric], 3) for metric in self.regression_metrics}
+            metric_results = self._get_metric_results(self.regression_metrics, run_object)
             row_values.update(metric_results)
             row_of_results = pd.DataFrame(columns=self.custom_regression_leaderboard_cols)
             row_of_results = row_of_results.append(row_values, ignore_index=True, sort=False)
