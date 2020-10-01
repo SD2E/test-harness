@@ -122,24 +122,19 @@ class _BaseRun:
         if self.feature_cols_to_normalize is None:
             raise ValueError("feature_cols_to_normalize must be a list of column names if you are trying to normalize the data.")
 
-        train_df = self.training_data.copy()
-        test_df = self.testing_data.copy()
-
         print("Normalizing training and testing splits...")
         if (self.normalize is True) or (self.normalize == "StandardScaler"):
-            scaler = preprocessing.StandardScaler().fit(train_df[self.feature_cols_to_normalize])
+            scaler = preprocessing.StandardScaler().fit(self.training_data[self.feature_cols_to_normalize])
         elif self.normalize == "MinMax":
-            scaler = preprocessing.MinMaxScaler().fit(train_df[self.feature_cols_to_normalize])
+            scaler = preprocessing.MinMaxScaler().fit(self.training_data[self.feature_cols_to_normalize])
         else:
             raise ValueError("normalize must have a value of True, 'StandardScaler', or 'MinMax'")
 
         # saving fitted scaler as an instance variable. In test_harness_class.py this variable will be saved via joblib.
         self.normalization_scaler_object = scaler
 
-        train_df[self.feature_cols_to_normalize] = scaler.transform(train_df[self.feature_cols_to_normalize])
-        test_df[self.feature_cols_to_normalize] = scaler.transform(test_df[self.feature_cols_to_normalize])
-        self.training_data = train_df.copy()
-        self.testing_data = test_df.copy()
+        self.training_data[self.feature_cols_to_normalize] = scaler.transform(self.training_data[self.feature_cols_to_normalize])
+        self.testing_data[self.feature_cols_to_normalize] = scaler.transform(self.testing_data[self.feature_cols_to_normalize])
 
         # Normalizing untested dataset if applicable
         if self.predict_untested_data is not False:
