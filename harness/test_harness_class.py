@@ -413,7 +413,7 @@ class TestHarness:
         assert isinstance(description, string_types), "description must be a string"
         assert isinstance(target_col, string_types), "target_col must be a string"
         assert is_list_of_strings(feature_cols_to_use), "feature_cols_to_use must be a string or a list of strings"
-        assert isinstance(normalize, bool), "normalize must be True or False"
+        # assert isinstance(normalize, bool), "normalize must be True or False"
         assert (feature_cols_to_normalize is None) or is_list_of_strings(feature_cols_to_normalize), \
             "feature_cols_to_normalize must be None, a string, or a list of strings"
         assert isinstance(feature_extraction, bool) or (feature_extraction in self.valid_feature_extraction_methods), \
