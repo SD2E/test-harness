@@ -23,7 +23,7 @@ rocklins_cols_to_use_per_topology_dict = {'HHH': rocklins_features, 'EHEE': rock
 def logistic_classifier(penalty='l1', C=0.1, n_join=-1,solver='liblinear'):
     logistic_model = LogisticRegression(penalty=penalty, C=C, n_jobs=n_join,solver=solver)
     th_model = SklearnClassification(model=logistic_model, model_author='Hamed',
-                                     model_description=f"Rocklin Logistic: penalty={penalty}, C={C} and solver={solver}")
+                                     model_description=f"Logistic: penalty={penalty}, C={C} and solver={solver}")
     return th_model
 
 
