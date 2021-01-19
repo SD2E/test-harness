@@ -123,7 +123,7 @@ def main(args):
 
     th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train_split,
                   testing_data=test_split,
-                  data_and_split_description="example argparse custom run on Rocklin data, split = {}".format(data_split_number),
+                  description="example argparse custom run on Rocklin data, split = {}".format(data_split_number),
                   cols_to_predict='stabilityscore_2classes',
                   feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
                   feature_extraction=False, predict_untested_data=False)

@@ -92,7 +92,7 @@ def main():
 
     # custom run with a custom train/test split
     th.run_custom(function_that_returns_TH_model=random_forest_classification, dict_of_function_parameters={}, training_data=train_df,
-                  testing_data=test_df, data_and_split_description="example custom run on the Rocklin dataset",
+                  testing_data=test_df, description="example custom run on the Rocklin dataset",
                   cols_to_predict='stabilityscore_cnn_calibrated_2classes', feature_cols_to_use=feature_cols,
                   index_cols=["dataset", "name"], normalize=True, feature_cols_to_normalize=feature_cols, feature_extraction=False,
                   predict_untested_data=False)

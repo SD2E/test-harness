@@ -51,10 +51,10 @@ def main():
     th = TestHarness(output_location=examples_folder_path)
 
     th.run_custom(function_that_returns_TH_model=label_propagation_classification, dict_of_function_parameters={'kernel':kernel}, training_data=train1,
-                  testing_data=test1, data_and_split_description="Testing label propagation with iris dataset",
-                  cols_to_predict=cols_to_predict,index_cols=feature_cols+cols_to_predict,
+                  testing_data=test1, description="Testing label propagation with iris dataset",
+                  cols_to_predict=cols_to_predict, index_cols=feature_cols+cols_to_predict,
                   feature_cols_to_use=feature_cols, normalize=True, feature_cols_to_normalize=feature_cols,
-                  feature_extraction=False, predict_untested_data=False,sparse_cols_to_use=None)
+                  feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None)
 
 
 

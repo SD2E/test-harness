@@ -2,13 +2,13 @@ import os
 import pandas as pd
 from pathlib import Path
 import joblib
-from tests.check_harness_outputs_vs_inputs import compare_cols_of_two_equally_shaped_dataframes
+from tests.test_alignment_of_outputs_vs_inputs import compare_cols_of_two_equally_shaped_dataframes
 
 
 def main():
     pd.set_option('display.max_columns', 500)
     pd.set_option('display.width', 10000)
-    pd.set_option('display.max_colwidth', -1)
+    pd.set_option('display.max_colwidth', None)
 
     VERSIONED_DATA = os.path.join(Path(__file__).resolve().parents[2], 'versioned-datasets/data')
 

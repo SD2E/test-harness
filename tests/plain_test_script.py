@@ -12,15 +12,16 @@ from harness.th_model_instances.hamed_models.random_forest_regression import ran
 from harness.th_model_instances.hamed_models.rocklin_models import rocklins_linear_regression
 import numpy as np
 
-def err(y,y_hat):
-    return np.sqrt(np.mean(abs(y_hat-y)**2))
+
+def err(y, y_hat):
+    return np.sqrt(np.mean(abs(y_hat - y) ** 2))
+
 
 def main():
     # Reading in data from versioned-datasets repo.
     # Using the versioned-datasets repo is probably what most people want to do, but you can read in your data however you like.
     protein_data = pd.read_csv('test-harness/example_scripts/Data_Sharing_Demo/rocklin_dataset_simplified.csv',
-                                comment='#', low_memory=False, nrows = 100)
-
+                               comment='#', low_memory=False, nrows=100)
 
     regression_prediction_col = "stabilityscore_cnn_calibrated"
     classification_prediction_col = "stabilityscore_cnn_calibrated_2classes"
@@ -34,12 +35,13 @@ def main():
 
     th.run_custom(function_that_returns_TH_model=random_forest_regression, dict_of_function_parameters={},
                   training_data=train_df, testing_data=test_df,
-                  data_and_split_description="Demo Run on Rocklin dataset",
-                  cols_to_predict=regression_prediction_col,
+                  description="Demo Run on Rocklin dataset",
+                  target_cols=regression_prediction_col,
                   feature_cols_to_use=feature_columns,
                   index_cols=["dataset", "name"],
                   normalize=True, feature_cols_to_normalize=feature_columns,
                   feature_extraction=False, predict_untested_data=False)
+
 
 if __name__ == '__main__':
     main()

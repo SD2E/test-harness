@@ -135,10 +135,10 @@ def main():
                 th = TestHarness(output_location=examples_folder_path)
                 try:
                     th.run_custom(function_that_returns_TH_model=label_propagation_classification, dict_of_function_parameters={'kernel':'graph'}, training_data=adj_train1,
-                                  testing_data=adj_test1, data_and_split_description=description,
-                                  cols_to_predict=cols_to_predict,index_cols=adj_train1.index.to_list(),
+                                  testing_data=adj_test1, description=description,
+                                  cols_to_predict=cols_to_predict, index_cols=adj_train1.index.to_list(),
                                   feature_cols_to_use=adj_train1.index.to_list(), normalize=False, feature_cols_to_normalize=None,
-                                  feature_extraction=False, predict_untested_data=False,sparse_cols_to_use=None)
+                                  feature_extraction=False, predict_untested_data=False, sparse_cols_to_use=None)
                 except:
                     #ask Hamed how to write things out to file
                     investigate.append(description)
