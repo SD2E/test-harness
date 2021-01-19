@@ -82,6 +82,8 @@ class _BaseRun:
             self.model = self.test_harness_model.model
         else:
             self.model = self.test_harness_model
+            self.training_data = training_data.copy()
+            self.testing_data = testing_data.copy()
         self.model_type = str(type(self.model)).split(".", 1)[0].split("'", 1)[1]
 
         self.description = description
@@ -113,12 +115,9 @@ class _BaseRun:
         self.interpret_complex_model = interpret_complex_model
         self.model_interpretation_img = None
 
-<<<<<<< HEAD
-=======
         if self.sparse_cols_to_use:
             self._add_sparse_cols()
 
->>>>>>> e4c7c255b3ef65267301f9cd12de74d0faa6f030
     def _normalize_dataframes(self):
         warnings.simplefilter('ignore', DataConversionWarning)
 
