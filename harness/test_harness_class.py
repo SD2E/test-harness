@@ -117,7 +117,7 @@ class TestHarness:
         run_id_of_saved_model = 'run_' + run_id_of_saved_model
         run_id_folder_path_of_saved_model = os.path.join(self.runs_folder_path, run_id_of_saved_model)
         if sparse_cols_to_use != None:
-            assert (training_data != None) and (testing_data != None), 'training_data and testing_data must be provided to identify the encoding methods for the sparse cols'
+            assert (training_data is not None) and (testing_data is not None), 'training_data and testing_data must be provided to identify the encoding methods for the sparse cols'
                 
         run_object = _BaseRun(test_harness_model=run_id_folder_path_of_saved_model, training_data=training_data, testing_data=testing_data,
                               description=None, target_col=target_col, feature_cols_to_use=copy(feature_cols_to_use),
