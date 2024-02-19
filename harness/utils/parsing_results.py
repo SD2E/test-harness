@@ -84,10 +84,11 @@ def get_classification_results_query(query, th_output_location, loo=False, file_
     dfs = []
     for path in paths:
         df = pd.read_csv(path)
-        if correct:
-            df = df.loc[(df[target_col[0]] == df[target_col[0] + '_predictions'])]
-        else:
-            df = df.loc[~(df[target_col[0]] == df[target_col[0] + '_predictions'])]
+        if isinstance(correct,bool):
+            if correct:
+                df = df.loc[(df[target_col[0]] == df[target_col[0] + '_predictions'])]
+            else:
+                df = df.loc[~(df[target_col[0]] == df[target_col[0] + '_predictions'])]
         if loo:
             df['loo_id'] = paths[path]['loo_id']
         df['run_id'] = paths[path]['run_id']

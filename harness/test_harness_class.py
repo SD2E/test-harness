@@ -619,7 +619,7 @@ class TestHarness:
             print()
 
         # update leaderboard with new entry (row_of_results) and sort it based on run type
-        leaderboard = leaderboard.append(row_of_results, ignore_index=True, sort=False)  # sort=False prevents columns from reordering
+        leaderboard = pd.concat([leaderboard,row_of_results], ignore_index=True)  # sort=False prevents columns from reordering
 
         # If the custom metric is changed or removed,
         # then make sure you put NaN in the slot that you had before so that you don't lose that column
@@ -678,13 +678,16 @@ class TestHarness:
             metric_results = self._get_metric_results(self.classification_metrics, run_object)
             row_values.update(metric_results)
             row_of_results = pd.DataFrame(columns=self.custom_classification_leaderboard_cols)
-            row_of_results = row_of_results.append(row_values, ignore_index=True, sort=False)
+            row_of_results = pd.concat([row_of_results,pd.DataFrame(row_values)], ignore_index=True)
         elif run_object.run_type == Names.REGRESSION:
             # extract relevant metrics from run_object.metrics_dict and round to 3rd decimal place:
             metric_results = self._get_metric_results(self.regression_metrics, run_object)
             row_values.update(metric_results)
             row_of_results = pd.DataFrame(columns=self.custom_regression_leaderboard_cols)
-            row_of_results = row_of_results.append(row_values, ignore_index=True, sort=False)
+            if len(row_of_results)==0:
+                row_of_results = pd.DataFrame(row_values,index=[0])
+            else:
+                row_of_results = pd.concat([row_of_results,pd.DataFrame(row_values)], ignore_index=True)
         else:
             raise ValueError("run_object.run_type must be {} or {}".format(Names.REGRESSION, Names.CLASSIFICATION))
         return row_of_results
