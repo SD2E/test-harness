@@ -681,7 +681,7 @@ class TestHarness:
             row_of_results = pd.DataFrame(columns=self.custom_classification_leaderboard_cols)
             if len(row_of_results)==0:
                 row_of_results = pd.DataFrame(row_values,index=[0])
-            row_of_results = pd.concat([row_of_results,pd.DataFrame(row_values)], ignore_index=True)
+            row_of_results = pd.concat([row_of_results,pd.DataFrame(row_values,index=[0])], ignore_index=True)
         elif run_object.run_type == Names.REGRESSION:
             # extract relevant metrics from run_object.metrics_dict and round to 3rd decimal place:
             metric_results = self._get_metric_results(self.regression_metrics, run_object)

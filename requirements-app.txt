@@ -4,7 +4,7 @@ keras
 tensorflow
 pandas
 tabulate
-sklearn
+scikit-learn
 lxml
 pyyaml
 requests
