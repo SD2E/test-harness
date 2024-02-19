@@ -109,19 +109,20 @@ class TestHarness:
         print()
 
     def predict_only(self, run_id_of_saved_model, data_to_predict, index_cols, target_col, feature_cols_to_use,
-                     feature_cols_to_normalize, normalize=False, sparse_cols_to_use=None):
+                     feature_cols_to_normalize, normalize=False, sparse_cols_to_use=None, training_data=None, testing_data=None):
         """
-        TODO: sparse_cols_to_use
         TODO: potentially make an internal table that tracks prediction runs/outputs
           - for now it will always output the prediction to predicted_data.csv in the appropriate run folder.
         """
         run_id_of_saved_model = 'run_' + run_id_of_saved_model
         run_id_folder_path_of_saved_model = os.path.join(self.runs_folder_path, run_id_of_saved_model)
-
-        run_object = _BaseRun(test_harness_model=run_id_folder_path_of_saved_model, training_data=None, testing_data=None,
+        if sparse_cols_to_use != None:
+            assert (training_data is not None) and (testing_data is not None), 'training_data and testing_data must be provided to identify the encoding methods for the sparse cols'
+                
+        run_object = _BaseRun(test_harness_model=run_id_folder_path_of_saved_model, training_data=training_data, testing_data=testing_data,
                               description=None, target_col=target_col, feature_cols_to_use=copy(feature_cols_to_use),
                               index_cols=copy(index_cols), normalize=normalize, feature_cols_to_normalize=copy(feature_cols_to_normalize),
-                              feature_extraction=False, predict_untested_data=data_to_predict)
+                              feature_extraction=False, predict_untested_data=data_to_predict, sparse_cols_to_use=sparse_cols_to_use)
 
         # call run object methods
         start = time.time()

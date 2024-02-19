@@ -82,6 +82,8 @@ class _BaseRun:
             self.model = self.test_harness_model.model
         else:
             self.model = self.test_harness_model
+            self.training_data = training_data.copy()
+            self.testing_data = testing_data.copy()
         self.model_type = str(type(self.model)).split(".", 1)[0].split("'", 1)[1]
 
         self.description = description
